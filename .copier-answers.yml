@@ -1,0 +1,16 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.5.0
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: konrad.jelen@gmail.com
+author_name: Stellars Henson
+has_ai_rules: false
+has_binder: false
+has_settings: false
+kind: frontend-and-server
+labextension_name: jupyterlab_basic_parquet_viewer_extension
+project_short_description: Jupyterlab extension to allow simple browsing of the parquet
+    files with basic data filtering capabilities
+python_name: jupyterlab_basic_parquet_viewer_extension
+repository: https://github.com/stellarshenson/jupyterlab_basic_parquet_viewer_extension.git
+test: true
+
