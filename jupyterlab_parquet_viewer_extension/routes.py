@@ -77,9 +77,13 @@ class ParquetMetadataHandler(APIHandler):
             # Get total row count
             total_rows = parquet_file.metadata.num_rows
 
+            # Get file size
+            file_size = abs_path.stat().st_size
+
             self.finish(json.dumps({
                 'columns': columns,
-                'totalRows': total_rows
+                'totalRows': total_rows,
+                'fileSize': file_size
             }))
 
         except Exception as e:
@@ -105,6 +109,8 @@ class ParquetDataHandler(APIHandler):
             offset = input_data.get('offset', 0)
             limit = input_data.get('limit', 500)
             filters = input_data.get('filters', {})
+            sort_by = input_data.get('sortBy', None)
+            sort_order = input_data.get('sortOrder', 'asc')
 
             if not file_path:
                 self.set_status(400)
@@ -183,6 +189,14 @@ class ParquetDataHandler(APIHandler):
                         combined_filter = pc.and_(combined_filter, expr)
 
                     table = table.filter(combined_filter)
+
+            # Apply sorting if requested
+            if sort_by and sort_by in table.column_names:
+                import pyarrow as pa
+                # Create sort indices
+                indices = pc.sort_indices(table, sort_keys=[(sort_by, "ascending" if sort_order == "asc" else "descending")])
+                # Apply sort
+                table = pc.take(table, indices)
 
             # Get total filtered rows
             total_filtered_rows = len(table)

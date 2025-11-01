@@ -88,10 +88,19 @@
   background-color: var(--jp-layout-color2);
   position: relative;
   min-width: 120px;
+  user-select: none;
+}
+
+.jp-ParquetViewer-headerCell:hover {
+  background-color: var(--jp-layout-color3);
 }
 
 .jp-ParquetViewer-headerCell:last-child {
   border-right: none;
+}
+
+.jp-ParquetViewer-headerContent {
+  display: inline-block;
 }
 
 .jp-ParquetViewer-columnName {
@@ -106,6 +115,12 @@
   font-size: var(--jp-ui-font-size0);
   font-weight: normal;
   font-style: italic;
+}
+
+.jp-ParquetViewer-sortIndicator {
+  margin-left: 4px;
+  color: var(--jp-brand-color1);
+  font-size: var(--jp-ui-font-size0);
 }
 
 /* Table Body */
@@ -146,7 +161,32 @@
   font-size: var(--jp-ui-font-size1);
   font-family: var(--jp-ui-font-family);
   z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.jp-ParquetViewer-statusLeft {
+  flex-shrink: 0;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-ParquetViewer-statusRight {
   text-align: right;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-ParquetViewer-clearFilters {
+  color: var(--jp-brand-color1) !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+.jp-ParquetViewer-clearFilters:hover {
+  color: var(--jp-brand-color1) !important;
+  text-decoration: underline !important;
 }
 
 /* Error Message */

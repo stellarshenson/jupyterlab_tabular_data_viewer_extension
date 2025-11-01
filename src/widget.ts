@@ -31,6 +31,9 @@ export class ParquetViewer extends Widget {
   private _loading = false;
   private _hasMore = true;
   private _filters: { [key: string]: IFilterSpec } = {};
+  private _sortBy: string | null = null;
+  private _sortOrder: 'asc' | 'desc' = 'asc';
+  private _fileSize = 0;
 
   private _tableContainer: HTMLDivElement;
   private _table: HTMLTableElement;
@@ -39,6 +42,8 @@ export class ParquetViewer extends Widget {
   private _filterRow: HTMLTableRowElement;
   private _headerRow: HTMLTableRowElement;
   private _statusBar: HTMLDivElement;
+  private _statusLeft: HTMLDivElement;
+  private _statusRight: HTMLDivElement;
 
   constructor(filePath: string) {
     super();
@@ -77,6 +82,15 @@ export class ParquetViewer extends Widget {
     // Create status bar
     this._statusBar = document.createElement('div');
     this._statusBar.className = 'jp-ParquetViewer-statusBar';
+
+    this._statusLeft = document.createElement('div');
+    this._statusLeft.className = 'jp-ParquetViewer-statusLeft';
+
+    this._statusRight = document.createElement('div');
+    this._statusRight.className = 'jp-ParquetViewer-statusRight';
+
+    this._statusBar.appendChild(this._statusLeft);
+    this._statusBar.appendChild(this._statusRight);
     this._tableContainer.appendChild(this._statusBar);
 
     this.node.appendChild(this._tableContainer);
@@ -113,8 +127,10 @@ export class ParquetViewer extends Widget {
 
     this._columns = response.columns;
     this._totalRows = response.totalRows;
+    this._fileSize = response.fileSize || 0;
 
     this._renderHeaders();
+    this._updateStatusBar();
   }
 
   /**
@@ -141,7 +157,9 @@ export class ParquetViewer extends Widget {
           path: this._filePath,
           offset: this._currentOffset,
           limit: this._limit,
-          filters: this._filters
+          filters: this._filters,
+          sortBy: this._sortBy,
+          sortOrder: this._sortOrder
         })
       });
 
@@ -193,6 +211,16 @@ export class ParquetViewer extends Widget {
       // Create header cell with column name and type
       const headerCell = document.createElement('th');
       headerCell.className = 'jp-ParquetViewer-headerCell';
+      headerCell.style.cursor = 'pointer';
+      headerCell.dataset.columnName = col.name;
+
+      // Add click handler for sorting
+      headerCell.addEventListener('click', () => {
+        this._toggleSort(col.name);
+      });
+
+      const headerContent = document.createElement('div');
+      headerContent.className = 'jp-ParquetViewer-headerContent';
 
       const nameSpan = document.createElement('div');
       nameSpan.className = 'jp-ParquetViewer-columnName';
@@ -200,10 +228,16 @@ export class ParquetViewer extends Widget {
 
       const typeSpan = document.createElement('div');
       typeSpan.className = 'jp-ParquetViewer-columnType';
-      typeSpan.textContent = col.type;
+      typeSpan.textContent = this._simplifyType(col.type);
 
-      headerCell.appendChild(nameSpan);
-      headerCell.appendChild(typeSpan);
+      const sortIndicator = document.createElement('span');
+      sortIndicator.className = 'jp-ParquetViewer-sortIndicator';
+      sortIndicator.textContent = '';
+
+      headerContent.appendChild(nameSpan);
+      headerContent.appendChild(typeSpan);
+      headerCell.appendChild(headerContent);
+      headerCell.appendChild(sortIndicator);
       this._headerRow.appendChild(headerCell);
     });
   }
@@ -265,6 +299,66 @@ export class ParquetViewer extends Widget {
   }
 
   /**
+   * Simplify type names for display
+   */
+  private _simplifyType(type: string): string {
+    const lowerType = type.toLowerCase();
+
+    // Date types
+    if (lowerType.includes('date32') || lowerType.includes('date64')) {
+      return 'date';
+    }
+
+    // Timestamp/datetime types
+    if (lowerType.includes('timestamp')) {
+      return 'datetime';
+    }
+
+    // Integer types
+    if (lowerType.match(/^u?int(8|16|32|64)$/)) {
+      return 'int';
+    }
+
+    // Float types
+    if (lowerType.match(/^(float|double)(16|32|64)?$/)) {
+      return 'float';
+    }
+
+    // Decimal types
+    if (lowerType.includes('decimal')) {
+      return 'decimal';
+    }
+
+    // Boolean
+    if (lowerType === 'bool') {
+      return 'boolean';
+    }
+
+    // String types
+    if (lowerType === 'string' || lowerType === 'utf8' || lowerType === 'large_string' || lowerType === 'large_utf8') {
+      return 'string';
+    }
+
+    // Binary types
+    if (lowerType === 'binary' || lowerType === 'large_binary') {
+      return 'binary';
+    }
+
+    // List types
+    if (lowerType.startsWith('list')) {
+      return 'list';
+    }
+
+    // Struct types
+    if (lowerType.startsWith('struct')) {
+      return 'struct';
+    }
+
+    // Default: return as-is
+    return type;
+  }
+
+  /**
    * Check if column type is numeric
    */
   private _isNumericType(type: string): boolean {
@@ -297,15 +391,107 @@ export class ParquetViewer extends Widget {
   }
 
   /**
+   * Toggle sort on a column
+   */
+  private _toggleSort(columnName: string): void {
+    if (this._sortBy === columnName) {
+      // Cycle through: asc -> desc -> off
+      if (this._sortOrder === 'asc') {
+        this._sortOrder = 'desc';
+      } else if (this._sortOrder === 'desc') {
+        // Turn off sorting
+        this._sortBy = null;
+        this._sortOrder = 'asc';
+      }
+    } else {
+      // Sort by new column (ascending)
+      this._sortBy = columnName;
+      this._sortOrder = 'asc';
+    }
+
+    this._updateSortIndicators();
+    this._loadData(true);
+  }
+
+  /**
+   * Update sort indicators in column headers
+   */
+  private _updateSortIndicators(): void {
+    const headers = this._headerRow.querySelectorAll('th');
+    headers.forEach(header => {
+      const columnName = header.dataset.columnName;
+      const indicator = header.querySelector('.jp-ParquetViewer-sortIndicator') as HTMLElement;
+
+      if (columnName === this._sortBy) {
+        indicator.textContent = this._sortOrder === 'asc' ? ' ▲' : ' ▼';
+      } else {
+        indicator.textContent = '';
+      }
+    });
+  }
+
+  /**
+   * Clear all filters
+   */
+  private _clearFilters(): void {
+    this._filters = {};
+
+    // Clear filter inputs
+    const filterInputs = this._filterRow.querySelectorAll('input');
+    filterInputs.forEach(input => {
+      (input as HTMLInputElement).value = '';
+    });
+
+    this._loadData(true);
+  }
+
+  /**
+   * Format file size to human-readable string
+   */
+  private _formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  /**
    * Update status bar
    */
   private _updateStatusBar(message?: string): void {
     if (message) {
-      this._statusBar.textContent = message;
+      this._statusLeft.textContent = '';
+      this._statusRight.textContent = message;
     } else {
+      // Left side: file stats
+      const numColumns = this._columns.length;
+      const fileSize = this._formatFileSize(this._fileSize);
+      this._statusLeft.textContent = `${numColumns} columns • ${this._totalRows} rows • ${fileSize}`;
+
+      // Right side: showing info and clear filters link
       const filterCount = Object.keys(this._filters).length;
-      const filterText = filterCount > 0 ? ` (${filterCount} filter${filterCount > 1 ? 's' : ''} active)` : '';
-      this._statusBar.textContent = `Showing ${this._data.length} of ${this._totalRows} rows${filterText}`;
+      let rightText = `Showing ${this._data.length} of ${this._totalRows} rows`;
+
+      if (filterCount > 0) {
+        rightText += ` (${filterCount} filter${filterCount > 1 ? 's' : ''} active)`;
+      }
+
+      this._statusRight.innerHTML = rightText;
+
+      if (filterCount > 0) {
+        const clearLink = document.createElement('a');
+        clearLink.href = '#';
+        clearLink.className = 'jp-ParquetViewer-clearFilters';
+        clearLink.textContent = 'Clear filters';
+        clearLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          this._clearFilters();
+        });
+
+        this._statusRight.appendChild(document.createTextNode(' • '));
+        this._statusRight.appendChild(clearLink);
+      }
     }
   }
 
