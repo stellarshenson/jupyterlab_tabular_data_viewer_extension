@@ -3,8 +3,8 @@
 ![GitHub Actions](https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension/actions/workflows/build.yml/badge.svg)
 [![npm version](https://badge.fury.io/js/jupyterlab_parquet_viewer_extension.svg)](https://www.npmjs.com/package/jupyterlab_parquet_viewer_extension)
 [![PyPI version](https://badge.fury.io/py/jupyterlab-parquet-viewer-extension.svg)](https://pypi.org/project/jupyterlab-parquet-viewer-extension/)
-[![PyPI downloads](https://static.pepy.tech/badge/jupyterlab-parquet-viewer-extension)](https://pepy.tech/project/jupyterlab-parquet-viewer-extension)
-![PyPI downloads/month](https://img.shields.io/pypi/dm/jupyterlab-parquet-viewer-extension?label=PyPI%20downloads/month)
+[![Total PyPI downloads](https://static.pepy.tech/badge/jupyterlab-parquet-viewer-extension)](https://pepy.tech/project/jupyterlab-parquet-viewer-extension)
+![PyPI downloads](https://img.shields.io/pypi/dm/jupyterlab-parquet-viewer-extension?label=PyPI%20downloads)
 ![JL4 Ready](https://img.shields.io/badge/Jupyterlab%204-ready-blue)
 
 View and browse Parquet files directly in JupyterLab. Double-click any .parquet file to open it in a simple, spreadsheet-like table view - no code required. Navigate through your data, inspect values, and explore the structure of your columnar data files.
