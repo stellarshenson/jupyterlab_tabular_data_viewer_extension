@@ -1,6 +1,6 @@
 # jupyterlab_basic_parquet_viewer_extension
 
-[![Github Actions Status](https://github.com/stellarshenson/jupyterlab_basic_parquet_viewer_extension.git/workflows/Build/badge.svg)](https://github.com/stellarshenson/jupyterlab_basic_parquet_viewer_extension.git/actions/workflows/build.yml)
+[![Github Actions Status](https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension.git/workflows/Build/badge.svg)](https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension.git/actions/workflows/build.yml)
 
 This JupyterLab extension enables interactive browsing of Parquet files directly within your notebook environment with basic data filtering capabilities. Working with columnar data formats like Parquet often requires switching between multiple tools or writing custom code just to preview file contents. This extension eliminates that friction by providing a native viewer integrated into JupyterLab's interface.
 
