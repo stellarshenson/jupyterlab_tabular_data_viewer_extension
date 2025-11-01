@@ -1,5 +1,187 @@
 /*
-    See the JupyterLab Developer Guide for useful CSS Patterns:
-
-    https://jupyterlab.readthedocs.io/en/stable/developer/css.html
+    Parquet Viewer Styles using JupyterLab theme variables
 */
+
+.jp-ParquetViewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--jp-layout-color1);
+}
+
+.jp-ParquetViewer-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background-color: var(--jp-layout-color1);
+}
+
+.jp-ParquetViewer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  line-height: var(--jp-code-line-height);
+  color: var(--jp-ui-font-color1);
+}
+
+/* Table Header */
+.jp-ParquetViewer-thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--jp-layout-color2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Filter Row */
+.jp-ParquetViewer-filterRow {
+  background-color: var(--jp-layout-color2);
+}
+
+.jp-ParquetViewer-filterCell {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--jp-border-color1);
+  border-right: 1px solid var(--jp-border-color2);
+}
+
+.jp-ParquetViewer-filterCell:last-child {
+  border-right: none;
+}
+
+.jp-ParquetViewer-filterInput {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 2px;
+  background-color: var(--jp-input-background);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  box-sizing: border-box;
+}
+
+.jp-ParquetViewer-filterInput:focus {
+  outline: none;
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+.jp-ParquetViewer-filterInput::placeholder {
+  color: var(--jp-ui-font-color3);
+  font-style: italic;
+}
+
+/* Header Row */
+.jp-ParquetViewer-headerRow {
+  background-color: var(--jp-layout-color2);
+}
+
+.jp-ParquetViewer-headerCell {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid var(--jp-border-color1);
+  border-right: 1px solid var(--jp-border-color2);
+  background-color: var(--jp-layout-color2);
+  position: relative;
+  min-width: 120px;
+}
+
+.jp-ParquetViewer-headerCell:last-child {
+  border-right: none;
+}
+
+.jp-ParquetViewer-columnName {
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
+  margin-bottom: 2px;
+  word-break: break-word;
+}
+
+.jp-ParquetViewer-columnType {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+  font-weight: normal;
+  font-style: italic;
+}
+
+/* Table Body */
+.jp-ParquetViewer-tbody {
+  background-color: var(--jp-layout-color1);
+}
+
+.jp-ParquetViewer-row {
+  border-bottom: 1px solid var(--jp-border-color2);
+}
+
+.jp-ParquetViewer-row:hover {
+  background-color: var(--jp-layout-color2);
+}
+
+.jp-ParquetViewer-cell {
+  padding: 6px 12px;
+  border-right: 1px solid var(--jp-border-color2);
+  color: var(--jp-ui-font-color1);
+  word-break: break-word;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jp-ParquetViewer-cell:last-child {
+  border-right: none;
+}
+
+/* Status Bar */
+.jp-ParquetViewer-statusBar {
+  position: sticky;
+  bottom: 0;
+  padding: 8px 12px;
+  background-color: var(--jp-layout-color2);
+  border-top: 1px solid var(--jp-border-color1);
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size1);
+  font-family: var(--jp-ui-font-family);
+  z-index: 10;
+  text-align: right;
+}
+
+/* Error Message */
+.jp-ParquetViewer-error {
+  padding: 16px;
+  color: var(--jp-error-color1);
+  text-align: center;
+  font-style: italic;
+}
+
+/* Dark theme adjustments */
+[data-jp-theme-light='false'] .jp-ParquetViewer-table {
+  color: var(--jp-ui-font-color1);
+}
+
+[data-jp-theme-light='false'] .jp-ParquetViewer-filterInput {
+  background-color: var(--jp-input-background);
+  color: var(--jp-ui-font-color0);
+}
+
+/* Scrollbar styling for webkit browsers */
+.jp-ParquetViewer-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.jp-ParquetViewer-container::-webkit-scrollbar-track {
+  background: var(--jp-layout-color1);
+}
+
+.jp-ParquetViewer-container::-webkit-scrollbar-thumb {
+  background: var(--jp-border-color2);
+  border-radius: 5px;
+}
+
+.jp-ParquetViewer-container::-webkit-scrollbar-thumb:hover {
+  background: var(--jp-border-color1);
+}
