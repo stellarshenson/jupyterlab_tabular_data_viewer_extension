@@ -62,7 +62,7 @@ export class ParquetViewer extends Widget {
     this._setLastContextMenuRow = setLastContextMenuRow;
     this.addClass('jp-ParquetViewer');
 
-    // Create main container
+    // Create table container (scrollable)
     this._tableContainer = document.createElement('div');
     this._tableContainer.className = 'jp-ParquetViewer-container';
 
@@ -91,7 +91,7 @@ export class ParquetViewer extends Widget {
     this._table.appendChild(this._tbody);
     this._tableContainer.appendChild(this._table);
 
-    // Create status bar
+    // Create status bar (outside scroll container)
     this._statusBar = document.createElement('div');
     this._statusBar.className = 'jp-ParquetViewer-statusBar';
 
@@ -147,9 +147,10 @@ export class ParquetViewer extends Widget {
     this._statusBar.appendChild(this._statusLeft);
     this._statusBar.appendChild(statusMiddle);
     this._statusBar.appendChild(this._statusRight);
-    this._tableContainer.appendChild(this._statusBar);
 
+    // Append table container and status bar directly to widget node
     this.node.appendChild(this._tableContainer);
+    this.node.appendChild(this._statusBar);
 
     // Set up scroll listener for progressive loading
     this._tableContainer.addEventListener('scroll', () => {
@@ -373,14 +374,20 @@ export class ParquetViewer extends Widget {
       });
       headerCell.appendChild(resizeHandle);
 
-      // Apply stored width if available
-      if (this._columnWidths.has(col.name)) {
-        headerCell.style.width = `${this._columnWidths.get(col.name)}px`;
-        filterCell.style.width = `${this._columnWidths.get(col.name)}px`;
+      // Set width - use stored width or default to 200px
+      const columnWidth = this._columnWidths.get(col.name) || 200;
+      if (!this._columnWidths.has(col.name)) {
+        this._columnWidths.set(col.name, columnWidth);
       }
+      headerCell.style.width = `${columnWidth}px`;
+      filterCell.style.width = `${columnWidth}px`;
 
       this._headerRow.appendChild(headerCell);
     });
+
+    // Set table width to sum of all column widths
+    const totalWidth = Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0);
+    this._table.style.width = `${totalWidth}px`;
   }
 
   /**
@@ -396,12 +403,6 @@ export class ParquetViewer extends Widget {
         td.className = 'jp-ParquetViewer-cell';
         const value = row[col.name];
         td.textContent = value !== null && value !== undefined ? String(value) : '';
-
-        // Apply stored column width if available
-        if (this._columnWidths.has(col.name)) {
-          td.style.width = `${this._columnWidths.get(col.name)}px`;
-        }
-
         tr.appendChild(td);
       });
 
@@ -475,7 +476,8 @@ export class ParquetViewer extends Widget {
     // Store the new width
     this._columnWidths.set(this._resizing.columnName, newWidth);
 
-    // Apply the new width to the column header and filter cell
+    // Apply the new width to the column header and filter cell only
+    // With table-layout: fixed, this automatically applies to all cells in the column
     const columnIndex = this._columns.findIndex(col => col.name === this._resizing!.columnName);
     if (columnIndex !== -1) {
       const headerCell = this._headerRow.children[columnIndex] as HTMLElement;
@@ -488,14 +490,9 @@ export class ParquetViewer extends Widget {
         filterCell.style.width = `${newWidth}px`;
       }
 
-      // Update all data cells in this column
-      const rows = this._tbody.querySelectorAll('tr');
-      rows.forEach(row => {
-        const cell = row.children[columnIndex] as HTMLElement;
-        if (cell) {
-          cell.style.width = `${newWidth}px`;
-        }
-      });
+      // Update table width to sum of all column widths
+      const totalWidth = Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0);
+      this._table.style.width = `${totalWidth}px`;
     }
   };
 

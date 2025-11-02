@@ -19,8 +19,8 @@
 }
 
 .jp-ParquetViewer-table {
-  width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-family: var(--jp-code-font-family);
   font-size: var(--jp-code-font-size);
   line-height: var(--jp-code-line-height);
@@ -130,8 +130,8 @@
 .jp-ParquetViewer-resizeHandle {
   position: absolute;
   top: 0;
-  right: -4px;
-  width: 8px;
+  right: -12px;
+  width: 24px;
   height: 100%;
   cursor: col-resize;
   z-index: 100;
@@ -170,8 +170,7 @@
 
 /* Status Bar */
 .jp-ParquetViewer-statusBar {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   padding: 8px 12px;
   background-color: var(--jp-layout-color2);
   border-top: 1px solid var(--jp-border-color1);
