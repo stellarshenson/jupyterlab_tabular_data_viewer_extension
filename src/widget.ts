@@ -26,6 +26,7 @@ export class ParquetViewer extends Widget {
   private _columns: IColumnMetadata[] = [];
   private _data: any[] = [];
   private _totalRows = 0;
+  private _unfilteredTotalRows = 0;
   private _currentOffset = 0;
   private _limit = 500;
   private _loading = false;
@@ -175,6 +176,7 @@ export class ParquetViewer extends Widget {
 
     this._columns = response.columns;
     this._totalRows = response.totalRows;
+    this._unfilteredTotalRows = response.totalRows;
     this._fileSize = response.fileSize || 0;
 
     this._renderHeaders();
@@ -514,10 +516,10 @@ export class ParquetViewer extends Widget {
       this._statusLeft.textContent = '';
       this._statusRight.textContent = message;
     } else {
-      // Left side: file stats
+      // Left side: file stats (always show unfiltered total)
       const numColumns = this._columns.length;
       const fileSize = this._formatFileSize(this._fileSize);
-      this._statusLeft.textContent = `${numColumns} columns • ${this._totalRows} rows • ${fileSize}`;
+      this._statusLeft.textContent = `${numColumns} columns • ${this._unfilteredTotalRows} rows • ${fileSize}`;
 
       // Right side: showing info and clear filters link
       const filterCount = Object.keys(this._filters).length;

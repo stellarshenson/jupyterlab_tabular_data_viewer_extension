@@ -1,15 +1,15 @@
 {
   "name": "jupyterlab_parquet_viewer_extension",
-  "version": "0.8.12",
+  "version": "1.0.0",
   "description": "Jupyterlab extension to allow simple browsing of the parquet files with basic data filtering capabilities",
   "keywords": [
     "jupyter",
     "jupyterlab",
     "jupyterlab-extension"
   ],
-  "homepage": "https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension.git",
+  "homepage": "https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension",
   "bugs": {
-    "url": "https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension.git/issues"
+    "url": "https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension/issues"
   },
   "license": "BSD-3-Clause",
   "author": {
@@ -26,7 +26,7 @@
   "style": "style/index.css",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension.git.git"
+    "url": "https://github.com/stellarshenson/jupyterlab_parquet_viewer_extension.git"
   },
   "scripts": {
     "build": "jlpm build:lib && jlpm build:labextension:dev",
@@ -113,7 +113,7 @@
     "extension": true,
     "outputDir": "jupyterlab_parquet_viewer_extension/labextension",
     "_build": {
-      "load": "static/remoteEntry.f8aed9640230b02d6455.js",
+      "load": "static/remoteEntry.535042b87a26f3eaf5c7.js",
       "extension": "./extension",
       "style": "./style"
     }
