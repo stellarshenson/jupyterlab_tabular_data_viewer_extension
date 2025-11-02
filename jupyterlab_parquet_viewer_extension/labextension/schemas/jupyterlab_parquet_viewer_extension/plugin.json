@@ -1,0 +1,20 @@
+{
+  "title": "Parquet Viewer Extension",
+  "description": "Settings for the Parquet Viewer Extension. Supports Parquet and Excel files.",
+  "type": "object",
+  "properties": {
+    "enableParquet": {
+      "title": "Enable Parquet files",
+      "description": "Use this extension to view .parquet files",
+      "type": "boolean",
+      "default": true
+    },
+    "enableExcel": {
+      "title": "Enable Excel files",
+      "description": "Use this extension to view .xlsx files",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -9,6 +9,8 @@ import {
   ABCWidgetFactory
 } from '@jupyterlab/docregistry';
 
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+
 import { ParquetViewer } from './widget';
 import { ParquetDocument } from './document';
 
@@ -37,6 +39,9 @@ class ParquetWidgetFactory extends ABCWidgetFactory<
   protected createNewWidget(
     context: DocumentRegistry.Context
   ): IDocumentWidget<ParquetViewer> {
+    console.log(`[Parquet Viewer] Creating widget for file: ${context.path}`);
+    console.log(`[Parquet Viewer] File type: ${context.contentsModel?.type}, Format: ${context.contentsModel?.format}`);
+
     const content = new ParquetViewer(context.path, this._setLastContextMenuRow);
     const widget = new ParquetDocument({ content, context });
     widget.title.label = context.path.split('/').pop() || 'Parquet File';
@@ -49,6 +54,14 @@ class ParquetWidgetFactory extends ABCWidgetFactory<
 }
 
 /**
+ * Settings interface
+ */
+interface ISettings {
+  enableParquet: boolean;
+  enableExcel: boolean;
+}
+
+/**
  * Initialization data for the jupyterlab_parquet_viewer_extension extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
@@ -56,8 +69,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description:
     'Jupyterlab extension to allow simple browsing of the parquet files with basic data filtering capabilities',
   autoStart: true,
-  requires: [],
-  activate: (app: JupyterFrontEnd) => {
+  requires: [ISettingRegistry],
+  activate: async (app: JupyterFrontEnd, settingRegistry: ISettingRegistry) => {
     console.log(
       'JupyterLab extension jupyterlab_parquet_viewer_extension is activated!'
     );
@@ -67,6 +80,31 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Track last right-clicked row for context menu
     let lastContextMenuRow: any = null;
     let activeWidget: ParquetViewer | null = null;
+
+    // Load settings
+    let settings: ISettings = {
+      enableParquet: true,
+      enableExcel: false
+    };
+
+    console.log('[Parquet Viewer] Default settings:', settings);
+
+    try {
+      console.log('[Parquet Viewer] Loading settings from registry with id:', plugin.id);
+      const pluginSettings = await settingRegistry.load(plugin.id);
+      settings = pluginSettings.composite as unknown as ISettings;
+      console.log('[Parquet Viewer] Loaded settings:', settings);
+      console.log('[Parquet Viewer] Settings detail - enableParquet:', settings.enableParquet, 'enableExcel:', settings.enableExcel);
+
+      // Watch for settings changes
+      pluginSettings.changed.connect(() => {
+        settings = pluginSettings.composite as unknown as ISettings;
+        console.log('[Parquet Viewer] Settings changed:', settings);
+      });
+    } catch (error) {
+      console.error('[Parquet Viewer] Failed to load settings:', error);
+      console.log('[Parquet Viewer] Using default settings:', settings);
+    }
 
     // Command to copy row as JSON
     const copyRowCommand = 'parquet-viewer:copy-row-json';
@@ -97,44 +135,73 @@ const plugin: JupyterFrontEndPlugin<void> = {
       rank: 10
     });
 
-    // Register the file type - mark as binary to prevent text loading
-    try {
-      docRegistry.addFileType({
-        name: 'parquet',
-        displayName: 'Parquet',
-        extensions: ['.parquet'],
-        mimeTypes: ['application/x-parquet'],
-        iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
-        contentType: 'file',
-        fileFormat: 'base64'
-      });
-      console.log('Parquet file type registered with base64 format');
-    } catch (e) {
-      console.warn('Parquet file type already registered', e);
+    // Register file types based on settings
+    console.log('[Parquet Viewer] Starting file type registration...');
+    console.log('[Parquet Viewer] Current settings state:', settings);
+    const binaryFileTypes: string[] = [];
+
+    // Register Parquet file type if enabled
+    if (settings.enableParquet) {
+      try {
+        docRegistry.addFileType({
+          name: 'parquet',
+          displayName: 'Parquet',
+          extensions: ['.parquet'],
+          mimeTypes: ['application/x-parquet'],
+          iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
+          contentType: 'file',
+          fileFormat: 'base64'
+        });
+        binaryFileTypes.push('parquet');
+        console.log('[Parquet Viewer] Parquet file type registered');
+      } catch (e) {
+        console.warn('[Parquet Viewer] Parquet file type already registered', e);
+      }
     }
 
-    // Create widget factory - use base64 model to handle binary files
-    const factory = new ParquetWidgetFactory(
-      {
-        name: 'Parquet Viewer',
-        modelName: 'base64',
-        fileTypes: ['parquet'],
-        defaultFor: ['parquet'],
-        defaultRendered: ['parquet'],
-        readOnly: true
-      },
-      (row: any) => {
-        lastContextMenuRow = row;
-      },
-      (widget: ParquetViewer) => {
-        activeWidget = widget;
+    // Register Excel file type if enabled
+    if (settings.enableExcel) {
+      try {
+        docRegistry.addFileType({
+          name: 'xlsx-parquet-viewer',
+          displayName: 'Excel (Parquet Viewer)',
+          extensions: ['.xlsx'],
+          mimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+          iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
+          contentType: 'file',
+          fileFormat: 'base64'
+        });
+        binaryFileTypes.push('xlsx-parquet-viewer');
+        console.log('[Parquet Viewer] Excel file type registered');
+      } catch (e) {
+        console.warn('[Parquet Viewer] Excel file type already registered', e);
       }
-    );
+    }
 
-    // Register the factory
-    docRegistry.addWidgetFactory(factory);
+    // Create binary factory for Parquet and Excel files
+    if (binaryFileTypes.length > 0) {
+      const binaryFactory = new ParquetWidgetFactory(
+        {
+          name: 'Parquet Viewer (Binary)',
+          modelName: 'base64',
+          fileTypes: binaryFileTypes,
+          defaultFor: binaryFileTypes,
+          defaultRendered: binaryFileTypes,
+          readOnly: true
+        },
+        (row: any) => {
+          lastContextMenuRow = row;
+        },
+        (widget: ParquetViewer) => {
+          activeWidget = widget;
+        }
+      );
 
-    console.log('Parquet viewer factory registered with base64 model');
+      docRegistry.addWidgetFactory(binaryFactory);
+      console.log(`[Parquet Viewer] Binary factory registered for: ${binaryFileTypes.join(', ')}`);
+    } else {
+      console.warn('[Parquet Viewer] No file types enabled in settings');
+    }
   }
 };
 

@@ -45,6 +45,7 @@
   padding: 4px 8px;
   border-bottom: 1px solid var(--jp-border-color1);
   border-right: 1px solid var(--jp-border-color2);
+  box-sizing: border-box;
 }
 
 .jp-ParquetViewer-filterCell:last-child {
@@ -89,6 +90,8 @@
   position: relative;
   min-width: 120px;
   user-select: none;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .jp-ParquetViewer-headerCell:hover {
@@ -123,6 +126,18 @@
   font-size: var(--jp-ui-font-size0);
 }
 
+/* Column Resize Handle */
+.jp-ParquetViewer-resizeHandle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+}
+
 /* Table Body */
 .jp-ParquetViewer-tbody {
   background-color: var(--jp-layout-color1);
@@ -146,6 +161,7 @@
   max-width: 400px;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 .jp-ParquetViewer-cell:last-child {

@@ -23,7 +23,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "pyarrow>=10.0.0"
+    "pyarrow>=10.0.0",
+    "pandas>=1.5.0",
+    "openpyxl>=3.0.0"
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 

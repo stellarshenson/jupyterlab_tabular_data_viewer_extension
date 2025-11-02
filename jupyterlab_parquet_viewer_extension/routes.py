@@ -9,6 +9,8 @@ from jupyter_server.utils import url_path_join
 import tornado
 import pyarrow.parquet as pq
 import pyarrow.compute as pc
+import pyarrow as pa
+import pandas as pd
 
 
 def convert_to_json_serializable(value):
@@ -23,6 +25,31 @@ def convert_to_json_serializable(value):
         return value.decode('utf-8', errors='replace')
     else:
         return value
+
+
+def get_file_type(file_path):
+    """Determine file type based on extension"""
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.parquet':
+        return 'parquet'
+    elif ext in ['.xlsx', '.xls']:
+        return 'excel'
+    else:
+        return 'unknown'
+
+
+def read_excel_as_arrow_table(file_path):
+    """Read Excel file (first worksheet only) and convert to PyArrow Table"""
+    try:
+        # Read only the first worksheet
+        df = pd.read_excel(file_path, sheet_name=0, engine='openpyxl')
+
+        # Convert pandas DataFrame to PyArrow Table
+        table = pa.Table.from_pandas(df)
+
+        return table
+    except Exception as e:
+        raise Exception(f"Failed to read Excel file: {str(e)}. Ensure the file is a valid Excel file and openpyxl is installed.")
 
 
 class ParquetMetadataHandler(APIHandler):
@@ -61,21 +88,47 @@ class ParquetMetadataHandler(APIHandler):
                 self.finish(json.dumps({'error': f'File not found: {file_path} (resolved to {abs_path})'}))
                 return
 
-            # Read Parquet file metadata
-            parquet_file = pq.ParquetFile(str(abs_path))
-            schema = parquet_file.schema_arrow
+            # Detect file type
+            file_type = get_file_type(str(abs_path))
 
-            # Extract column information
-            columns = []
-            for i in range(len(schema)):
-                field = schema.field(i)
-                columns.append({
-                    'name': field.name,
-                    'type': str(field.type)
-                })
+            if file_type == 'parquet':
+                # Read Parquet file metadata
+                parquet_file = pq.ParquetFile(str(abs_path))
+                schema = parquet_file.schema_arrow
 
-            # Get total row count
-            total_rows = parquet_file.metadata.num_rows
+                # Extract column information
+                columns = []
+                for i in range(len(schema)):
+                    field = schema.field(i)
+                    columns.append({
+                        'name': field.name,
+                        'type': str(field.type)
+                    })
+
+                # Get total row count
+                total_rows = parquet_file.metadata.num_rows
+
+            elif file_type == 'excel':
+                # Read Excel file metadata
+                table = read_excel_as_arrow_table(str(abs_path))
+                schema = table.schema
+
+                # Extract column information
+                columns = []
+                for i in range(len(schema)):
+                    field = schema.field(i)
+                    columns.append({
+                        'name': field.name,
+                        'type': str(field.type)
+                    })
+
+                # Get total row count
+                total_rows = len(table)
+
+            else:
+                self.set_status(400)
+                self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
+                return
 
             # Get file size
             file_size = abs_path.stat().st_size
@@ -141,9 +194,19 @@ class ParquetDataHandler(APIHandler):
                 self.finish(json.dumps({'error': f'File not found: {file_path} (resolved to {abs_path})'}))
                 return
 
-            # Read Parquet file
-            self.log.debug(f"Reading parquet file: {abs_path}")
-            table = pq.read_table(str(abs_path))
+            # Detect file type and read accordingly
+            file_type = get_file_type(str(abs_path))
+
+            if file_type == 'parquet':
+                self.log.debug(f"Reading parquet file: {abs_path}")
+                table = pq.read_table(str(abs_path))
+            elif file_type == 'excel':
+                self.log.debug(f"Reading excel file: {abs_path}")
+                table = read_excel_as_arrow_table(str(abs_path))
+            else:
+                self.set_status(400)
+                self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
+                return
 
             # Apply filters if provided
             if filters:
@@ -206,7 +269,6 @@ class ParquetDataHandler(APIHandler):
 
             # Apply sorting if requested
             if sort_by and sort_by in table.column_names:
-                import pyarrow as pa
                 # Create sort indices
                 indices = pc.sort_indices(table, sort_keys=[(sort_by, "ascending" if sort_order == "asc" else "descending")])
                 # Apply sort

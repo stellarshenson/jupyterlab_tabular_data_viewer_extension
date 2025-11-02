@@ -38,6 +38,8 @@ export class ParquetViewer extends Widget {
   private _caseInsensitive = false;
   private _useRegex = false;
   private _contextMenuOpen = false;
+  private _columnWidths: Map<string, number> = new Map();
+  private _resizing: { columnName: string; startX: number; startWidth: number } | null = null;
 
   private _tableContainer: HTMLDivElement;
   private _table: HTMLTableElement;
@@ -355,6 +357,28 @@ export class ParquetViewer extends Widget {
       headerContent.appendChild(typeSpan);
       headerCell.appendChild(headerContent);
       headerCell.appendChild(sortIndicator);
+
+      // Add resize handle
+      const resizeHandle = document.createElement('div');
+      resizeHandle.className = 'jp-ParquetViewer-resizeHandle';
+      resizeHandle.addEventListener('mousedown', (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this._startResize(col.name, e.clientX, headerCell);
+      });
+      // Prevent click events from triggering sort
+      resizeHandle.addEventListener('click', (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      headerCell.appendChild(resizeHandle);
+
+      // Apply stored width if available
+      if (this._columnWidths.has(col.name)) {
+        headerCell.style.width = `${this._columnWidths.get(col.name)}px`;
+        filterCell.style.width = `${this._columnWidths.get(col.name)}px`;
+      }
+
       this._headerRow.appendChild(headerCell);
     });
   }
@@ -372,6 +396,12 @@ export class ParquetViewer extends Widget {
         td.className = 'jp-ParquetViewer-cell';
         const value = row[col.name];
         td.textContent = value !== null && value !== undefined ? String(value) : '';
+
+        // Apply stored column width if available
+        if (this._columnWidths.has(col.name)) {
+          td.style.width = `${this._columnWidths.get(col.name)}px`;
+        }
+
         tr.appendChild(td);
       });
 
@@ -411,6 +441,82 @@ export class ParquetViewer extends Widget {
       this._tbody.appendChild(tr);
     });
   }
+
+  /**
+   * Start column resize
+   */
+  private _startResize(columnName: string, startX: number, headerCell: HTMLElement): void {
+    this._resizing = {
+      columnName,
+      startX,
+      startWidth: headerCell.offsetWidth
+    };
+
+    // Add global mouse event listeners
+    document.addEventListener('mousemove', this._doResize);
+    document.addEventListener('mouseup', this._stopResize);
+
+    // Prevent text selection during resize
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  }
+
+  /**
+   * Handle column resize drag
+   */
+  private _doResize = (e: MouseEvent): void => {
+    if (!this._resizing) {
+      return;
+    }
+
+    const deltaX = e.clientX - this._resizing.startX;
+    const newWidth = Math.max(80, this._resizing.startWidth + deltaX); // Minimum width of 80px
+
+    // Store the new width
+    this._columnWidths.set(this._resizing.columnName, newWidth);
+
+    // Apply the new width to the column header and filter cell
+    const columnIndex = this._columns.findIndex(col => col.name === this._resizing!.columnName);
+    if (columnIndex !== -1) {
+      const headerCell = this._headerRow.children[columnIndex] as HTMLElement;
+      const filterCell = this._filterRow.children[columnIndex] as HTMLElement;
+
+      if (headerCell) {
+        headerCell.style.width = `${newWidth}px`;
+      }
+      if (filterCell) {
+        filterCell.style.width = `${newWidth}px`;
+      }
+
+      // Update all data cells in this column
+      const rows = this._tbody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const cell = row.children[columnIndex] as HTMLElement;
+        if (cell) {
+          cell.style.width = `${newWidth}px`;
+        }
+      });
+    }
+  };
+
+  /**
+   * Stop column resize
+   */
+  private _stopResize = (): void => {
+    if (!this._resizing) {
+      return;
+    }
+
+    this._resizing = null;
+
+    // Remove global mouse event listeners
+    document.removeEventListener('mousemove', this._doResize);
+    document.removeEventListener('mouseup', this._stopResize);
+
+    // Restore user selection and cursor
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  };
 
   /**
    * Apply filter to a column
@@ -669,6 +775,14 @@ export class ParquetViewer extends Widget {
     if (this._menuObserver) {
       this._menuObserver.disconnect();
       this._menuObserver = null;
+    }
+
+    // Clean up resize event listeners if still active
+    if (this._resizing) {
+      document.removeEventListener('mousemove', this._doResize);
+      document.removeEventListener('mouseup', this._stopResize);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
     }
 
     super.dispose();
