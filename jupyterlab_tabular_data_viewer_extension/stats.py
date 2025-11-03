@@ -137,23 +137,33 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
     # String statistics
     elif simplified_type == 'string':
         try:
-            # Most common value (mode)
-            mode_result = pc.mode(column)
-            if len(mode_result) > 0:
-                mode_struct = mode_result[0]
-                most_common = mode_struct['mode'].as_py()
-                most_common_count = int(mode_struct['count'].as_py())
-                stats['most_common_value'] = most_common
-                stats['most_common_count'] = most_common_count
+            # Filter out nulls for string operations
+            non_null_column = pc.drop_null(column)
 
-            # String lengths
-            lengths = pc.utf8_length(column)
-            lengths_min_max = pc.min_max(lengths)
-            stats['min_length'] = int(lengths_min_max['min'].as_py())
-            stats['max_length'] = int(lengths_min_max['max'].as_py())
+            if len(non_null_column) > 0:
+                # Most common value (mode)
+                try:
+                    mode_result = pc.mode(non_null_column)
+                    if len(mode_result) > 0:
+                        mode_struct = mode_result[0]
+                        most_common = mode_struct['mode'].as_py()
+                        most_common_count = int(mode_struct['count'].as_py())
+                        stats['most_common_value'] = most_common
+                        stats['most_common_count'] = most_common_count
+                except Exception as e:
+                    print(f"Warning: Could not compute mode for {column_name}: {e}")
 
-            avg_length = pc.mean(lengths)
-            stats['avg_length'] = round(float(avg_length.as_py()), 1)
+                # String lengths
+                try:
+                    lengths = pc.utf8_length(non_null_column)
+                    lengths_min_max = pc.min_max(lengths)
+                    stats['min_length'] = int(lengths_min_max['min'].as_py())
+                    stats['max_length'] = int(lengths_min_max['max'].as_py())
+
+                    avg_length = pc.mean(lengths)
+                    stats['avg_length'] = round(float(avg_length.as_py()), 1)
+                except Exception as e:
+                    print(f"Warning: Could not compute string lengths for {column_name}: {e}")
         except Exception as e:
             print(f"Warning: Could not compute string stats for {column_name}: {e}")
 

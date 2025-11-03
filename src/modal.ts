@@ -105,13 +105,6 @@ export class ColumnStatsModal extends Widget {
 
     // String statistics
     if (this._stats.data_type === 'string') {
-      const stringSection = document.createElement('div');
-      stringSection.className = 'jp-ColumnStatsModal-section';
-      const stringTitle = document.createElement('h4');
-      stringTitle.textContent = 'String Statistics';
-      stringSection.appendChild(stringTitle);
-
-      const stringList = document.createElement('ul');
       const items: string[] = [];
 
       if (this._stats.most_common_value !== undefined) {
@@ -127,9 +120,19 @@ export class ColumnStatsModal extends Widget {
         items.push(`Avg length: ${this._formatNumber(this._stats.avg_length)} characters`);
       }
 
-      stringList.innerHTML = items.map(item => `<li>${item}</li>`).join('');
-      stringSection.appendChild(stringList);
-      content.appendChild(stringSection);
+      // Only show section if we have stats to display
+      if (items.length > 0) {
+        const stringSection = document.createElement('div');
+        stringSection.className = 'jp-ColumnStatsModal-section';
+        const stringTitle = document.createElement('h4');
+        stringTitle.textContent = 'String Statistics';
+        stringSection.appendChild(stringTitle);
+
+        const stringList = document.createElement('ul');
+        stringList.innerHTML = items.map(item => `<li>${item}</li>`).join('');
+        stringSection.appendChild(stringList);
+        content.appendChild(stringSection);
+      }
     }
 
     // Date/datetime statistics
