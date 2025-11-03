@@ -1,0 +1,6 @@
+employee_id	name	department	salary	join_date	is_active	performance_score	email	city
+1	Alice Johnson	Engineering	95000	2020-01-15	true	4.2	alice@example.com	San Francisco
+2	Bob Smith	Marketing	72000	2019-03-22	true	3.8	bob@example.com	New York
+3	Carol Williams	Engineering	105000	2018-07-10	true	4.5	carol@example.com	Seattle
+4	David Brown	Sales	68000	2021-05-03	false	3.2	david@example.com	Austin
+5	Emma Davis	HR	78000	2020-11-20	true	4.0	emma@example.com	Boston
