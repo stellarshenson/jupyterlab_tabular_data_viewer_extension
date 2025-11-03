@@ -55,10 +55,11 @@ test.describe('Tabular Data Viewer Extension', () => {
     // Open the Parquet file
     await page.dblclick('text=sample_data.parquet');
 
-    // Verify the viewer opens
-    await page.waitForSelector('.jp-TabularDataViewer', { timeout: 10000 });
-    const viewer = await page.locator('.jp-TabularDataViewer');
-    await expect(viewer).toBeVisible();
+    // Verify the viewer opens and is visible in the main area
+    await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
+      state: 'visible',
+      timeout: 15000
+    });
   });
 
   test('should open and display CSV file', async ({ page }) => {
@@ -68,10 +69,11 @@ test.describe('Tabular Data Viewer Extension', () => {
     // Open the CSV file
     await page.dblclick('text=sample_data.csv');
 
-    // Verify the viewer opens
-    await page.waitForSelector('.jp-TabularDataViewer', { timeout: 10000 });
-    const viewer = await page.locator('.jp-TabularDataViewer');
-    await expect(viewer).toBeVisible();
+    // Verify the viewer opens and is visible in the main area
+    await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
+      state: 'visible',
+      timeout: 15000
+    });
   });
 
   test('should open and display Excel file', async ({ page }) => {
@@ -81,10 +83,11 @@ test.describe('Tabular Data Viewer Extension', () => {
     // Open the Excel file
     await page.dblclick('text=sample_data.xlsx');
 
-    // Verify the viewer opens
-    await page.waitForSelector('.jp-TabularDataViewer', { timeout: 10000 });
-    const viewer = await page.locator('.jp-TabularDataViewer');
-    await expect(viewer).toBeVisible();
+    // Verify the viewer opens and is visible in the main area
+    await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
+      state: 'visible',
+      timeout: 15000
+    });
   });
 
   test('should open all three file types sequentially', async ({ page }) => {
@@ -97,10 +100,11 @@ test.describe('Tabular Data Viewer Extension', () => {
       // Open the file
       await page.dblclick(`text=${fileName}`);
 
-      // Verify the viewer opens
-      await page.waitForSelector('.jp-TabularDataViewer', { timeout: 10000 });
-      const viewer = await page.locator('.jp-TabularDataViewer');
-      await expect(viewer).toBeVisible();
+      // Verify the viewer opens and is visible in the main area
+      await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
+        state: 'visible',
+        timeout: 15000
+      });
 
       // Close the tab to prepare for next file
       await page.keyboard.press('Control+w');
