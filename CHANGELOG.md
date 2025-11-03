@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.1.34] - 2025-11-03
+
+### Changed
+
+- **Visible Column Borders**: Improved table visual clarity with visible column separators
+  - Changed table from `border-collapse: collapse` to `border-collapse: separate` with `border-spacing: 0`
+  - This fix allows borders to render properly in sticky positioned header
+  - Added `border-right: 1px solid var(--jp-border-color0)` to filter cells and header cells
+  - Column separators now visible in both frozen sticky header and scrolled content
+  - Used JupyterLab theme variable for brightest border color that adapts to light/dark themes
+
+- **Darker Filter Inputs**: Changed filter input background for better visual prominence
+  - Changed from `var(--jp-input-background)` to `var(--jp-layout-color0)` for darker appearance
+  - Applied to both light and dark themes
+
+### Fixed
+
+- **Row Dividers**: Restored missing row separators in table body
+  - Added `border-bottom: 1px solid var(--jp-border-color2)` to data cells
+  - Required because `border-collapse: separate` needs borders on cells not rows
+  - Row dividers now properly visible between all data rows
+
 ## [1.1.19] - 2025-11-03
 
 ### Added

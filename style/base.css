@@ -19,7 +19,8 @@
 }
 
 .jp-TabularDataViewer-table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
   font-family: var(--jp-code-font-family);
   font-size: var(--jp-code-font-size);
@@ -44,16 +45,14 @@
 .jp-TabularDataViewer-filterCell {
   padding: 4px 8px;
   border-bottom: 1px solid var(--jp-border-color1);
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--jp-border-color0);
   box-sizing: border-box;
+  background-color: var(--jp-layout-color2);
+  position: relative;
 }
 
 .jp-TabularDataViewer-filterCell:last-child {
   border-right: none;
-}
-
-[data-jp-theme-light='false'] .jp-TabularDataViewer-filterCell {
-  border-right: 1px solid #555;
 }
 
 .jp-TabularDataViewer-filterInput {
@@ -89,7 +88,7 @@
   text-align: left;
   font-weight: 600;
   border-bottom: 2px solid var(--jp-border-color1);
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--jp-border-color0);
   background-color: var(--jp-layout-color2);
   position: relative;
   min-width: 120px;
@@ -104,10 +103,6 @@
 
 .jp-TabularDataViewer-headerCell:last-child {
   border-right: none;
-}
-
-[data-jp-theme-light='false'] .jp-TabularDataViewer-headerCell {
-  border-right: 1px solid #555;
 }
 
 .jp-TabularDataViewer-headerContent {
@@ -164,6 +159,7 @@
 .jp-TabularDataViewer-cell {
   padding: 6px 12px;
   border-right: 1px solid var(--jp-border-color2);
+  border-bottom: 1px solid var(--jp-border-color2);
   color: var(--jp-ui-font-color1);
   word-break: break-word;
   max-width: 400px;
