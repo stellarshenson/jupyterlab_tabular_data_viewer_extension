@@ -705,7 +705,7 @@
             },
             "rimraf": {},
             "jupyterlab_tabular_data_viewer_extension": {
-              "version": "1.1.18",
+              "version": "1.1.19",
               "singleton": true,
               "import": "/home/lab/workspace/private/jupyterlab/jupyterlab_tabular_data_viewer_extension/lib/index.js"
             }

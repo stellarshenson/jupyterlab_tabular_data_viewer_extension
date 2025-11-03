@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.1.19] - 2025-11-03
+
+### Added
+
+- **Separate TSV Setting**: Added independent `enableTSV` setting for granular control
+  - Split CSV and TSV into separate configuration options in schema
+  - CSV files (.csv) controlled by `enableCSV` setting
+  - TSV files (.tsv) controlled by `enableTSV` setting
+  - Both can be enabled/disabled independently through Settings UI
+
+### Changed
+
+- **Enabled All File Types by Default**: Changed default settings to enable all supported formats out of the box
+  - `enableExcel` default changed from false to true
+  - All four formats (Parquet, Excel, CSV, TSV) now enabled by default
+  - Users can still disable individual formats through Settings
+
+- **Cleaned Console Output**: Commented out debug logging statements throughout extension
+  - Removed activation confirmation message
+  - Removed settings loading/changes logging
+  - Removed file type registration logging
+  - Removed factory registration logging
+  - Removed widget creation logging
+  - Removed row copy operation logging
+  - Kept `console.error` for actual errors and `console.warn` for warnings
+  - Cleaner console output improves user experience
+
+### Fixed
+
+- **Old Package Name References**: Corrected remaining references to old package names
+  - Fixed server config file referencing `jupyterlab_parquet_viewer_extension`
+  - Updated test spec files with correct extension name
+  - Fixed ui-tests package.json name and description
+  - Updated template config in jupyter-config directory
+  - Corrected .gitignore references (was pointing to `jupyterlab_basic_parquet_viewer_extension`)
+  - Removed .ipynb_checkpoints directory with outdated files
+
 ## [1.1.18] - 2025-11-02
 
 ### Added

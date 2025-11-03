@@ -16,6 +16,6 @@ test('should emit an activation console message', async ({ page }) => {
   await page.goto();
 
   expect(
-    logs.filter(s => s === 'JupyterLab extension jupyterlab_parquet_viewer_extension is activated!')
+    logs.filter(s => s === 'JupyterLab extension jupyterlab_tabular_data_viewer_extension is activated!')
   ).toHaveLength(1);
 });

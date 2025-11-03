@@ -1,1 +1,1 @@
-"""Python unit tests for jupyterlab_parquet_viewer_extension."""
+"""Python unit tests for jupyterlab_tabular_data_viewer_extension."""

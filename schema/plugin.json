@@ -13,11 +13,17 @@
       "title": "Enable Excel files",
       "description": "Use this extension to view .xlsx files",
       "type": "boolean",
-      "default": false
+      "default": true
     },
     "enableCSV": {
-      "title": "Enable CSV/TSV files",
-      "description": "Use this extension to view .csv and .tsv files",
+      "title": "Enable CSV files",
+      "description": "Use this extension to view .csv files",
+      "type": "boolean",
+      "default": true
+    },
+    "enableTSV": {
+      "title": "Enable TSV files",
+      "description": "Use this extension to view .tsv files",
       "type": "boolean",
       "default": true
     }

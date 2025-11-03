@@ -39,8 +39,8 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
   protected createNewWidget(
     context: DocumentRegistry.Context
   ): IDocumentWidget<TabularDataViewer> {
-    console.log(`[Tabular Data Viewer] Creating widget for file: ${context.path}`);
-    console.log(`[Tabular Data Viewer] File type: ${context.contentsModel?.type}, Format: ${context.contentsModel?.format}`);
+    // console.log(`[Tabular Data Viewer] Creating widget for file: ${context.path}`);
+    // console.log(`[Tabular Data Viewer] File type: ${context.contentsModel?.type}, Format: ${context.contentsModel?.format}`);
 
     const content = new TabularDataViewer(context.path, this._setLastContextMenuRow);
     const widget = new TabularDataDocument({ content, context });
@@ -60,6 +60,7 @@ interface ISettings {
   enableParquet: boolean;
   enableExcel: boolean;
   enableCSV: boolean;
+  enableTSV: boolean;
 }
 
 /**
@@ -72,9 +73,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
   autoStart: true,
   requires: [ISettingRegistry],
   activate: async (app: JupyterFrontEnd, settingRegistry: ISettingRegistry) => {
-    console.log(
-      'JupyterLab extension jupyterlab_tabular_data_viewer_extension is activated!'
-    );
+    // console.log(
+    //   'JupyterLab extension jupyterlab_tabular_data_viewer_extension is activated!'
+    // );
 
     const { docRegistry, commands, contextMenu } = app;
 
@@ -85,27 +86,28 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Load settings
     let settings: ISettings = {
       enableParquet: true,
-      enableExcel: false,
-      enableCSV: true
+      enableExcel: true,
+      enableCSV: true,
+      enableTSV: true
     };
 
-    console.log('[Tabular Data Viewer] Default settings:', settings);
+    // console.log('[Tabular Data Viewer] Default settings:', settings);
 
     try {
-      console.log('[Tabular Data Viewer] Loading settings from registry with id:', plugin.id);
+      // console.log('[Tabular Data Viewer] Loading settings from registry with id:', plugin.id);
       const pluginSettings = await settingRegistry.load(plugin.id);
       settings = pluginSettings.composite as unknown as ISettings;
-      console.log('[Tabular Data Viewer] Loaded settings:', settings);
-      console.log('[Tabular Data Viewer] Settings detail - enableParquet:', settings.enableParquet, 'enableExcel:', settings.enableExcel);
+      // console.log('[Tabular Data Viewer] Loaded settings:', settings);
+      // console.log('[Tabular Data Viewer] Settings detail - enableParquet:', settings.enableParquet, 'enableExcel:', settings.enableExcel);
 
       // Watch for settings changes
       pluginSettings.changed.connect(() => {
         settings = pluginSettings.composite as unknown as ISettings;
-        console.log('[Tabular Data Viewer] Settings changed:', settings);
+        // console.log('[Tabular Data Viewer] Settings changed:', settings);
       });
     } catch (error) {
       console.error('[Tabular Data Viewer] Failed to load settings:', error);
-      console.log('[Tabular Data Viewer] Using default settings:', settings);
+      // console.log('[Tabular Data Viewer] Using default settings:', settings);
     }
 
     // Command to copy row as JSON
@@ -120,7 +122,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         if (lastContextMenuRow) {
           const jsonString = JSON.stringify(lastContextMenuRow, null, 2);
           await navigator.clipboard.writeText(jsonString);
-          console.log('Row copied to clipboard as JSON');
+          // console.log('Row copied to clipboard as JSON');
 
           // Clean up highlight after copy
           if (activeWidget) {
@@ -138,8 +140,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     // Register file types based on settings
-    console.log('[Tabular Data Viewer] Starting file type registration...');
-    console.log('[Tabular Data Viewer] Current settings state:', settings);
+    // console.log('[Tabular Data Viewer] Starting file type registration...');
+    // console.log('[Tabular Data Viewer] Current settings state:', settings);
     const binaryFileTypes: string[] = [];
     const textFileTypes: string[] = [];
 
@@ -156,7 +158,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileFormat: 'base64'
         });
         binaryFileTypes.push('parquet');
-        console.log('[Tabular Data Viewer] Parquet file type registered');
+        // console.log('[Tabular Data Viewer] Parquet file type registered');
       } catch (e) {
         console.warn('[Tabular Data Viewer] Parquet file type already registered', e);
       }
@@ -175,13 +177,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileFormat: 'base64'
         });
         binaryFileTypes.push('xlsx-parquet-viewer');
-        console.log('[Tabular Data Viewer] Excel file type registered');
+        // console.log('[Tabular Data Viewer] Excel file type registered');
       } catch (e) {
         console.warn('[Tabular Data Viewer] Excel file type already registered', e);
       }
     }
 
-    // Register CSV and TSV file types if enabled
+    // Register CSV file type if enabled
     if (settings.enableCSV) {
       try {
         docRegistry.addFileType({
@@ -194,11 +196,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileFormat: 'text'
         });
         textFileTypes.push('csv-tabular-viewer');
-        console.log('[Tabular Data Viewer] CSV file type registered');
+        // console.log('[Tabular Data Viewer] CSV file type registered');
       } catch (e) {
         console.warn('[Tabular Data Viewer] CSV file type already registered', e);
       }
+    }
 
+    // Register TSV file type if enabled
+    if (settings.enableTSV) {
       try {
         docRegistry.addFileType({
           name: 'tsv-tabular-viewer',
@@ -210,7 +215,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           fileFormat: 'text'
         });
         textFileTypes.push('tsv-tabular-viewer');
-        console.log('[Tabular Data Viewer] TSV file type registered');
+        // console.log('[Tabular Data Viewer] TSV file type registered');
       } catch (e) {
         console.warn('[Tabular Data Viewer] TSV file type already registered', e);
       }
@@ -236,7 +241,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       );
 
       docRegistry.addWidgetFactory(binaryFactory);
-      console.log(`[Tabular Data Viewer] Binary factory registered for: ${binaryFileTypes.join(', ')}`);
+      // console.log(`[Tabular Data Viewer] Binary factory registered for: ${binaryFileTypes.join(', ')}`);
     }
 
     // Create text factory for CSV and TSV files
@@ -259,7 +264,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       );
 
       docRegistry.addWidgetFactory(textFactory);
-      console.log(`[Tabular Data Viewer] Text factory registered for: ${textFileTypes.join(', ')}`);
+      // console.log(`[Tabular Data Viewer] Text factory registered for: ${textFileTypes.join(', ')}`);
     }
 
     if (binaryFileTypes.length === 0 && textFileTypes.length === 0) {
