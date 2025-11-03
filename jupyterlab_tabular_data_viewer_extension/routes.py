@@ -12,6 +12,8 @@ import pyarrow.compute as pc
 import pyarrow as pa
 import pandas as pd
 
+from .stats import calculate_column_stats
+
 
 def convert_to_json_serializable(value):
     """Convert Python objects to JSON-serializable types"""
@@ -372,16 +374,91 @@ class ParquetDataHandler(APIHandler):
             }))
 
 
+class ColumnStatsHandler(APIHandler):
+    """Handler for calculating column statistics"""
+
+    @tornado.web.authenticated
+    def post(self):
+        try:
+            input_data = self.get_json_body()
+            file_path = input_data.get('path', '')
+            column_name = input_data.get('columnName', '')
+
+            if not file_path:
+                self.set_status(400)
+                self.finish(json.dumps({'error': 'No file path provided'}))
+                return
+
+            if not column_name:
+                self.set_status(400)
+                self.finish(json.dumps({'error': 'No column name provided'}))
+                return
+
+            # Get the full path to the file using contents manager
+            contents_manager = self.settings.get('contents_manager')
+            if contents_manager:
+                root_dir = contents_manager.root_dir
+            else:
+                root_dir = os.getcwd()
+
+            self.log.info(f"Stats request for column '{column_name}' in file: {file_path}")
+
+            full_path = os.path.join(root_dir, file_path.lstrip('/'))
+            abs_path = Path(full_path).resolve()
+
+            if not abs_path.exists():
+                self.set_status(404)
+                self.finish(json.dumps({'error': f'File not found: {file_path}'}))
+                return
+
+            # Detect file type and read accordingly
+            file_type = get_file_type(str(abs_path))
+
+            if file_type == 'parquet':
+                table = pq.read_table(str(abs_path))
+            elif file_type == 'excel':
+                table = read_excel_as_arrow_table(str(abs_path))
+            elif file_type == 'csv':
+                table = read_csv_as_arrow_table(str(abs_path), delimiter=',')
+            elif file_type == 'tsv':
+                table = read_csv_as_arrow_table(str(abs_path), delimiter='\t')
+            else:
+                self.set_status(400)
+                self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
+                return
+
+            # Calculate statistics
+            stats = calculate_column_stats(table, column_name)
+
+            self.finish(json.dumps(stats))
+
+        except ValueError as e:
+            # Column not found or other validation error
+            self.set_status(400)
+            self.finish(json.dumps({'error': str(e)}))
+        except Exception as e:
+            import traceback
+            error_traceback = traceback.format_exc()
+            self.log.error(f"Stats handler error: {str(e)}\n{error_traceback}")
+            self.set_status(500)
+            self.finish(json.dumps({
+                'error': str(e),
+                'error_type': type(e).__name__
+            }))
+
+
 def setup_route_handlers(web_app):
     host_pattern = ".*$"
     base_url = web_app.settings["base_url"]
 
     metadata_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "metadata")
     data_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "data")
+    stats_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "column-stats")
 
     handlers = [
         (metadata_pattern, ParquetMetadataHandler),
-        (data_pattern, ParquetDataHandler)
+        (data_pattern, ParquetDataHandler),
+        (stats_pattern, ColumnStatsHandler)
     ]
 
     web_app.add_handlers(host_pattern, handlers)

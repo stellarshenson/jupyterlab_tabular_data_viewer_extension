@@ -40,6 +40,12 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 - Multiple filters work together to narrow down results
 
 **Additional features:**
+- Column statistics modal - Hover over any column header to reveal an info icon, click it to view comprehensive statistics including data type, row counts, null values, unique counts, and type-specific metrics (numeric: min/max/mean/median/std dev/outliers using IQR×1.5; string: most common value/length stats; date: earliest/latest dates). Copy statistics as JSON with one click
+
+![Column Statistics Icon](.resources/screenshot-stats-icon.png)
+
+![Column Statistics Modal](.resources/screenshot-stats.png)
+
 - Right-click context menu on rows to copy data as JSON
 - Configurable file type support via Settings - Enable/disable Parquet, Excel, or CSV/TSV handling
 - All features work seamlessly across all supported file formats

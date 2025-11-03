@@ -1,5 +1,6 @@
 import { Widget } from '@lumino/widgets';
-import { requestAPI } from './request';
+import { requestAPI, fetchColumnStats } from './request';
+import { ColumnStatsModal } from './modal';
 
 /**
  * Column metadata interface
@@ -346,6 +347,18 @@ export class TabularDataViewer extends Widget {
       nameSpan.className = 'jp-TabularDataViewer-columnName';
       nameSpan.textContent = col.name;
 
+      // Add info icon for column statistics
+      const infoIcon = document.createElement('span');
+      infoIcon.className = 'jp-TabularDataViewer-infoIcon';
+      infoIcon.textContent = '🛈';
+      infoIcon.title = 'Show column statistics';
+      infoIcon.addEventListener('click', async (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent sort from triggering
+        await this._showColumnStats(col.name);
+      });
+      nameSpan.appendChild(infoIcon);
+
       const typeSpan = document.createElement('div');
       typeSpan.className = 'jp-TabularDataViewer-columnType';
       typeSpan.textContent = this._simplifyType(col.type);
@@ -664,6 +677,22 @@ export class TabularDataViewer extends Widget {
 
     this._updateSortIndicators();
     this._loadData(true);
+  }
+
+  /**
+   * Show column statistics modal
+   */
+  private async _showColumnStats(columnName: string): Promise<void> {
+    try {
+      // Show loading indicator (we could add a spinner here)
+      const stats = await fetchColumnStats(this._filePath, columnName);
+      const modal = new ColumnStatsModal(stats);
+      modal.show();
+    } catch (error) {
+      console.error('Failed to load column statistics:', error);
+      // Could show an error message to user
+      alert(`Failed to load statistics for column "${columnName}": ${error}`);
+    }
   }
 
   /**
