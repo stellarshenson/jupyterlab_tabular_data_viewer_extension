@@ -1,6 +1,6 @@
 {
     "name": "jupyterlab_tabular_data_viewer_extension",
-    "version": "1.2.24",
+    "version": "1.2.26",
     "description": "Jupyterlab extension to browse tabular data files (Parquet, Excel, CSV, TSV) with filtering and sorting capabilities",
     "keywords": [
         "jupyter",
