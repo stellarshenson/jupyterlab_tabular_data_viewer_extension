@@ -120,7 +120,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       },
       execute: async () => {
         if (lastContextMenuRow) {
-          const jsonString = JSON.stringify(lastContextMenuRow, null, 2);
+          // Filter out internal metadata fields before copying
+          const { __row_index__, ...rowData } = lastContextMenuRow;
+          const jsonString = JSON.stringify(rowData, null, 2);
           await navigator.clipboard.writeText(jsonString);
           // console.log('Row copied to clipboard as JSON');
 

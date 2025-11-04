@@ -292,9 +292,7 @@ export class TabularDataViewer extends Widget {
         this._totalRows = response.totalRows;
       }
 
-      // Calculate starting row number (1-indexed)
-      const startingRowNumber = this._data.length - response.data.length + 1;
-      this._renderData(response.data, startingRowNumber);
+      this._renderData(response.data);
       this._updateStatusBar();
     } catch (error) {
       this._showError(`Failed to load data: ${error}`);
@@ -426,15 +424,15 @@ export class TabularDataViewer extends Widget {
   /**
    * Render data rows
    */
-  private _renderData(rows: any[], startingRowNumber: number = 1): void {
-    rows.forEach((row, index) => {
+  private _renderData(rows: any[]): void {
+    rows.forEach((row) => {
       const tr = document.createElement('tr');
       tr.className = 'jp-TabularDataViewer-row';
 
-      // Add row number cell
+      // Add row number cell using original row index from backend
       const rowNumCell = document.createElement('td');
       rowNumCell.className = 'jp-TabularDataViewer-cell jp-TabularDataViewer-rowNumberCell';
-      rowNumCell.textContent = String(startingRowNumber + index);
+      rowNumCell.textContent = String(row['__row_index__'] || '');
       tr.appendChild(rowNumCell);
 
       this._columns.forEach(col => {

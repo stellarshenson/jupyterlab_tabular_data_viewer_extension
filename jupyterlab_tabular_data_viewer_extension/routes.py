@@ -272,6 +272,10 @@ class ParquetDataHandler(APIHandler):
                 self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
                 return
 
+            # Add original row index column (1-indexed for display)
+            original_indices = pa.array(range(1, len(table) + 1))
+            table = table.append_column('__original_row_index__', original_indices)
+
             # Apply filters if provided
             if filters:
                 filter_expressions = []
@@ -349,9 +353,16 @@ class ParquetDataHandler(APIHandler):
             data = []
             for i in range(len(table_slice)):
                 row = {}
+                original_row_idx = None
                 for col_name in table_slice.column_names:
                     value = table_slice.column(col_name)[i].as_py()
-                    row[col_name] = convert_to_json_serializable(value)
+                    # Store original row index separately, don't include it in row data
+                    if col_name == '__original_row_index__':
+                        original_row_idx = value
+                    else:
+                        row[col_name] = convert_to_json_serializable(value)
+                # Add original row index as metadata
+                row['__row_index__'] = original_row_idx
                 data.append(row)
 
             self.finish(json.dumps({
