@@ -366,9 +366,8 @@ export class TabularDataViewer extends Widget {
       nameSpan.textContent = col.name;
 
       // Add info icon for column statistics
-      const infoIcon = document.createElement('span');
-      infoIcon.className = 'jp-TabularDataViewer-infoIcon';
-      infoIcon.textContent = '🛈';
+      const infoIcon = document.createElement('i');
+      infoIcon.className = 'jp-TabularDataViewer-infoIcon fas fa-info-circle';
       infoIcon.title = 'Show column statistics';
       infoIcon.addEventListener('click', async (e: MouseEvent) => {
         e.preventDefault();
