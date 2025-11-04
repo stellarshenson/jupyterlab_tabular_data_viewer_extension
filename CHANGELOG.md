@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.20] - 2025-11-04
 
+**Tag**: RELEASE_1.2.20
+
 ### Fixed
 
 - **Row Index Display**: Row numbers now show absolute position in original file instead of view-relative position
