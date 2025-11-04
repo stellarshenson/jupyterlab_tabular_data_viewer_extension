@@ -292,7 +292,9 @@ export class TabularDataViewer extends Widget {
         this._totalRows = response.totalRows;
       }
 
-      this._renderData(response.data);
+      // Calculate starting row number (1-indexed)
+      const startingRowNumber = this._data.length - response.data.length + 1;
+      this._renderData(response.data, startingRowNumber);
       this._updateStatusBar();
     } catch (error) {
       this._showError(`Failed to load data: ${error}`);
@@ -307,6 +309,24 @@ export class TabularDataViewer extends Widget {
   private _renderHeaders(): void {
     this._filterRow.innerHTML = '';
     this._headerRow.innerHTML = '';
+
+    // Add row number column header
+    const rowNumFilterCell = document.createElement('th');
+    rowNumFilterCell.className = 'jp-TabularDataViewer-filterCell jp-TabularDataViewer-rowNumberCell';
+    this._filterRow.appendChild(rowNumFilterCell);
+
+    const rowNumHeaderCell = document.createElement('th');
+    rowNumHeaderCell.className = 'jp-TabularDataViewer-headerCell jp-TabularDataViewer-rowNumberCell';
+    const rowNumContent = document.createElement('div');
+    rowNumContent.className = 'jp-TabularDataViewer-headerContent';
+    const rowNumName = document.createElement('div');
+    rowNumName.className = 'jp-TabularDataViewer-columnName';
+    rowNumName.textContent = '';
+    rowNumContent.appendChild(rowNumName);
+    rowNumHeaderCell.appendChild(rowNumContent);
+    rowNumHeaderCell.style.width = '60px';
+    rowNumFilterCell.style.width = '60px';
+    this._headerRow.appendChild(rowNumHeaderCell);
 
     this._columns.forEach(col => {
       // Create filter cell
@@ -398,18 +418,24 @@ export class TabularDataViewer extends Widget {
       this._headerRow.appendChild(headerCell);
     });
 
-    // Set table width to sum of all column widths
-    const totalWidth = Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0);
+    // Set table width to sum of all column widths plus row number column (60px)
+    const totalWidth = Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0) + 60;
     this._table.style.width = `${totalWidth}px`;
   }
 
   /**
    * Render data rows
    */
-  private _renderData(rows: any[]): void {
-    rows.forEach(row => {
+  private _renderData(rows: any[], startingRowNumber: number = 1): void {
+    rows.forEach((row, index) => {
       const tr = document.createElement('tr');
       tr.className = 'jp-TabularDataViewer-row';
+
+      // Add row number cell
+      const rowNumCell = document.createElement('td');
+      rowNumCell.className = 'jp-TabularDataViewer-cell jp-TabularDataViewer-rowNumberCell';
+      rowNumCell.textContent = String(startingRowNumber + index);
+      tr.appendChild(rowNumCell);
 
       this._columns.forEach(col => {
         const td = document.createElement('td');

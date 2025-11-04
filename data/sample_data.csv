@@ -1,1501 +1,1501 @@
-id,name,age,salary,department,city,join_date,is_active,score
-1,Person_1,30,140112.47,HR,Seattle,2023-02-25,False,41.9
-2,Person_2,63,38246.84,HR,New York,2021-09-15,True,76.1
-3,Person_3,26,61363.18,Finance,Boston,2023-12-13,True,73.3
-4,Person_4,19,31280.06,Sales,New York,2024-09-22,False,16.6
-5,Person_5,56,128168.05,Engineering,Austin,2020-03-13,False,32.4
-6,Person_6,42,51057.71,Sales,San Francisco,2024-03-09,True,50.2
-7,Person_7,43,77324.18,Engineering,Seattle,2022-01-13,True,18.2
-8,Person_8,55,74742.87,Sales,Seattle,2024-11-16,True,0.2
-9,Person_9,62,78537.81,Finance,Austin,2024-02-14,False,64.9
-10,Person_10,32,115270.04,Finance,San Francisco,2022-07-19,True,81.1
-11,Person_11,44,93909.83,Sales,Seattle,2023-02-17,True,41.8
-12,Person_12,54,92673.58,Engineering,Boston,2020-02-22,False,81.5
-13,Person_13,73,94556.58,Finance,Austin,2023-09-19,False,93.3
-14,Person_14,35,59717.21,Sales,San Francisco,2020-10-25,False,22.4
-15,Person_15,80,76468.86,Marketing,Austin,2020-07-12,True,94.0
-16,Person_16,21,31898.36,Sales,New York,2021-10-16,False,25.2
-17,Person_17,27,119030.13,HR,Seattle,2021-10-23,True,31.6
-18,Person_18,21,38086.45,HR,New York,2023-10-02,False,20.9
-19,Person_19,60,110733.23,Sales,San Francisco,2022-12-12,True,56.0
-20,Person_20,35,47507.01,Finance,New York,2024-12-01,False,7.2
-21,Person_21,72,84146.06,Sales,Seattle,2023-06-16,False,16.7
-22,Person_22,55,49975.83,Finance,Seattle,2020-02-04,True,26.8
-23,Person_23,78,137769.85,Sales,San Francisco,2021-12-10,False,5.5
-24,Person_24,39,72449.32,Sales,Seattle,2021-09-08,False,10.2
-25,Person_25,23,63576.86,Marketing,Austin,2020-04-01,True,35.7
-26,Person_26,36,79661.4,Finance,New York,2023-11-02,False,12.0
-27,Person_27,24,53117.25,Finance,San Francisco,2024-01-28,False,67.2
-28,Person_28,72,36973.42,Sales,San Francisco,2022-09-01,True,69.7
-29,Person_29,21,93812.68,Engineering,Boston,2024-04-02,False,72.2
-30,Person_30,37,140628.54,Sales,Austin,2020-03-11,True,5.5
-31,Person_31,30,81152.05,Finance,Austin,2020-12-15,True,12.1
-32,Person_32,21,113162.58,Marketing,Austin,2024-05-01,False,60.0
-33,Person_33,37,144182.87,HR,Seattle,2024-07-23,True,31.6
-34,Person_34,48,52190.51,HR,Boston,2020-09-29,True,66.8
-35,Person_35,59,138178.44,HR,Austin,2022-11-05,False,38.0
-36,Person_36,28,94249.53,Sales,Boston,2020-01-19,False,65.1
-37,Person_37,49,129397.18,Engineering,New York,2023-08-08,True,76.0
-38,Person_38,80,116799.92,Finance,Seattle,2023-05-22,False,85.3
-39,Person_39,41,72355.82,Engineering,Austin,2020-05-18,False,9.3
-40,Person_40,74,57296.57,HR,Seattle,2024-08-30,False,39.9
-41,Person_41,69,135613.86,Engineering,Boston,2022-07-18,False,8.3
-42,Person_42,41,125751.73,Marketing,Boston,2021-10-27,True,32.9
-43,Person_43,70,68628.5,Finance,San Francisco,2024-07-10,True,94.6
-44,Person_44,49,130803.31,Marketing,San Francisco,2022-02-26,True,96.8
-45,Person_45,54,45179.01,Sales,San Francisco,2023-05-05,False,36.5
-46,Person_46,47,30109.31,Sales,New York,2023-03-01,False,28.9
-47,Person_47,30,113412.6,HR,Boston,2023-05-05,False,96.3
-48,Person_48,21,136533.01,Finance,Austin,2023-08-08,False,72.9
-49,Person_49,47,133619.71,Marketing,New York,2020-01-15,True,97.6
-50,Person_50,38,147195.64,Marketing,New York,2022-12-04,False,3.5
-51,Person_51,63,64860.95,Marketing,San Francisco,2023-10-08,True,59.6
-52,Person_52,50,68577.59,Finance,San Francisco,2023-11-21,True,52.1
-53,Person_53,70,89539.54,HR,Boston,2023-11-30,False,36.5
-54,Person_54,43,139334.88,HR,Seattle,2021-06-26,True,46.7
-55,Person_55,73,135326.94,HR,New York,2021-04-10,False,99.5
-56,Person_56,21,123982.25,HR,Boston,2024-09-29,False,38.5
-57,Person_57,19,70966.58,Engineering,Austin,2023-12-25,True,10.7
-58,Person_58,40,105777.87,Finance,San Francisco,2022-04-26,False,92.4
-59,Person_59,41,62069.29,Engineering,San Francisco,2022-11-09,True,78.7
-60,Person_60,18,138522.9,Marketing,Seattle,2021-11-24,False,46.8
-61,Person_61,47,81521.33,Engineering,Boston,2023-10-14,True,3.7
-62,Person_62,71,146422.23,HR,Austin,2021-12-01,True,97.3
-63,Person_63,44,71967.84,Finance,New York,2020-07-28,True,23.7
-64,Person_64,37,145097.68,Finance,Boston,2020-12-30,False,12.3
-65,Person_65,19,122685.57,Marketing,Seattle,2020-09-25,True,73.0
-66,Person_66,75,137831.3,Finance,Seattle,2024-11-18,True,50.6
-67,Person_67,56,33661.71,Engineering,New York,2020-11-14,False,16.6
-68,Person_68,44,103405.46,HR,Boston,2020-12-16,False,62.2
-69,Person_69,24,103121.87,Engineering,Boston,2023-01-06,False,20.2
-70,Person_70,40,120059.14,Marketing,Boston,2021-05-20,True,0.2
-71,Person_71,49,67408.0,Marketing,Seattle,2023-09-24,False,77.5
-72,Person_72,51,91330.35,Marketing,New York,2022-12-14,True,78.4
-73,Person_73,51,80763.94,Sales,Boston,2021-05-23,True,89.3
-74,Person_74,26,54489.25,HR,Boston,2021-06-24,False,84.2
-75,Person_75,55,87189.48,Sales,New York,2020-01-02,True,16.7
-76,Person_76,25,121442.48,Marketing,Austin,2020-02-28,False,37.5
-77,Person_77,63,85207.97,HR,New York,2022-03-11,True,48.9
-78,Person_78,34,144166.95,Finance,San Francisco,2024-05-10,True,97.9
-79,Person_79,48,58367.0,Finance,Boston,2023-11-09,False,24.2
-80,Person_80,47,34577.95,Engineering,New York,2022-09-05,True,11.8
-81,Person_81,65,45264.24,Finance,San Francisco,2021-02-24,True,93.6
-82,Person_82,65,55687.29,Engineering,Seattle,2021-04-27,False,72.7
-83,Person_83,76,96032.94,Finance,San Francisco,2020-09-08,True,25.4
-84,Person_84,52,72132.95,Sales,Seattle,2023-05-26,False,61.0
-85,Person_85,64,133438.8,HR,San Francisco,2023-07-28,False,58.9
-86,Person_86,60,94358.15,Marketing,San Francisco,2024-07-10,False,93.5
-87,Person_87,31,72397.03,Marketing,New York,2020-03-08,False,82.8
-88,Person_88,74,86003.15,HR,San Francisco,2022-06-24,True,5.0
-89,Person_89,18,114665.0,Finance,Boston,2020-08-04,False,85.9
-90,Person_90,40,84651.0,Engineering,San Francisco,2024-03-22,False,43.7
-91,Person_91,19,108340.31,HR,Austin,2020-02-28,False,74.0
-92,Person_92,68,79775.71,Marketing,San Francisco,2021-06-16,False,25.5
-93,Person_93,39,53018.54,HR,Seattle,2024-03-25,False,20.7
-94,Person_94,50,120431.22,Engineering,New York,2023-12-12,False,55.7
-95,Person_95,39,63080.57,Marketing,Seattle,2023-12-17,True,48.3
-96,Person_96,51,127451.34,HR,Boston,2021-11-14,True,13.3
-97,Person_97,34,52824.07,Engineering,Austin,2024-05-23,False,96.9
-98,Person_98,52,128115.3,HR,Boston,2022-01-26,False,5.5
-99,Person_99,60,63262.53,Engineering,New York,2022-02-04,False,37.6
-100,Person_100,55,147701.21,Engineering,Boston,2020-02-29,True,46.9
-101,Person_101,73,142542.54,Marketing,Seattle,2024-05-12,True,26.4
-102,Person_102,65,45839.99,Engineering,New York,2023-12-14,True,93.1
-103,Person_103,73,63521.35,Sales,Seattle,2022-12-15,True,72.3
-104,Person_104,23,55494.01,Sales,Seattle,2022-08-09,False,64.4
-105,Person_105,75,130754.63,Sales,Seattle,2022-08-29,True,64.7
-106,Person_106,72,76451.18,Sales,Seattle,2023-09-28,False,89.5
-107,Person_107,75,41047.93,Sales,Boston,2022-12-15,False,8.4
-108,Person_108,78,118264.35,Finance,New York,2024-08-13,False,23.3
-109,Person_109,75,46129.03,Marketing,New York,2022-08-27,True,25.0
-110,Person_110,58,59328.32,Engineering,New York,2022-06-24,False,10.6
-111,Person_111,56,57826.08,Finance,Seattle,2022-08-04,True,86.8
-112,Person_112,57,54895.97,Marketing,Austin,2022-11-08,True,53.0
-113,Person_113,34,93192.37,Sales,Seattle,2023-03-15,True,56.0
-114,Person_114,39,57881.23,Sales,Seattle,2022-08-11,False,31.3
-115,Person_115,79,55192.75,HR,Boston,2023-09-07,False,90.4
-116,Person_116,38,144568.64,Finance,Boston,2021-12-07,False,65.6
-117,Person_117,75,50371.24,Marketing,Austin,2023-04-16,True,87.8
-118,Person_118,78,126383.47,Sales,Seattle,2024-02-29,False,93.8
-119,Person_119,36,85967.7,Sales,Austin,2024-11-16,False,96.1
-120,Person_120,48,50623.0,Finance,Austin,2023-01-10,False,87.7
-121,Person_121,54,92763.16,Finance,Austin,2024-06-24,False,90.9
-122,Person_122,37,32410.61,Finance,San Francisco,2023-05-31,True,84.6
-123,Person_123,66,87425.02,Marketing,Austin,2024-03-08,False,95.7
-124,Person_124,77,38849.47,Marketing,Seattle,2022-08-23,False,1.3
-125,Person_125,66,65190.45,Marketing,New York,2024-04-05,False,61.8
-126,Person_126,43,121280.05,Engineering,Austin,2020-01-26,True,10.8
-127,Person_127,49,135968.88,HR,New York,2021-07-15,False,72.7
-128,Person_128,46,93606.71,Finance,New York,2024-03-30,True,93.4
-129,Person_129,50,55419.57,Marketing,San Francisco,2022-04-18,False,10.4
-130,Person_130,53,101476.26,Engineering,Austin,2022-09-15,True,85.3
-131,Person_131,79,61368.11,Engineering,Boston,2022-08-28,False,51.3
-132,Person_132,35,114039.22,Finance,San Francisco,2024-07-18,True,19.3
-133,Person_133,66,60771.53,HR,New York,2022-08-04,False,16.4
-134,Person_134,29,76284.42,Engineering,Austin,2022-12-16,False,81.3
-135,Person_135,52,70602.75,Engineering,New York,2020-03-04,True,97.1
-136,Person_136,47,138720.52,Engineering,Austin,2022-09-23,True,67.9
-137,Person_137,29,56496.7,Marketing,New York,2023-07-05,False,73.7
-138,Person_138,29,57922.92,Sales,Seattle,2020-01-03,False,20.1
-139,Person_139,45,81294.3,Engineering,Seattle,2020-03-03,False,91.3
-140,Person_140,52,116515.42,Engineering,Seattle,2020-10-11,True,34.6
-141,Person_141,47,37096.73,Sales,New York,2022-06-03,True,96.1
-142,Person_142,57,32096.66,Marketing,San Francisco,2024-09-27,True,31.8
-143,Person_143,46,51288.32,Sales,New York,2020-05-21,True,17.6
-144,Person_144,79,46474.41,Marketing,Seattle,2022-09-02,False,38.4
-145,Person_145,51,107596.11,Finance,Seattle,2023-08-08,True,3.0
-146,Person_146,33,57928.81,Sales,Austin,2020-09-04,True,34.6
-147,Person_147,35,64895.87,Marketing,Austin,2020-03-25,True,46.4
-148,Person_148,38,136042.04,HR,New York,2020-10-16,False,17.4
-149,Person_149,37,120567.08,HR,Austin,2023-12-01,True,56.4
-150,Person_150,42,143210.97,Marketing,Austin,2020-05-15,False,28.2
-151,Person_151,60,119565.86,Engineering,Seattle,2024-02-29,False,39.9
-152,Person_152,22,44780.35,Engineering,New York,2023-11-11,False,16.5
-153,Person_153,66,139987.3,HR,Seattle,2022-02-20,True,19.5
-154,Person_154,72,53839.57,Engineering,Seattle,2022-09-21,False,16.5
-155,Person_155,52,89581.09,Engineering,San Francisco,2022-12-24,True,18.4
-156,Person_156,28,116227.3,Marketing,San Francisco,2020-11-13,True,41.5
-157,Person_157,66,130186.51,Finance,Seattle,2022-11-20,False,16.5
-158,Person_158,55,56414.26,HR,Boston,2022-01-13,True,64.9
-159,Person_159,57,113342.87,Finance,Boston,2023-08-10,True,27.1
-160,Person_160,59,53724.33,Engineering,Austin,2022-08-13,True,87.0
-161,Person_161,29,84022.25,Sales,San Francisco,2023-09-28,False,39.0
-162,Person_162,33,58067.36,Marketing,Seattle,2023-10-24,False,73.8
-163,Person_163,44,85246.47,Engineering,Austin,2020-08-13,True,49.5
-164,Person_164,20,94073.52,Sales,New York,2023-04-07,False,41.3
-165,Person_165,25,109852.9,Finance,San Francisco,2023-06-22,False,55.2
-166,Person_166,41,143123.07,Engineering,Boston,2024-08-14,False,33.7
-167,Person_167,60,51069.73,Sales,Boston,2020-11-15,True,90.0
-168,Person_168,39,50741.72,Finance,Austin,2023-10-15,True,98.8
-169,Person_169,33,126366.83,Engineering,Boston,2021-08-15,True,96.3
-170,Person_170,73,34934.09,Finance,Seattle,2023-07-08,True,24.4
-171,Person_171,74,36579.69,Engineering,Boston,2021-10-25,False,92.1
-172,Person_172,52,95788.05,Engineering,San Francisco,2020-07-22,False,30.8
-173,Person_173,26,97616.69,HR,Boston,2020-07-16,True,21.9
-174,Person_174,63,148092.85,Marketing,San Francisco,2020-07-17,False,8.5
-175,Person_175,59,45626.55,Engineering,Boston,2021-04-28,True,72.4
-176,Person_176,20,78914.54,HR,New York,2024-11-25,False,72.9
-177,Person_177,63,141213.88,HR,Boston,2020-05-09,False,92.5
-178,Person_178,41,53429.82,Marketing,San Francisco,2024-06-30,True,97.4
-179,Person_179,48,99235.16,Sales,Austin,2020-11-10,True,55.2
-180,Person_180,79,120668.32,HR,New York,2021-09-24,True,14.5
-181,Person_181,38,106548.82,Marketing,Boston,2022-04-11,False,93.3
-182,Person_182,41,78241.69,Sales,San Francisco,2022-07-27,False,79.7
-183,Person_183,26,143895.29,Marketing,Seattle,2021-01-09,False,75.3
-184,Person_184,71,146680.46,Marketing,Boston,2022-02-06,True,38.7
-185,Person_185,59,122555.88,HR,New York,2022-03-31,True,90.1
-186,Person_186,43,99390.34,Sales,San Francisco,2024-06-09,False,94.1
-187,Person_187,62,31813.14,Engineering,New York,2022-07-01,True,13.4
-188,Person_188,45,84811.76,Engineering,Austin,2024-07-18,False,72.0
-189,Person_189,61,106326.47,Finance,San Francisco,2024-08-30,True,22.4
-190,Person_190,57,43345.57,Sales,Austin,2022-02-13,False,41.5
-191,Person_191,49,91215.54,Engineering,New York,2024-04-13,False,15.6
-192,Person_192,51,113248.66,Sales,New York,2024-09-19,True,70.0
-193,Person_193,75,98087.32,Sales,Boston,2022-10-28,False,34.8
-194,Person_194,35,106137.99,Finance,San Francisco,2024-01-31,False,70.1
-195,Person_195,60,33657.84,HR,Boston,2021-09-11,False,48.9
-196,Person_196,80,140313.87,Marketing,Austin,2024-01-11,False,91.3
-197,Person_197,44,105306.82,Engineering,Boston,2024-11-05,False,39.1
-198,Person_198,54,64764.94,Marketing,San Francisco,2022-01-17,True,17.0
-199,Person_199,41,119222.06,Engineering,San Francisco,2023-04-28,True,31.4
-200,Person_200,59,117552.63,Sales,Austin,2021-04-29,True,87.3
-201,Person_201,67,123256.53,Marketing,Seattle,2022-08-08,False,23.3
-202,Person_202,80,35733.06,Finance,New York,2024-06-20,False,55.0
-203,Person_203,72,72565.92,Marketing,Austin,2023-04-01,True,38.2
-204,Person_204,42,50136.82,Marketing,Austin,2024-03-18,False,10.1
-205,Person_205,75,136938.33,HR,Seattle,2020-07-31,False,92.4
-206,Person_206,43,31162.09,HR,Seattle,2023-02-08,True,86.7
-207,Person_207,59,46236.33,Engineering,San Francisco,2022-05-02,True,98.9
-208,Person_208,53,87789.21,Marketing,Austin,2022-10-20,True,17.6
-209,Person_209,51,117580.47,Sales,Austin,2021-10-07,True,38.5
-210,Person_210,72,117489.35,Marketing,Austin,2024-01-20,True,9.8
-211,Person_211,45,64386.8,Finance,Austin,2020-05-12,True,30.1
-212,Person_212,38,36207.55,Sales,Seattle,2022-01-16,False,21.5
-213,Person_213,27,135646.7,Engineering,Austin,2023-10-22,False,1.2
-214,Person_214,30,125788.95,HR,San Francisco,2023-01-29,True,14.9
-215,Person_215,33,121570.93,Marketing,New York,2023-07-24,False,71.3
-216,Person_216,67,139094.79,Sales,New York,2022-05-25,True,25.6
-217,Person_217,80,90807.33,Finance,Seattle,2020-02-25,False,53.9
-218,Person_218,35,91781.82,Finance,Austin,2021-12-29,False,34.1
-219,Person_219,69,134018.85,Engineering,Austin,2024-02-10,True,97.6
-220,Person_220,21,143582.59,Marketing,New York,2020-06-06,True,2.4
-221,Person_221,55,59251.37,Finance,San Francisco,2024-04-24,True,67.0
-222,Person_222,42,143660.48,Engineering,Boston,2022-01-12,False,62.3
-223,Person_223,72,112759.6,Marketing,Boston,2020-01-14,True,4.9
-224,Person_224,51,103341.26,Engineering,New York,2023-02-18,False,87.5
-225,Person_225,58,57322.91,Sales,Seattle,2021-11-25,False,79.3
-226,Person_226,30,65687.56,HR,Boston,2022-08-21,True,4.9
-227,Person_227,25,119511.88,Sales,New York,2024-11-12,False,47.5
-228,Person_228,56,112995.76,HR,Seattle,2024-02-19,False,13.5
-229,Person_229,54,87665.28,Sales,San Francisco,2022-05-30,False,43.5
-230,Person_230,31,54542.85,HR,Seattle,2024-08-20,True,84.5
-231,Person_231,48,121584.64,HR,Seattle,2022-04-27,False,77.1
-232,Person_232,69,62024.69,Finance,New York,2020-06-28,False,32.4
-233,Person_233,74,86477.22,Sales,Austin,2024-01-29,True,5.4
-234,Person_234,19,80317.88,Sales,Boston,2022-05-12,True,20.8
-235,Person_235,28,105434.03,Sales,Austin,2021-01-01,True,73.1
-236,Person_236,48,101117.68,Finance,Austin,2020-06-10,True,30.4
-237,Person_237,42,112846.51,Sales,Austin,2022-05-10,False,6.5
-238,Person_238,64,129078.43,Finance,San Francisco,2022-12-26,True,99.0
-239,Person_239,28,140122.37,Finance,New York,2023-06-08,True,49.1
-240,Person_240,68,132375.16,Finance,New York,2022-02-13,False,62.9
-241,Person_241,53,73418.2,Marketing,Austin,2024-07-31,False,30.9
-242,Person_242,38,92715.33,HR,Seattle,2020-09-11,True,12.1
-243,Person_243,65,74508.56,Sales,San Francisco,2022-07-01,True,36.8
-244,Person_244,80,98324.47,Marketing,Austin,2020-03-16,False,90.1
-245,Person_245,55,145329.4,Marketing,New York,2024-07-13,False,75.4
-246,Person_246,45,80332.32,Engineering,Austin,2023-01-02,False,55.4
-247,Person_247,56,98351.42,HR,Boston,2022-03-18,False,64.4
-248,Person_248,54,105275.57,HR,San Francisco,2020-10-07,False,97.5
-249,Person_249,22,73014.22,Marketing,Seattle,2021-01-19,True,3.6
-250,Person_250,26,85006.4,Finance,Boston,2020-05-18,False,67.5
-251,Person_251,72,93424.74,Sales,Austin,2020-09-15,True,20.7
-252,Person_252,35,63754.42,Engineering,Boston,2022-09-25,True,57.1
-253,Person_253,67,37677.13,Marketing,Seattle,2021-09-30,True,53.9
-254,Person_254,51,89858.73,Engineering,Seattle,2020-03-14,True,34.5
-255,Person_255,29,120781.51,Sales,Seattle,2022-10-08,False,52.5
-256,Person_256,69,109007.67,Engineering,Boston,2021-03-10,False,5.0
-257,Person_257,24,131866.29,HR,New York,2024-02-01,True,70.3
-258,Person_258,48,80710.66,Engineering,New York,2022-01-11,False,35.4
-259,Person_259,29,144753.34,HR,Seattle,2023-03-07,False,33.0
-260,Person_260,40,38064.5,Engineering,Austin,2021-01-21,True,56.8
-261,Person_261,51,105890.77,Finance,Seattle,2024-02-20,False,3.5
-262,Person_262,58,89952.16,Engineering,Boston,2020-01-17,True,57.0
-263,Person_263,67,41993.95,Finance,Boston,2023-08-23,True,63.5
-264,Person_264,68,31796.23,Engineering,Austin,2024-04-22,True,97.3
-265,Person_265,80,123470.53,Sales,Austin,2023-06-29,False,20.0
-266,Person_266,32,112883.72,Finance,San Francisco,2022-08-07,False,76.7
-267,Person_267,52,36013.63,Sales,Seattle,2020-10-23,True,51.6
-268,Person_268,41,142750.13,Sales,San Francisco,2023-06-30,False,38.4
-269,Person_269,38,38278.96,HR,San Francisco,2021-06-03,False,27.9
-270,Person_270,78,108610.15,Marketing,Austin,2022-05-12,False,25.4
-271,Person_271,44,52427.16,Engineering,Boston,2022-09-08,False,11.8
-272,Person_272,61,76390.03,Sales,Boston,2021-12-23,True,90.6
-273,Person_273,46,123700.02,Marketing,San Francisco,2020-02-24,False,76.0
-274,Person_274,33,118938.15,Finance,Seattle,2024-12-01,False,0.1
-275,Person_275,71,130323.83,Engineering,Austin,2022-05-21,True,18.0
-276,Person_276,24,43977.51,Marketing,New York,2020-01-05,False,41.9
-277,Person_277,21,106155.98,Engineering,Seattle,2024-10-03,False,68.7
-278,Person_278,36,51844.62,Finance,New York,2021-02-23,False,98.5
-279,Person_279,60,100894.83,Finance,Austin,2020-10-01,False,48.9
-280,Person_280,56,84058.25,Sales,Boston,2021-11-30,False,81.5
-281,Person_281,41,134087.6,Sales,Austin,2023-08-01,False,54.4
-282,Person_282,30,94968.56,Sales,Boston,2023-05-09,True,54.4
-283,Person_283,44,74739.23,HR,Austin,2021-08-19,False,35.0
-284,Person_284,68,130752.66,Sales,New York,2020-09-17,False,73.8
-285,Person_285,58,142579.06,HR,New York,2024-10-30,False,25.9
-286,Person_286,49,102357.53,Marketing,San Francisco,2024-07-23,True,40.1
-287,Person_287,71,59081.54,HR,Seattle,2020-09-11,False,74.4
-288,Person_288,77,105813.51,Engineering,Austin,2023-10-10,False,95.6
-289,Person_289,80,76743.83,Marketing,San Francisco,2020-11-05,True,33.5
-290,Person_290,41,34023.74,HR,New York,2020-02-15,False,10.4
-291,Person_291,71,72511.6,Marketing,Boston,2020-04-02,False,89.7
-292,Person_292,50,127002.98,Engineering,Seattle,2024-02-06,True,61.0
-293,Person_293,39,126818.21,HR,Boston,2020-04-02,True,99.6
-294,Person_294,35,35317.22,Finance,New York,2023-06-18,True,24.6
-295,Person_295,27,89619.82,Finance,Austin,2020-05-23,False,53.1
-296,Person_296,52,68932.0,HR,Seattle,2023-09-23,False,20.8
-297,Person_297,69,134908.03,Engineering,Seattle,2021-12-16,True,8.1
-298,Person_298,70,79237.11,Engineering,Seattle,2024-08-08,True,17.9
-299,Person_299,31,122166.94,Engineering,Seattle,2020-08-15,True,29.4
-300,Person_300,42,76100.79,Sales,Boston,2021-07-27,False,8.1
-301,Person_301,70,126319.71,Sales,San Francisco,2020-01-20,True,77.3
-302,Person_302,44,139980.68,Finance,New York,2021-02-20,False,74.1
-303,Person_303,68,34561.45,Sales,Seattle,2024-03-11,False,46.4
-304,Person_304,42,54350.54,HR,New York,2020-04-16,True,67.1
-305,Person_305,53,129224.0,Engineering,San Francisco,2021-10-18,True,57.3
-306,Person_306,37,105459.39,Engineering,Seattle,2022-05-08,True,22.6
-307,Person_307,67,84513.27,Marketing,New York,2021-09-04,True,50.7
-308,Person_308,31,97180.47,Sales,Boston,2024-04-15,True,37.7
-309,Person_309,77,60705.42,HR,Seattle,2020-10-02,False,93.9
-310,Person_310,55,137248.3,Engineering,Seattle,2022-08-12,True,45.9
-311,Person_311,37,49854.94,Finance,Austin,2023-10-16,False,29.5
-312,Person_312,18,60995.0,Engineering,New York,2021-06-29,False,78.0
-313,Person_313,67,37099.33,Sales,New York,2024-11-05,False,81.4
-314,Person_314,52,110208.6,Marketing,Seattle,2021-04-17,True,89.1
-315,Person_315,19,147419.53,Marketing,San Francisco,2022-12-13,False,21.6
-316,Person_316,57,138724.02,Engineering,Austin,2023-06-15,False,86.0
-317,Person_317,50,55772.53,Engineering,Seattle,2021-08-01,True,32.2
-318,Person_318,70,114480.73,Engineering,Boston,2024-03-18,True,99.5
-319,Person_319,48,96142.1,Marketing,Boston,2022-03-19,True,60.0
-320,Person_320,69,138896.77,Sales,Seattle,2024-03-26,True,13.1
-321,Person_321,78,58853.1,Finance,Seattle,2020-08-22,True,76.2
-322,Person_322,39,140299.5,Marketing,Austin,2021-11-29,False,6.8
-323,Person_323,69,127318.69,Sales,Austin,2022-03-25,True,51.6
-324,Person_324,61,132912.24,HR,Seattle,2023-11-18,True,36.1
-325,Person_325,53,40189.25,Sales,New York,2020-10-03,False,1.3
-326,Person_326,59,95233.56,Engineering,Austin,2020-11-13,False,87.6
-327,Person_327,36,85459.19,Finance,New York,2022-06-15,False,28.0
-328,Person_328,50,63130.7,Engineering,Austin,2024-04-29,True,28.9
-329,Person_329,56,92848.16,Engineering,Seattle,2024-03-11,True,94.8
-330,Person_330,43,100817.02,Marketing,New York,2024-06-11,True,63.3
-331,Person_331,37,131270.61,Finance,Seattle,2020-02-18,True,3.5
-332,Person_332,74,114624.1,Marketing,Seattle,2020-03-11,True,0.5
-333,Person_333,56,89248.95,Sales,San Francisco,2022-06-21,False,39.2
-334,Person_334,67,59605.48,HR,San Francisco,2021-02-08,False,12.8
-335,Person_335,68,42648.37,HR,San Francisco,2020-03-10,False,19.7
-336,Person_336,54,43628.47,Marketing,Boston,2024-05-10,True,48.7
-337,Person_337,58,137260.41,Marketing,Boston,2024-09-12,True,57.7
-338,Person_338,38,88829.16,Finance,Austin,2022-11-20,False,6.5
-339,Person_339,59,110412.01,Engineering,San Francisco,2022-02-11,False,29.5
-340,Person_340,68,40867.22,Sales,Boston,2021-11-11,False,15.8
-341,Person_341,78,68562.67,Finance,New York,2021-07-31,False,78.7
-342,Person_342,56,113786.05,Marketing,Seattle,2021-03-15,False,16.8
-343,Person_343,55,60387.28,Sales,San Francisco,2024-08-08,True,53.8
-344,Person_344,66,101057.73,Marketing,Boston,2023-12-07,True,89.5
-345,Person_345,22,94533.44,HR,New York,2024-01-02,False,38.7
-346,Person_346,39,129702.57,Finance,San Francisco,2024-02-20,False,40.2
-347,Person_347,70,41898.85,Marketing,Seattle,2020-11-29,True,12.1
-348,Person_348,64,137875.34,Engineering,Austin,2021-07-10,True,85.4
-349,Person_349,30,39627.05,Marketing,Boston,2024-11-29,True,87.8
-350,Person_350,57,49045.2,Sales,New York,2022-10-30,False,28.7
-351,Person_351,37,102910.65,Marketing,Seattle,2020-01-25,True,25.5
-352,Person_352,37,81220.45,Finance,New York,2022-09-04,False,4.8
-353,Person_353,53,126948.24,Sales,Seattle,2021-08-30,False,90.1
-354,Person_354,65,32034.16,Engineering,San Francisco,2020-08-03,True,79.7
-355,Person_355,80,53345.69,Finance,Seattle,2022-03-23,False,29.9
-356,Person_356,26,62048.58,Marketing,Austin,2024-10-10,True,84.9
-357,Person_357,73,60449.72,Finance,New York,2020-11-28,False,9.0
-358,Person_358,72,38046.55,HR,New York,2021-03-07,False,47.1
-359,Person_359,28,91309.78,Engineering,Boston,2021-05-09,False,27.5
-360,Person_360,59,54190.57,Finance,San Francisco,2021-06-16,True,91.0
-361,Person_361,21,115085.66,Engineering,Boston,2021-07-01,True,6.8
-362,Person_362,40,90855.39,Sales,New York,2023-07-13,True,23.9
-363,Person_363,37,126411.65,Finance,San Francisco,2023-07-21,True,8.6
-364,Person_364,72,68157.19,Engineering,Seattle,2020-04-09,False,32.5
-365,Person_365,62,91474.14,HR,San Francisco,2022-09-28,False,5.4
-366,Person_366,56,36139.32,Sales,New York,2022-02-21,True,73.0
-367,Person_367,45,113107.96,Finance,Boston,2021-08-18,True,41.8
-368,Person_368,31,31411.7,Marketing,New York,2023-08-08,False,92.8
-369,Person_369,68,149615.29,Marketing,Seattle,2021-05-28,True,86.6
-370,Person_370,55,107516.18,Finance,New York,2024-07-11,False,46.5
-371,Person_371,21,41254.56,Finance,Seattle,2020-07-28,True,81.8
-372,Person_372,26,39092.63,Finance,New York,2020-07-08,True,33.7
-373,Person_373,76,62529.15,Marketing,Seattle,2021-09-08,False,98.6
-374,Person_374,75,131309.23,Engineering,San Francisco,2022-02-12,False,44.3
-375,Person_375,53,126123.27,HR,Seattle,2022-11-30,True,6.7
-376,Person_376,69,92149.74,HR,San Francisco,2021-05-08,True,14.3
-377,Person_377,46,38535.28,Marketing,Seattle,2024-08-22,True,78.1
-378,Person_378,42,56013.47,Finance,New York,2020-10-13,True,77.1
-379,Person_379,65,74192.07,HR,Seattle,2024-01-27,True,16.3
-380,Person_380,55,56009.03,Finance,New York,2020-05-21,False,93.8
-381,Person_381,25,140068.94,Marketing,Seattle,2020-04-30,True,55.4
-382,Person_382,55,125881.39,Finance,San Francisco,2023-09-03,True,8.5
-383,Person_383,25,40621.9,Engineering,Austin,2022-05-14,False,61.5
-384,Person_384,34,117098.22,Sales,San Francisco,2023-12-25,False,35.5
-385,Person_385,70,134848.65,Sales,Boston,2021-11-21,False,28.5
-386,Person_386,79,127890.93,Sales,San Francisco,2022-11-29,False,95.8
-387,Person_387,20,114832.84,Finance,Boston,2023-06-19,False,96.2
-388,Person_388,36,134402.01,HR,Boston,2023-11-14,True,46.9
-389,Person_389,73,141367.57,Marketing,San Francisco,2020-04-27,True,13.6
-390,Person_390,75,31536.44,Finance,Austin,2021-09-25,False,4.8
-391,Person_391,50,39802.55,HR,Boston,2024-04-19,False,56.2
-392,Person_392,30,130521.14,HR,Boston,2021-02-14,False,52.5
-393,Person_393,21,52796.62,HR,New York,2022-03-10,True,36.3
-394,Person_394,48,149629.35,Finance,San Francisco,2021-02-15,True,5.4
-395,Person_395,51,107265.08,Sales,New York,2021-04-09,False,66.9
-396,Person_396,28,118632.52,Engineering,Austin,2024-06-16,True,43.5
-397,Person_397,80,49782.84,HR,Seattle,2021-02-01,True,56.4
-398,Person_398,56,35284.02,Sales,Austin,2023-07-22,True,75.5
-399,Person_399,19,134168.5,Finance,Austin,2020-09-01,False,35.1
-400,Person_400,54,80034.93,Engineering,Austin,2021-07-22,False,81.5
-401,Person_401,54,47584.79,Marketing,New York,2023-12-13,True,54.5
-402,Person_402,28,133462.96,Engineering,New York,2023-01-14,True,59.5
-403,Person_403,73,69747.25,Marketing,Seattle,2020-06-20,True,84.1
-404,Person_404,71,112681.97,Marketing,San Francisco,2024-04-08,False,76.0
-405,Person_405,28,96496.42,HR,Austin,2024-09-05,True,63.8
-406,Person_406,48,45827.25,Finance,Seattle,2024-01-31,False,58.3
-407,Person_407,42,96390.49,Finance,San Francisco,2023-04-10,False,92.6
-408,Person_408,53,45201.36,HR,Seattle,2023-08-22,True,15.4
-409,Person_409,44,128357.65,Sales,San Francisco,2021-12-10,True,4.0
-410,Person_410,58,129496.69,Finance,San Francisco,2020-01-18,True,66.3
-411,Person_411,76,61579.94,Marketing,New York,2023-08-29,True,85.9
-412,Person_412,30,48021.94,Engineering,Seattle,2021-02-23,True,15.2
-413,Person_413,47,73103.84,HR,New York,2023-01-16,False,44.5
-414,Person_414,32,53574.14,Engineering,Austin,2023-08-21,True,46.4
-415,Person_415,42,110791.63,Finance,New York,2021-01-23,False,8.5
-416,Person_416,18,136673.79,Marketing,Seattle,2021-05-18,True,21.3
-417,Person_417,29,42643.52,Sales,San Francisco,2024-10-09,True,80.5
-418,Person_418,79,72838.99,Engineering,Boston,2022-11-24,True,33.7
-419,Person_419,56,122034.25,HR,Seattle,2020-08-24,True,13.9
-420,Person_420,68,96639.05,Finance,Boston,2024-02-16,True,97.1
-421,Person_421,30,121673.48,Finance,Austin,2023-11-26,False,31.9
-422,Person_422,64,83404.49,Marketing,Austin,2020-06-20,True,34.2
-423,Person_423,75,40977.09,Sales,Austin,2022-03-22,True,48.8
-424,Person_424,36,139402.43,Finance,Austin,2020-05-04,False,94.7
-425,Person_425,25,39514.96,Marketing,New York,2024-06-24,False,25.5
-426,Person_426,70,70858.74,Sales,San Francisco,2022-06-12,False,29.1
-427,Person_427,47,38295.05,Finance,Seattle,2021-05-02,True,65.8
-428,Person_428,60,84205.25,HR,Austin,2022-05-23,True,55.4
-429,Person_429,42,61657.72,Engineering,Boston,2020-11-11,True,52.8
-430,Person_430,32,86127.7,Finance,San Francisco,2021-10-17,False,25.5
-431,Person_431,69,46920.11,Sales,Boston,2021-05-04,False,65.0
-432,Person_432,60,146649.71,Sales,Austin,2023-02-27,True,4.0
-433,Person_433,22,80336.23,Finance,Austin,2024-05-26,True,54.1
-434,Person_434,71,58021.36,Finance,New York,2022-03-12,False,9.3
-435,Person_435,37,48712.88,Engineering,Seattle,2023-01-26,False,85.1
-436,Person_436,76,113888.22,Finance,Boston,2022-11-23,False,83.0
-437,Person_437,63,117586.44,Sales,San Francisco,2020-02-11,True,5.2
-438,Person_438,51,75856.15,Marketing,San Francisco,2023-04-04,False,85.4
-439,Person_439,54,137749.38,HR,Seattle,2022-10-23,True,54.4
-440,Person_440,28,87443.73,Engineering,Austin,2022-09-03,True,47.1
-441,Person_441,29,101382.56,HR,Seattle,2022-11-17,False,35.6
-442,Person_442,61,84387.71,Engineering,San Francisco,2020-06-16,True,82.7
-443,Person_443,73,45596.45,Engineering,Austin,2022-06-09,True,1.5
-444,Person_444,52,129365.27,Sales,Seattle,2021-12-12,True,43.4
-445,Person_445,64,87467.33,Finance,Austin,2023-12-15,True,22.0
-446,Person_446,52,77639.58,Finance,New York,2023-08-23,True,60.2
-447,Person_447,66,115525.5,Finance,New York,2022-11-21,True,67.5
-448,Person_448,74,67536.24,HR,Boston,2022-02-26,True,24.8
-449,Person_449,24,48935.26,Finance,San Francisco,2020-03-17,True,79.4
-450,Person_450,28,119581.73,Engineering,Boston,2023-02-02,True,85.9
-451,Person_451,49,65544.77,HR,Seattle,2022-05-04,False,17.1
-452,Person_452,30,114826.25,Engineering,Boston,2020-11-29,True,15.2
-453,Person_453,47,59558.57,HR,San Francisco,2024-11-20,True,95.2
-454,Person_454,18,99894.81,HR,Austin,2023-10-23,True,85.1
-455,Person_455,42,78010.36,Finance,Seattle,2023-11-07,False,20.1
-456,Person_456,64,78857.46,Finance,Seattle,2020-02-15,False,75.9
-457,Person_457,42,124594.26,Finance,Austin,2022-04-23,False,82.0
-458,Person_458,21,76551.63,Finance,Austin,2020-11-16,True,55.4
-459,Person_459,77,142659.87,Finance,New York,2020-09-11,True,66.9
-460,Person_460,52,114687.18,Finance,Boston,2021-04-17,False,96.2
-461,Person_461,61,144991.53,HR,Austin,2020-03-06,True,2.6
-462,Person_462,41,126528.13,Finance,Seattle,2023-07-05,True,66.2
-463,Person_463,68,62143.37,Engineering,San Francisco,2021-03-06,True,59.7
-464,Person_464,65,68823.98,Sales,Seattle,2020-02-11,False,76.9
-465,Person_465,68,48775.78,Marketing,New York,2022-04-11,True,8.7
-466,Person_466,21,146810.46,HR,Austin,2024-02-04,True,35.0
-467,Person_467,40,105789.22,Sales,New York,2021-05-23,False,73.5
-468,Person_468,72,58838.01,HR,Austin,2020-02-04,True,72.0
-469,Person_469,27,125514.02,Sales,New York,2021-06-23,False,38.6
-470,Person_470,28,77670.79,Finance,San Francisco,2024-03-10,False,39.3
-471,Person_471,71,118884.92,HR,Boston,2023-07-20,False,46.7
-472,Person_472,46,84596.6,Marketing,Boston,2022-07-26,False,49.1
-473,Person_473,42,77855.85,Finance,New York,2020-04-30,True,69.6
-474,Person_474,64,73523.04,Marketing,Austin,2020-11-10,True,28.0
-475,Person_475,70,39504.2,Marketing,Boston,2021-04-23,True,77.9
-476,Person_476,59,125360.74,Engineering,San Francisco,2021-06-19,True,80.3
-477,Person_477,33,51547.92,Sales,New York,2020-08-07,True,18.9
-478,Person_478,61,63648.47,Marketing,New York,2020-11-15,True,13.7
-479,Person_479,18,132416.45,Sales,Boston,2024-03-24,False,25.9
-480,Person_480,62,124547.01,Sales,Boston,2024-05-15,True,98.6
-481,Person_481,75,96171.97,Engineering,Boston,2020-09-11,False,40.8
-482,Person_482,18,114174.72,Engineering,Boston,2024-08-24,True,83.8
-483,Person_483,80,38973.15,HR,Austin,2024-09-28,False,62.0
-484,Person_484,75,80551.26,Finance,Boston,2023-06-03,True,20.8
-485,Person_485,50,70762.34,Engineering,New York,2023-02-05,False,25.4
-486,Person_486,38,42981.7,Sales,San Francisco,2020-03-06,False,51.8
-487,Person_487,72,139985.0,Engineering,San Francisco,2022-08-27,True,94.7
-488,Person_488,57,63762.91,Marketing,Seattle,2021-07-06,False,17.7
-489,Person_489,70,59499.98,Engineering,Austin,2021-06-02,True,75.8
-490,Person_490,62,84737.98,Engineering,New York,2023-05-06,True,76.3
-491,Person_491,59,58122.26,HR,Austin,2022-01-11,True,89.3
-492,Person_492,47,59099.35,Finance,Seattle,2021-09-09,True,46.3
-493,Person_493,29,56804.05,HR,Boston,2021-03-30,False,89.6
-494,Person_494,27,39381.99,Engineering,San Francisco,2021-04-01,False,37.7
-495,Person_495,40,71120.75,Sales,New York,2023-07-18,True,92.4
-496,Person_496,62,96855.66,HR,Austin,2021-11-23,True,40.8
-497,Person_497,30,58210.71,Finance,New York,2024-02-14,False,81.9
-498,Person_498,19,57855.66,HR,San Francisco,2021-04-13,True,64.1
-499,Person_499,58,55516.19,HR,Boston,2023-08-28,True,96.4
-500,Person_500,27,113524.55,Sales,New York,2020-05-07,False,82.3
-501,Person_501,44,122667.37,Marketing,San Francisco,2021-05-19,True,16.0
-502,Person_502,50,106490.27,HR,New York,2023-02-03,False,49.7
-503,Person_503,58,121096.92,Marketing,Austin,2023-05-26,True,83.8
-504,Person_504,80,128538.78,Engineering,New York,2021-10-17,False,81.7
-505,Person_505,66,108259.8,Sales,San Francisco,2021-05-05,False,59.0
-506,Person_506,66,131014.72,Finance,Austin,2022-03-12,False,22.7
-507,Person_507,47,68206.22,HR,Seattle,2023-10-26,True,77.8
-508,Person_508,50,123847.84,Sales,New York,2024-08-04,True,22.5
-509,Person_509,51,103213.17,Sales,San Francisco,2020-10-11,False,71.1
-510,Person_510,55,137035.77,Sales,New York,2022-09-21,True,22.7
-511,Person_511,37,128066.32,Sales,New York,2020-01-11,True,38.0
-512,Person_512,39,123679.62,Sales,New York,2022-10-16,False,21.8
-513,Person_513,26,48473.21,HR,Boston,2023-01-20,False,38.0
-514,Person_514,62,30395.18,Sales,Seattle,2021-07-18,True,98.4
-515,Person_515,42,120951.8,HR,New York,2022-08-07,False,35.8
-516,Person_516,18,98270.26,Marketing,New York,2022-10-23,True,81.4
-517,Person_517,30,49979.53,Engineering,Boston,2023-07-28,False,23.8
-518,Person_518,55,35189.94,Sales,Austin,2021-06-25,True,75.9
-519,Person_519,65,113187.24,Finance,Boston,2022-11-16,False,55.8
-520,Person_520,57,72639.43,HR,San Francisco,2022-09-02,False,78.2
-521,Person_521,40,146410.26,Engineering,Seattle,2022-05-07,True,72.0
-522,Person_522,54,141822.72,Finance,Boston,2024-07-31,True,69.2
-523,Person_523,65,69260.77,Finance,New York,2021-01-25,True,54.2
-524,Person_524,50,79460.78,Engineering,Boston,2022-07-05,False,5.3
-525,Person_525,60,69073.75,Marketing,Seattle,2021-07-20,False,41.2
-526,Person_526,52,103257.12,Sales,Boston,2022-02-23,True,78.5
-527,Person_527,66,107691.32,HR,San Francisco,2020-12-10,False,48.1
-528,Person_528,75,65720.45,Engineering,Boston,2023-05-13,False,20.9
-529,Person_529,24,97149.67,HR,New York,2024-07-07,True,13.4
-530,Person_530,51,139089.35,Marketing,Austin,2021-07-31,False,34.7
-531,Person_531,27,127836.14,HR,Seattle,2023-11-02,False,43.8
-532,Person_532,18,119184.57,Marketing,Austin,2024-06-15,True,20.8
-533,Person_533,37,113208.21,HR,Austin,2024-06-27,False,9.3
-534,Person_534,40,77314.41,HR,Seattle,2022-09-09,True,10.1
-535,Person_535,28,43152.73,Finance,Boston,2023-05-06,True,74.8
-536,Person_536,57,31979.96,Finance,Seattle,2023-01-02,False,57.9
-537,Person_537,65,145866.32,Sales,Austin,2022-05-30,True,25.3
-538,Person_538,50,121375.91,Marketing,Boston,2020-07-25,True,52.3
-539,Person_539,65,66996.2,Sales,Seattle,2023-12-01,False,0.6
-540,Person_540,57,111598.77,Sales,Boston,2020-09-19,False,63.2
-541,Person_541,75,84801.97,Marketing,Austin,2024-11-10,True,37.1
-542,Person_542,62,116077.07,Sales,San Francisco,2023-10-21,False,53.7
-543,Person_543,39,66805.08,Marketing,Boston,2022-06-23,False,87.7
-544,Person_544,71,117246.39,Sales,San Francisco,2023-05-14,True,40.0
-545,Person_545,20,59656.75,HR,New York,2021-04-01,True,22.7
-546,Person_546,32,48665.51,Marketing,Boston,2020-04-29,False,33.4
-547,Person_547,51,136362.28,Sales,Boston,2020-01-06,True,24.5
-548,Person_548,61,36605.58,Engineering,Boston,2020-10-16,True,51.8
-549,Person_549,59,32854.28,Engineering,Boston,2023-07-21,True,37.9
-550,Person_550,19,52060.94,Sales,Boston,2024-11-11,False,44.4
-551,Person_551,21,48820.47,Marketing,Boston,2021-08-05,False,29.4
-552,Person_552,62,31981.11,Finance,Boston,2023-03-19,False,6.7
-553,Person_553,76,105176.47,Engineering,San Francisco,2024-11-02,True,46.1
-554,Person_554,23,61370.44,Finance,Seattle,2023-06-17,True,44.9
-555,Person_555,32,84729.46,Finance,Seattle,2021-04-01,False,90.2
-556,Person_556,77,42180.59,HR,Boston,2023-01-05,True,47.8
-557,Person_557,47,31659.24,Marketing,New York,2021-11-17,True,54.9
-558,Person_558,45,142417.53,Marketing,Austin,2021-06-30,False,3.3
-559,Person_559,60,114864.91,HR,Austin,2024-07-15,False,24.7
-560,Person_560,35,94737.73,Marketing,Seattle,2023-12-12,False,77.8
-561,Person_561,61,86769.84,Finance,New York,2022-11-03,True,70.2
-562,Person_562,37,46551.41,Sales,Seattle,2022-04-16,False,91.6
-563,Person_563,32,102164.84,Engineering,Austin,2021-09-03,True,33.3
-564,Person_564,64,146988.73,Sales,San Francisco,2021-12-24,False,21.0
-565,Person_565,33,118075.44,HR,Boston,2021-01-21,True,31.6
-566,Person_566,26,67875.91,Finance,Austin,2023-04-20,False,1.6
-567,Person_567,51,100510.7,Sales,New York,2023-06-04,False,47.7
-568,Person_568,80,64844.91,HR,San Francisco,2023-05-01,True,97.2
-569,Person_569,24,67214.48,HR,Austin,2021-12-28,True,25.9
-570,Person_570,43,147946.9,Finance,Boston,2024-10-11,True,23.0
-571,Person_571,79,124653.05,Sales,San Francisco,2021-08-30,True,4.9
-572,Person_572,30,35591.61,Sales,Austin,2022-08-06,True,29.2
-573,Person_573,52,82240.88,Engineering,Austin,2024-07-14,False,42.3
-574,Person_574,79,60680.51,Engineering,New York,2020-11-03,True,64.2
-575,Person_575,58,86269.39,Engineering,Boston,2023-02-15,False,1.2
-576,Person_576,20,140271.31,Marketing,Seattle,2023-11-30,False,60.9
-577,Person_577,56,99671.35,HR,San Francisco,2023-08-24,False,32.4
-578,Person_578,28,148362.89,Marketing,Austin,2020-12-11,False,25.9
-579,Person_579,63,134238.26,Engineering,Boston,2023-10-21,True,100.0
-580,Person_580,36,120582.53,Sales,Seattle,2023-08-15,True,13.8
-581,Person_581,28,136931.7,Finance,Seattle,2023-03-31,True,51.3
-582,Person_582,69,123156.91,Finance,Seattle,2022-07-07,False,97.1
-583,Person_583,73,119561.5,HR,San Francisco,2024-09-04,True,50.4
-584,Person_584,44,115748.81,Engineering,New York,2023-10-22,True,80.2
-585,Person_585,23,67693.62,Sales,New York,2022-04-06,True,30.8
-586,Person_586,64,89811.4,Marketing,San Francisco,2022-05-18,True,92.6
-587,Person_587,22,74168.66,Sales,Austin,2021-12-01,True,57.5
-588,Person_588,39,57695.82,Engineering,Austin,2023-09-27,False,73.5
-589,Person_589,39,139811.56,Engineering,Boston,2020-08-14,False,50.4
-590,Person_590,63,124337.89,Finance,Boston,2022-11-21,True,77.9
-591,Person_591,22,39748.64,Finance,San Francisco,2024-06-08,False,47.0
-592,Person_592,68,86747.3,Marketing,Boston,2020-08-24,False,56.7
-593,Person_593,48,134231.59,HR,Seattle,2021-11-27,True,12.1
-594,Person_594,65,41623.73,Engineering,Boston,2024-06-27,True,85.8
-595,Person_595,72,112809.95,Engineering,Austin,2024-03-25,True,85.3
-596,Person_596,43,39021.39,Engineering,Seattle,2020-04-30,True,50.3
-597,Person_597,79,121457.0,Sales,Austin,2020-01-24,True,72.8
-598,Person_598,43,44946.14,Sales,Austin,2023-07-15,False,66.0
-599,Person_599,54,40864.53,HR,New York,2022-03-15,False,96.5
-600,Person_600,59,30928.54,Marketing,Austin,2024-03-28,False,4.9
-601,Person_601,30,99257.21,Engineering,Austin,2022-09-03,False,4.1
-602,Person_602,32,82308.07,HR,Boston,2020-05-13,False,58.6
-603,Person_603,51,142047.07,Sales,New York,2024-09-24,True,42.4
-604,Person_604,40,143117.6,Marketing,Seattle,2024-05-24,False,69.3
-605,Person_605,48,121473.31,HR,San Francisco,2024-11-16,False,21.5
-606,Person_606,27,134857.99,HR,San Francisco,2023-10-04,False,64.1
-607,Person_607,45,113211.87,Engineering,New York,2024-01-21,True,53.6
-608,Person_608,64,131791.24,Marketing,Austin,2021-03-11,True,68.6
-609,Person_609,79,46759.38,Finance,Austin,2020-05-03,False,75.9
-610,Person_610,50,34281.33,Marketing,Austin,2020-01-28,False,80.5
-611,Person_611,50,61118.28,HR,Austin,2022-01-20,False,34.5
-612,Person_612,62,122528.21,Marketing,San Francisco,2024-01-15,False,83.6
-613,Person_613,25,45442.83,Marketing,Austin,2024-07-24,False,87.3
-614,Person_614,77,44575.1,Engineering,Seattle,2021-02-12,False,99.2
-615,Person_615,53,112599.49,Engineering,Boston,2022-07-12,False,69.0
-616,Person_616,56,93850.6,Marketing,New York,2023-07-28,True,39.8
-617,Person_617,48,38968.19,Sales,Seattle,2020-08-10,True,86.1
-618,Person_618,26,142700.32,Sales,New York,2024-07-03,False,31.9
-619,Person_619,49,69000.37,HR,Seattle,2022-10-02,True,21.1
-620,Person_620,61,130497.02,Engineering,Austin,2024-04-13,True,33.6
-621,Person_621,37,83073.59,HR,San Francisco,2023-10-25,False,41.5
-622,Person_622,58,30765.89,Marketing,Seattle,2021-08-25,False,61.4
-623,Person_623,66,88573.02,Sales,San Francisco,2024-12-01,True,70.5
-624,Person_624,47,38422.56,Marketing,New York,2023-05-01,True,38.2
-625,Person_625,50,96645.4,Engineering,Seattle,2024-02-11,False,77.4
-626,Person_626,78,73986.67,Sales,New York,2023-05-03,False,15.2
-627,Person_627,36,47128.9,Sales,New York,2022-05-04,True,25.8
-628,Person_628,25,117472.53,Sales,New York,2023-09-21,True,39.4
-629,Person_629,26,78550.26,Sales,New York,2021-07-12,False,79.5
-630,Person_630,52,132736.6,Finance,Boston,2023-10-22,True,27.5
-631,Person_631,66,149685.28,Marketing,New York,2022-01-13,False,87.9
-632,Person_632,67,109344.14,Marketing,Seattle,2021-07-02,True,5.7
-633,Person_633,34,50450.08,Marketing,Seattle,2022-03-27,False,23.5
-634,Person_634,62,77220.08,Marketing,Seattle,2020-11-22,True,91.3
-635,Person_635,75,39973.24,Engineering,New York,2021-11-27,False,24.0
-636,Person_636,20,127715.72,Marketing,New York,2020-05-07,True,16.3
-637,Person_637,32,83729.09,Sales,San Francisco,2020-04-19,False,10.8
-638,Person_638,64,116349.79,Finance,Boston,2021-05-10,False,31.8
-639,Person_639,37,93496.19,Engineering,Boston,2021-01-04,False,35.8
-640,Person_640,77,50043.64,HR,New York,2021-02-09,False,46.7
-641,Person_641,43,34896.69,Marketing,Boston,2024-08-13,False,53.7
-642,Person_642,52,71226.02,Finance,New York,2021-06-25,False,2.8
-643,Person_643,24,139567.72,Finance,New York,2020-07-26,True,79.6
-644,Person_644,58,115076.46,Engineering,San Francisco,2022-01-14,False,43.5
-645,Person_645,78,102160.89,Finance,San Francisco,2024-05-05,True,45.4
-646,Person_646,29,138287.42,Finance,Austin,2023-09-16,True,68.9
-647,Person_647,68,103148.7,Sales,Austin,2023-09-16,False,1.1
-648,Person_648,23,39934.98,HR,New York,2020-07-07,True,37.7
-649,Person_649,76,39522.02,Finance,San Francisco,2024-03-20,False,14.5
-650,Person_650,55,82661.44,HR,New York,2020-08-08,False,39.6
-651,Person_651,73,41441.78,Finance,Austin,2021-12-13,True,52.6
-652,Person_652,49,89796.65,HR,San Francisco,2024-08-25,True,28.0
-653,Person_653,19,102203.26,Sales,Seattle,2021-07-24,False,67.1
-654,Person_654,65,134271.06,Engineering,Austin,2023-08-09,True,32.6
-655,Person_655,33,50172.04,Finance,New York,2022-06-26,True,0.5
-656,Person_656,21,104735.67,Marketing,Austin,2023-12-11,False,62.3
-657,Person_657,52,141149.54,Marketing,Austin,2023-04-11,True,1.9
-658,Person_658,68,72116.58,Engineering,Austin,2023-01-16,True,73.1
-659,Person_659,50,78119.22,HR,Boston,2021-11-15,True,43.4
-660,Person_660,66,74082.33,Engineering,Austin,2021-06-06,True,1.6
-661,Person_661,77,33712.42,Engineering,Austin,2020-01-17,False,4.7
-662,Person_662,35,101833.47,Engineering,Boston,2021-06-11,False,37.2
-663,Person_663,79,40453.84,HR,New York,2021-12-08,True,18.8
-664,Person_664,76,127555.68,Sales,Austin,2024-07-14,False,56.9
-665,Person_665,60,66586.49,Engineering,Austin,2024-09-20,True,31.4
-666,Person_666,45,96226.63,HR,New York,2021-06-15,True,9.6
-667,Person_667,52,41229.82,Engineering,Seattle,2024-09-14,False,56.4
-668,Person_668,47,108519.85,HR,Seattle,2023-06-12,False,48.5
-669,Person_669,59,142795.55,Finance,Boston,2022-01-19,False,67.5
-670,Person_670,74,129231.4,Finance,San Francisco,2020-10-03,True,71.0
-671,Person_671,20,70280.93,Finance,Austin,2020-06-18,True,10.5
-672,Person_672,56,143993.64,Marketing,New York,2024-08-09,True,3.4
-673,Person_673,18,80985.38,HR,Boston,2021-04-27,False,65.5
-674,Person_674,60,55173.5,Finance,Boston,2022-01-11,False,15.5
-675,Person_675,67,104003.96,Engineering,New York,2022-12-19,True,94.2
-676,Person_676,60,55371.72,HR,New York,2023-07-30,True,64.9
-677,Person_677,35,117969.59,Marketing,San Francisco,2021-06-11,True,60.9
-678,Person_678,70,120272.16,Finance,Seattle,2021-02-11,True,42.0
-679,Person_679,65,140458.44,HR,San Francisco,2022-10-21,False,80.2
-680,Person_680,48,124579.53,Finance,New York,2022-08-19,False,70.0
-681,Person_681,28,107421.18,Finance,New York,2024-10-13,False,29.9
-682,Person_682,38,149222.6,Finance,Austin,2024-09-01,True,79.7
-683,Person_683,26,57482.04,Sales,Boston,2020-02-12,False,76.2
-684,Person_684,47,51906.84,Engineering,Boston,2023-07-09,True,61.3
-685,Person_685,58,69128.21,HR,Austin,2021-11-10,True,77.7
-686,Person_686,47,98293.98,Finance,San Francisco,2023-04-02,False,64.7
-687,Person_687,68,63042.66,HR,Austin,2024-10-27,False,96.3
-688,Person_688,62,127107.92,Finance,San Francisco,2022-01-13,True,54.0
-689,Person_689,79,30015.73,Engineering,Seattle,2024-09-28,True,34.0
-690,Person_690,70,99873.16,Sales,San Francisco,2022-11-10,True,23.7
-691,Person_691,73,83786.49,Engineering,New York,2024-02-12,False,38.1
-692,Person_692,38,40874.73,HR,New York,2022-11-18,True,65.1
-693,Person_693,36,95848.08,HR,New York,2020-10-25,True,52.0
-694,Person_694,63,64023.33,Finance,Austin,2023-05-20,False,62.8
-695,Person_695,62,86125.7,Finance,Seattle,2024-12-01,True,43.1
-696,Person_696,60,149986.74,Finance,Seattle,2024-10-25,False,79.9
-697,Person_697,73,31243.0,Marketing,Seattle,2020-07-30,False,72.7
-698,Person_698,31,75678.37,HR,San Francisco,2024-02-15,False,84.0
-699,Person_699,65,101903.83,Sales,Austin,2021-07-03,True,88.2
-700,Person_700,54,116869.72,Engineering,New York,2020-02-04,True,5.7
-701,Person_701,61,96871.64,Sales,San Francisco,2021-02-13,True,1.6
-702,Person_702,43,78382.0,HR,New York,2022-10-15,False,8.1
-703,Person_703,43,51744.81,Sales,Austin,2020-11-29,True,81.8
-704,Person_704,73,111274.48,Engineering,Austin,2020-08-17,True,41.0
-705,Person_705,34,111100.68,Marketing,Austin,2021-12-04,False,42.6
-706,Person_706,43,76184.29,Engineering,Seattle,2021-07-03,False,78.9
-707,Person_707,19,55223.96,Finance,Austin,2021-03-08,False,41.3
-708,Person_708,30,42715.9,Finance,Boston,2024-08-08,True,66.5
-709,Person_709,43,113185.79,Marketing,Austin,2024-09-26,False,44.5
-710,Person_710,50,69393.83,HR,Austin,2024-12-01,False,36.5
-711,Person_711,64,30460.42,Sales,Austin,2021-02-08,True,45.1
-712,Person_712,46,95496.57,Sales,Seattle,2023-01-23,True,19.8
-713,Person_713,71,47801.52,Sales,New York,2023-10-05,True,49.7
-714,Person_714,26,110715.17,HR,Seattle,2020-01-12,True,23.0
-715,Person_715,27,67068.95,Sales,New York,2023-08-07,False,19.1
-716,Person_716,19,43933.75,Marketing,Austin,2022-04-04,True,15.7
-717,Person_717,33,32053.21,Sales,Boston,2024-11-05,True,15.9
-718,Person_718,25,108468.4,HR,Austin,2023-07-17,True,87.1
-719,Person_719,55,42237.75,Finance,Seattle,2020-01-16,True,69.4
-720,Person_720,50,59994.87,Sales,Seattle,2023-01-10,False,56.4
-721,Person_721,25,102479.36,Marketing,San Francisco,2022-11-05,True,53.8
-722,Person_722,77,124812.79,Finance,Austin,2023-02-19,True,68.5
-723,Person_723,73,87352.83,Engineering,San Francisco,2020-09-14,False,38.4
-724,Person_724,42,116990.15,Marketing,Boston,2024-09-21,True,51.5
-725,Person_725,65,99677.52,Finance,Boston,2021-03-25,False,37.6
-726,Person_726,56,67064.54,Sales,Seattle,2021-05-05,False,10.7
-727,Person_727,42,103249.09,Marketing,Austin,2024-04-18,False,67.4
-728,Person_728,31,119307.31,Marketing,Austin,2023-02-13,False,42.8
-729,Person_729,69,37666.46,Sales,Boston,2024-11-26,False,43.6
-730,Person_730,78,142388.76,Engineering,Boston,2022-01-31,False,42.6
-731,Person_731,61,133000.17,HR,San Francisco,2020-07-04,True,61.1
-732,Person_732,63,54493.31,Engineering,Austin,2020-10-14,True,9.5
-733,Person_733,74,134700.68,Marketing,Boston,2024-06-12,False,35.6
-734,Person_734,60,84426.37,HR,New York,2022-06-28,True,75.0
-735,Person_735,53,54073.18,HR,New York,2021-07-14,False,96.4
-736,Person_736,32,94676.44,Engineering,Boston,2023-01-17,True,7.5
-737,Person_737,42,50141.19,Marketing,San Francisco,2023-03-20,False,63.2
-738,Person_738,56,54082.6,Engineering,Boston,2020-04-30,False,11.2
-739,Person_739,59,73826.3,Marketing,Austin,2023-09-08,False,0.8
-740,Person_740,48,65521.24,Finance,Boston,2020-07-04,True,33.3
-741,Person_741,23,32047.66,Engineering,Boston,2020-05-29,False,18.7
-742,Person_742,59,70296.12,Sales,New York,2021-08-02,True,2.0
-743,Person_743,78,93252.14,HR,Seattle,2023-08-01,False,69.4
-744,Person_744,75,31255.64,HR,Seattle,2022-10-23,True,84.3
-745,Person_745,28,36827.75,Finance,New York,2023-11-13,False,28.9
-746,Person_746,70,44869.16,Marketing,San Francisco,2023-05-25,False,77.3
-747,Person_747,40,93176.18,Marketing,Seattle,2023-08-16,False,15.8
-748,Person_748,49,60609.96,HR,Boston,2020-02-16,False,31.9
-749,Person_749,37,131486.21,Sales,Boston,2023-01-26,False,78.4
-750,Person_750,53,90986.43,HR,Boston,2024-07-06,False,52.9
-751,Person_751,80,134065.69,HR,San Francisco,2020-10-05,False,91.8
-752,Person_752,22,118824.97,Marketing,Seattle,2022-09-11,True,40.0
-753,Person_753,28,44435.4,Marketing,New York,2023-05-01,False,38.6
-754,Person_754,57,126868.37,Marketing,Seattle,2024-04-18,True,94.3
-755,Person_755,44,31152.73,Sales,Boston,2023-03-17,False,13.1
-756,Person_756,60,102836.57,Marketing,Austin,2020-01-13,True,6.8
-757,Person_757,76,76803.52,Sales,San Francisco,2020-06-01,True,29.9
-758,Person_758,40,100305.03,HR,San Francisco,2020-11-23,False,0.5
-759,Person_759,57,56031.47,HR,Seattle,2023-02-20,False,0.0
-760,Person_760,46,145896.12,Sales,San Francisco,2024-06-17,True,73.3
-761,Person_761,61,56172.72,HR,San Francisco,2020-04-05,False,27.8
-762,Person_762,70,68088.72,Engineering,Boston,2023-05-17,True,27.2
-763,Person_763,25,108242.98,Sales,New York,2020-03-31,True,55.8
-764,Person_764,30,57181.01,HR,San Francisco,2024-07-08,True,13.5
-765,Person_765,22,73118.63,Engineering,Boston,2023-06-26,True,57.9
-766,Person_766,27,142690.86,Marketing,Austin,2024-09-16,False,47.6
-767,Person_767,27,43677.47,HR,Boston,2023-08-30,True,50.7
-768,Person_768,44,47670.35,HR,New York,2024-10-22,False,95.3
-769,Person_769,60,44379.35,Engineering,San Francisco,2022-11-08,False,87.0
-770,Person_770,26,115488.18,Engineering,Seattle,2023-07-31,False,3.8
-771,Person_771,46,100374.57,Marketing,Seattle,2020-01-06,True,15.4
-772,Person_772,39,149029.73,Engineering,Seattle,2020-05-08,True,6.9
-773,Person_773,66,127564.4,Sales,New York,2023-07-29,False,55.4
-774,Person_774,80,128411.51,Engineering,Seattle,2022-01-29,True,32.3
-775,Person_775,30,65497.75,Marketing,Boston,2023-05-20,False,39.9
-776,Person_776,34,74924.3,Finance,Austin,2024-05-04,True,5.3
-777,Person_777,79,129953.95,Sales,San Francisco,2020-04-14,True,40.0
-778,Person_778,23,99044.61,HR,San Francisco,2020-07-13,False,56.9
-779,Person_779,62,47247.16,HR,New York,2023-02-08,True,44.8
-780,Person_780,31,110548.06,HR,San Francisco,2021-11-27,False,80.1
-781,Person_781,48,117203.3,Finance,New York,2021-06-26,True,74.5
-782,Person_782,48,59963.03,Sales,Boston,2023-08-11,False,2.3
-783,Person_783,57,31804.15,Engineering,San Francisco,2024-09-15,True,38.3
-784,Person_784,22,57248.8,Engineering,Seattle,2023-09-01,False,68.3
-785,Person_785,36,97907.04,Finance,Austin,2020-10-06,True,7.9
-786,Person_786,37,41002.11,Engineering,New York,2022-07-21,True,21.6
-787,Person_787,21,63067.3,Marketing,New York,2024-08-04,True,15.7
-788,Person_788,21,52823.53,Finance,Seattle,2021-02-14,False,22.5
-789,Person_789,79,60632.81,Finance,New York,2020-03-12,False,92.0
-790,Person_790,75,69664.92,Finance,New York,2023-06-23,True,95.3
-791,Person_791,20,125297.75,HR,San Francisco,2024-12-02,False,3.3
-792,Person_792,21,113712.05,Sales,Seattle,2022-06-22,True,4.1
-793,Person_793,37,145265.86,HR,San Francisco,2023-04-24,True,42.0
-794,Person_794,29,81737.47,Engineering,Boston,2020-10-05,True,29.2
-795,Person_795,32,82795.97,Marketing,Austin,2022-01-02,False,16.0
-796,Person_796,42,97407.67,Engineering,Boston,2020-04-25,False,70.4
-797,Person_797,61,128947.8,Engineering,Boston,2023-03-25,False,76.3
-798,Person_798,28,100032.61,Marketing,Seattle,2023-07-18,True,34.8
-799,Person_799,57,99630.91,Sales,Seattle,2023-09-22,False,23.6
-800,Person_800,56,33551.8,Engineering,Austin,2021-04-08,True,7.6
-801,Person_801,39,57980.03,Marketing,San Francisco,2020-06-30,False,3.3
-802,Person_802,38,74241.76,HR,Boston,2023-09-07,False,77.0
-803,Person_803,58,127075.58,Marketing,San Francisco,2020-09-14,True,55.4
-804,Person_804,61,43147.2,HR,Seattle,2023-05-17,True,34.0
-805,Person_805,80,140012.33,Engineering,San Francisco,2024-07-01,False,57.0
-806,Person_806,29,122791.78,Marketing,New York,2023-08-10,False,25.5
-807,Person_807,79,116417.49,Sales,New York,2023-08-18,True,4.3
-808,Person_808,23,80575.44,Marketing,San Francisco,2023-11-14,False,41.7
-809,Person_809,36,79044.21,Sales,Austin,2023-08-29,False,36.8
-810,Person_810,44,86759.89,HR,Seattle,2024-01-24,True,76.7
-811,Person_811,31,126994.94,Engineering,San Francisco,2024-10-18,False,10.5
-812,Person_812,33,71052.64,HR,San Francisco,2021-03-23,False,76.9
-813,Person_813,52,146695.25,Marketing,Seattle,2021-01-07,True,86.5
-814,Person_814,48,127197.29,Sales,New York,2023-08-13,False,88.1
-815,Person_815,68,36868.25,Marketing,San Francisco,2022-03-31,False,33.5
-816,Person_816,19,81754.93,Marketing,Austin,2020-03-04,False,35.8
-817,Person_817,20,94954.85,Finance,Seattle,2024-09-07,True,56.6
-818,Person_818,80,49561.47,HR,Seattle,2021-06-30,True,85.5
-819,Person_819,20,80448.95,Sales,Austin,2022-07-19,True,90.2
-820,Person_820,22,67667.76,Engineering,New York,2020-09-17,True,62.9
-821,Person_821,79,136741.17,Finance,Boston,2020-12-30,False,19.1
-822,Person_822,50,115824.34,HR,Boston,2024-07-03,True,92.7
-823,Person_823,22,133755.35,HR,Boston,2024-12-05,False,59.8
-824,Person_824,63,149136.38,HR,Seattle,2022-09-08,True,54.6
-825,Person_825,20,47790.68,Finance,San Francisco,2022-05-05,True,61.6
-826,Person_826,56,126500.06,Sales,Boston,2024-06-07,False,1.1
-827,Person_827,35,65948.7,Finance,San Francisco,2023-06-13,True,77.9
-828,Person_828,60,108291.39,Sales,San Francisco,2023-10-06,False,29.0
-829,Person_829,46,105847.2,HR,Boston,2020-02-14,False,2.1
-830,Person_830,48,54322.39,Sales,San Francisco,2021-10-07,True,64.7
-831,Person_831,22,130559.93,Marketing,San Francisco,2021-02-27,False,6.6
-832,Person_832,52,143944.42,HR,San Francisco,2022-09-20,True,13.8
-833,Person_833,49,76341.16,Marketing,San Francisco,2024-10-24,True,55.5
-834,Person_834,31,65858.62,Sales,Austin,2020-04-06,False,45.1
-835,Person_835,33,44830.86,Engineering,New York,2020-07-11,False,28.2
-836,Person_836,56,132790.78,Finance,San Francisco,2021-03-12,False,10.9
-837,Person_837,66,44378.43,Finance,New York,2022-03-10,True,68.7
-838,Person_838,24,104625.45,HR,San Francisco,2021-11-26,True,37.4
-839,Person_839,59,58255.96,Engineering,San Francisco,2023-02-17,True,4.6
-840,Person_840,80,79891.55,Sales,Boston,2021-04-16,True,13.7
-841,Person_841,23,92838.77,Engineering,New York,2022-02-20,True,17.5
-842,Person_842,69,35807.54,Marketing,San Francisco,2021-07-29,False,26.4
-843,Person_843,34,46859.58,Sales,San Francisco,2021-12-27,False,93.1
-844,Person_844,46,100537.56,Finance,Austin,2020-12-09,False,57.4
-845,Person_845,80,122208.43,HR,Austin,2022-07-24,False,84.7
-846,Person_846,30,89990.09,Sales,New York,2022-10-19,False,41.2
-847,Person_847,59,118860.21,Engineering,Boston,2020-08-28,False,30.9
-848,Person_848,24,37630.81,Engineering,New York,2021-06-19,True,90.6
-849,Person_849,47,89286.97,Engineering,Austin,2024-03-28,False,94.2
-850,Person_850,76,51450.26,Sales,Austin,2020-01-05,False,25.4
-851,Person_851,28,66730.86,Sales,Boston,2023-10-10,False,82.0
-852,Person_852,46,61138.5,HR,New York,2024-07-03,False,77.3
-853,Person_853,30,58615.1,Finance,San Francisco,2024-11-16,True,46.0
-854,Person_854,67,43573.51,Finance,San Francisco,2022-06-25,False,7.5
-855,Person_855,68,80213.43,Marketing,Austin,2021-02-21,True,47.7
-856,Person_856,72,46315.39,Marketing,San Francisco,2024-05-11,False,40.1
-857,Person_857,65,61896.09,Sales,New York,2024-02-15,False,74.1
-858,Person_858,19,114550.46,Finance,Seattle,2021-06-24,True,24.1
-859,Person_859,40,114121.58,Sales,Boston,2021-08-09,False,18.6
-860,Person_860,32,132534.59,HR,Boston,2024-05-05,True,17.7
-861,Person_861,60,56125.36,Engineering,New York,2020-02-15,True,17.4
-862,Person_862,39,118722.5,Finance,New York,2020-05-29,False,12.6
-863,Person_863,18,57145.74,Engineering,Seattle,2021-04-13,True,89.9
-864,Person_864,45,117378.04,Engineering,Seattle,2021-10-05,False,25.1
-865,Person_865,24,126719.11,HR,San Francisco,2021-11-19,True,49.8
-866,Person_866,55,91990.97,Marketing,New York,2021-05-25,True,5.6
-867,Person_867,29,61389.12,Sales,New York,2021-09-23,False,49.2
-868,Person_868,31,41964.96,Sales,Austin,2024-04-03,True,21.9
-869,Person_869,36,58867.84,Sales,Austin,2021-04-06,False,55.3
-870,Person_870,54,91125.89,Sales,Seattle,2023-06-29,True,79.5
-871,Person_871,29,92698.09,Sales,Austin,2024-06-02,False,93.7
-872,Person_872,41,139838.93,Engineering,San Francisco,2024-05-09,False,41.1
-873,Person_873,30,144478.75,HR,Austin,2024-11-21,True,5.0
-874,Person_874,52,63677.3,Marketing,Seattle,2023-09-13,True,94.4
-875,Person_875,19,138621.26,Marketing,San Francisco,2020-01-14,False,73.5
-876,Person_876,56,126801.22,Sales,Boston,2024-03-12,False,49.2
-877,Person_877,71,43336.68,Finance,Seattle,2024-06-27,True,37.2
-878,Person_878,79,91625.43,Engineering,Seattle,2023-09-13,False,27.2
-879,Person_879,49,52556.51,Sales,San Francisco,2022-06-16,False,32.2
-880,Person_880,44,52893.83,Finance,Seattle,2021-04-20,False,21.7
-881,Person_881,49,67150.67,HR,San Francisco,2023-09-30,False,88.6
-882,Person_882,18,133122.19,Finance,San Francisco,2024-04-05,False,92.7
-883,Person_883,54,109044.12,HR,Seattle,2021-10-22,False,99.9
-884,Person_884,38,124302.95,Finance,Boston,2022-04-14,False,68.1
-885,Person_885,68,65119.0,HR,New York,2024-01-17,False,34.3
-886,Person_886,23,141614.54,Engineering,Seattle,2022-05-11,True,95.4
-887,Person_887,59,45580.78,Finance,Boston,2024-11-06,False,48.4
-888,Person_888,41,143404.6,Sales,Austin,2021-10-28,True,73.2
-889,Person_889,35,73438.46,Finance,Austin,2020-05-18,True,51.6
-890,Person_890,24,102586.89,Marketing,San Francisco,2022-09-27,False,70.5
-891,Person_891,18,92591.5,HR,Boston,2020-07-15,True,71.9
-892,Person_892,43,45217.13,Sales,San Francisco,2020-03-11,True,85.4
-893,Person_893,73,138066.83,Engineering,New York,2024-01-24,True,21.0
-894,Person_894,66,78971.07,Marketing,Austin,2020-01-26,True,36.1
-895,Person_895,30,120464.65,Sales,New York,2024-03-14,False,48.4
-896,Person_896,54,97430.15,Sales,San Francisco,2024-12-03,True,57.4
-897,Person_897,73,50211.88,HR,Seattle,2024-08-04,True,97.6
-898,Person_898,57,79388.24,Engineering,Boston,2024-11-27,False,93.3
-899,Person_899,68,77237.95,Sales,New York,2023-02-28,False,95.7
-900,Person_900,27,40492.93,HR,New York,2023-06-26,False,74.8
-901,Person_901,59,135496.96,Finance,San Francisco,2020-04-07,False,34.1
-902,Person_902,26,35635.35,Engineering,Austin,2020-03-14,True,96.2
-903,Person_903,69,31982.15,HR,Austin,2021-12-04,True,38.0
-904,Person_904,61,127765.77,Finance,Austin,2024-06-13,True,69.2
-905,Person_905,64,140759.41,Engineering,Seattle,2024-06-05,True,49.0
-906,Person_906,18,92666.74,Marketing,Austin,2024-07-15,False,75.8
-907,Person_907,77,147718.12,Sales,San Francisco,2021-03-30,False,94.2
-908,Person_908,46,79105.03,Sales,New York,2024-09-08,False,17.2
-909,Person_909,39,98864.74,HR,Seattle,2023-03-21,True,69.1
-910,Person_910,22,76134.81,HR,New York,2023-10-23,True,6.7
-911,Person_911,59,74889.27,Engineering,San Francisco,2022-06-07,False,64.8
-912,Person_912,63,61727.83,Marketing,New York,2020-02-26,False,63.0
-913,Person_913,41,108568.9,Engineering,Seattle,2021-01-17,False,2.2
-914,Person_914,30,58781.42,Finance,Boston,2021-02-22,True,57.3
-915,Person_915,21,111332.24,Marketing,Boston,2023-08-15,False,18.2
-916,Person_916,63,57304.51,Engineering,New York,2024-02-20,True,69.2
-917,Person_917,53,82453.81,Marketing,Boston,2024-01-08,False,34.6
-918,Person_918,39,133349.23,Marketing,Austin,2020-12-07,True,5.6
-919,Person_919,61,67615.88,Engineering,San Francisco,2022-11-22,False,10.2
-920,Person_920,24,55392.64,HR,Boston,2020-05-06,True,19.1
-921,Person_921,75,38255.03,Finance,New York,2022-02-21,True,6.0
-922,Person_922,52,61344.06,HR,New York,2022-08-27,False,31.1
-923,Person_923,25,34237.87,Marketing,New York,2021-05-12,False,94.3
-924,Person_924,43,59625.28,Sales,San Francisco,2023-11-29,False,87.8
-925,Person_925,65,76475.68,Finance,Seattle,2024-10-28,False,87.7
-926,Person_926,46,62517.59,Marketing,San Francisco,2023-01-06,False,20.5
-927,Person_927,67,52212.33,Sales,New York,2021-08-03,True,19.1
-928,Person_928,58,48672.31,HR,Seattle,2023-03-03,False,84.8
-929,Person_929,46,68149.98,Marketing,Boston,2023-07-12,True,87.3
-930,Person_930,24,88578.05,Finance,Boston,2024-06-08,False,29.6
-931,Person_931,38,63277.2,Sales,Boston,2020-10-09,True,9.2
-932,Person_932,56,104429.22,Sales,Seattle,2023-07-26,False,93.6
-933,Person_933,50,143662.72,Finance,San Francisco,2023-11-04,True,18.5
-934,Person_934,59,85717.6,Engineering,Boston,2021-02-23,True,33.7
-935,Person_935,66,133955.2,Engineering,Boston,2023-04-01,True,94.6
-936,Person_936,22,110337.59,HR,Boston,2021-12-10,True,2.0
-937,Person_937,72,117716.81,HR,Austin,2024-07-28,False,12.1
-938,Person_938,60,80655.79,HR,Austin,2023-02-17,False,49.6
-939,Person_939,47,131912.73,Finance,San Francisco,2022-06-21,False,54.5
-940,Person_940,77,69107.8,HR,Seattle,2020-07-26,True,2.5
-941,Person_941,57,120919.29,HR,San Francisco,2023-09-12,False,87.2
-942,Person_942,50,127745.28,Marketing,Seattle,2021-10-07,True,92.0
-943,Person_943,62,114484.46,Engineering,Boston,2022-04-01,True,35.9
-944,Person_944,73,32158.23,Engineering,Austin,2022-03-29,False,5.3
-945,Person_945,62,90409.69,Engineering,Austin,2020-04-13,False,75.4
-946,Person_946,71,59808.74,Marketing,Boston,2021-11-05,True,44.5
-947,Person_947,67,128263.89,Marketing,Boston,2020-10-10,True,57.3
-948,Person_948,18,87710.07,Engineering,New York,2024-05-02,False,34.0
-949,Person_949,49,39358.66,HR,Boston,2024-07-13,False,45.0
-950,Person_950,28,120990.9,Finance,Boston,2023-08-29,False,54.2
-951,Person_951,62,117452.72,HR,Austin,2021-08-29,True,97.1
-952,Person_952,40,34195.46,HR,Seattle,2021-11-09,True,76.5
-953,Person_953,58,97632.6,HR,Seattle,2021-07-19,True,91.2
-954,Person_954,22,63873.54,Engineering,Austin,2024-01-05,False,68.4
-955,Person_955,45,105177.06,Finance,Austin,2022-12-03,True,60.1
-956,Person_956,70,90065.3,Marketing,Boston,2022-06-15,True,58.7
-957,Person_957,46,138861.92,HR,Seattle,2022-09-25,False,63.4
-958,Person_958,50,105197.68,Sales,Boston,2022-09-27,False,82.6
-959,Person_959,54,86354.26,Sales,Austin,2022-01-02,False,23.9
-960,Person_960,28,44067.97,Engineering,Boston,2023-09-12,True,42.8
-961,Person_961,66,96327.88,Marketing,Seattle,2024-04-10,False,52.4
-962,Person_962,32,139385.18,Marketing,Seattle,2021-02-16,True,55.0
-963,Person_963,55,92247.22,Finance,Boston,2021-08-05,False,97.3
-964,Person_964,63,58350.43,Marketing,San Francisco,2021-10-23,False,63.1
-965,Person_965,65,99405.91,HR,Seattle,2021-01-28,True,95.4
-966,Person_966,23,146827.42,HR,Seattle,2023-04-22,False,76.5
-967,Person_967,45,134785.37,Finance,Seattle,2021-07-25,False,20.2
-968,Person_968,61,67729.66,Marketing,New York,2021-03-26,False,43.0
-969,Person_969,32,133383.75,Marketing,Austin,2022-07-09,True,69.5
-970,Person_970,49,103246.84,Marketing,San Francisco,2021-05-06,False,32.9
-971,Person_971,53,83482.61,Marketing,Austin,2020-05-14,True,91.7
-972,Person_972,37,64254.29,HR,San Francisco,2021-03-16,True,45.2
-973,Person_973,78,118965.78,Sales,Austin,2023-02-14,True,40.0
-974,Person_974,58,87158.73,Sales,New York,2024-07-07,True,35.6
-975,Person_975,57,131686.24,Marketing,San Francisco,2021-01-10,False,52.7
-976,Person_976,79,45442.86,Sales,Boston,2024-04-23,True,14.1
-977,Person_977,27,122102.18,Finance,Austin,2024-10-29,False,51.4
-978,Person_978,23,87186.52,Finance,Austin,2021-08-03,False,33.2
-979,Person_979,31,101825.8,HR,Austin,2021-12-17,False,64.8
-980,Person_980,38,93689.9,Finance,Boston,2020-06-04,True,30.2
-981,Person_981,36,63688.07,Sales,Boston,2023-07-07,False,11.8
-982,Person_982,37,144138.18,Marketing,Austin,2020-06-29,True,53.4
-983,Person_983,26,135019.1,Finance,New York,2024-10-23,True,27.4
-984,Person_984,72,81326.17,HR,Seattle,2022-04-05,False,16.5
-985,Person_985,34,38191.89,Sales,Seattle,2020-08-02,False,65.9
-986,Person_986,69,144167.48,Engineering,New York,2022-11-06,False,33.5
-987,Person_987,33,56437.63,Marketing,San Francisco,2023-06-15,True,12.1
-988,Person_988,48,130190.64,Engineering,Austin,2024-08-04,False,12.0
-989,Person_989,44,148452.01,HR,Boston,2024-09-11,True,35.8
-990,Person_990,22,50921.61,HR,Austin,2024-03-05,True,82.5
-991,Person_991,19,107423.27,Sales,New York,2021-07-11,False,72.6
-992,Person_992,28,70891.39,Sales,Boston,2022-09-28,False,63.1
-993,Person_993,60,115878.62,Marketing,Austin,2020-10-19,True,95.6
-994,Person_994,41,117552.49,Finance,Austin,2024-02-03,True,4.9
-995,Person_995,53,40422.74,Engineering,Boston,2024-12-03,False,71.3
-996,Person_996,76,115701.02,Finance,San Francisco,2020-05-06,False,98.0
-997,Person_997,39,134550.75,Sales,Boston,2021-11-07,True,37.8
-998,Person_998,34,122287.84,Marketing,San Francisco,2022-11-08,False,83.3
-999,Person_999,75,148853.81,Marketing,Boston,2021-04-08,False,96.9
-1000,Person_1000,50,123782.78,Engineering,Boston,2022-12-26,False,98.1
-1001,Person_1001,34,132874.84,Sales,San Francisco,2023-02-08,True,84.2
-1002,Person_1002,59,39977.66,Engineering,Boston,2022-07-05,True,8.8
-1003,Person_1003,49,52593.27,Engineering,New York,2023-11-13,False,34.6
-1004,Person_1004,66,35717.02,Sales,Boston,2021-11-21,True,70.4
-1005,Person_1005,58,119747.5,HR,San Francisco,2021-08-28,False,51.5
-1006,Person_1006,41,65373.98,Finance,Seattle,2021-01-07,True,78.5
-1007,Person_1007,29,137086.37,Engineering,Seattle,2020-02-02,True,34.8
-1008,Person_1008,32,129596.06,Marketing,San Francisco,2022-02-15,False,26.3
-1009,Person_1009,18,74077.07,HR,Boston,2020-02-06,False,12.4
-1010,Person_1010,65,105884.78,Marketing,Seattle,2024-05-15,True,25.8
-1011,Person_1011,36,65981.14,Sales,San Francisco,2021-12-19,False,6.4
-1012,Person_1012,22,64976.11,Finance,New York,2020-03-25,False,13.4
-1013,Person_1013,80,40650.35,HR,Austin,2023-10-27,False,54.7
-1014,Person_1014,77,90903.42,HR,Austin,2020-10-15,False,38.9
-1015,Person_1015,45,141456.08,HR,Seattle,2020-10-17,True,72.7
-1016,Person_1016,64,60648.18,Engineering,San Francisco,2022-06-22,True,19.1
-1017,Person_1017,36,148980.67,Finance,Seattle,2021-11-18,True,23.4
-1018,Person_1018,56,77534.45,Engineering,San Francisco,2020-06-09,False,92.6
-1019,Person_1019,43,111948.78,HR,New York,2022-12-12,True,62.5
-1020,Person_1020,73,132211.06,Engineering,New York,2021-11-06,True,4.2
-1021,Person_1021,45,74330.11,Marketing,Boston,2024-04-07,False,14.6
-1022,Person_1022,33,43760.45,Sales,Austin,2022-09-05,True,40.5
-1023,Person_1023,75,87752.14,HR,New York,2020-03-07,True,58.3
-1024,Person_1024,48,77304.34,Engineering,San Francisco,2022-06-03,True,62.3
-1025,Person_1025,61,34487.3,HR,Boston,2023-04-05,True,4.7
-1026,Person_1026,79,119997.79,Sales,New York,2020-12-19,True,29.8
-1027,Person_1027,37,64437.66,Sales,Austin,2020-08-28,True,21.2
-1028,Person_1028,69,39268.69,Finance,Austin,2022-08-03,False,89.2
-1029,Person_1029,41,115900.66,Marketing,Boston,2022-01-01,True,55.9
-1030,Person_1030,27,105530.99,Marketing,New York,2021-12-18,True,60.7
-1031,Person_1031,71,120120.49,HR,New York,2021-03-28,False,99.5
-1032,Person_1032,46,132982.53,Sales,Austin,2023-01-10,False,8.2
-1033,Person_1033,66,131665.61,Engineering,Seattle,2024-05-11,True,36.8
-1034,Person_1034,67,104504.89,Sales,Austin,2020-08-07,False,11.7
-1035,Person_1035,24,96606.17,Sales,Seattle,2022-01-23,True,68.1
-1036,Person_1036,80,123571.6,Sales,Seattle,2022-04-29,True,29.8
-1037,Person_1037,45,58083.45,Sales,Boston,2022-06-21,True,98.2
-1038,Person_1038,44,120118.88,Sales,Austin,2022-09-01,True,6.8
-1039,Person_1039,54,53210.44,HR,San Francisco,2023-06-23,True,25.2
-1040,Person_1040,31,128209.79,Marketing,Austin,2020-08-09,False,72.1
-1041,Person_1041,70,62545.59,Sales,Austin,2022-09-16,False,13.2
-1042,Person_1042,20,127468.8,Finance,Boston,2024-09-07,True,16.5
-1043,Person_1043,47,114195.74,Sales,Boston,2022-11-04,False,22.8
-1044,Person_1044,49,105121.09,Marketing,Seattle,2021-06-04,True,0.9
-1045,Person_1045,65,94102.43,Marketing,San Francisco,2020-04-21,False,39.3
-1046,Person_1046,46,148924.4,Marketing,Seattle,2022-12-02,False,18.2
-1047,Person_1047,33,87880.18,Marketing,Austin,2024-04-01,False,43.6
-1048,Person_1048,22,39878.54,HR,Seattle,2024-10-03,False,39.3
-1049,Person_1049,49,99485.99,Engineering,Seattle,2020-01-14,False,93.5
-1050,Person_1050,28,56135.95,Marketing,Boston,2023-04-06,True,92.4
-1051,Person_1051,78,80667.84,Sales,Boston,2022-06-23,False,21.5
-1052,Person_1052,23,63221.36,HR,San Francisco,2024-08-09,True,27.7
-1053,Person_1053,69,70406.86,Engineering,New York,2024-05-14,True,96.3
-1054,Person_1054,29,34421.36,Sales,New York,2020-06-07,True,55.3
-1055,Person_1055,76,97277.57,Sales,Austin,2021-06-11,False,84.9
-1056,Person_1056,71,87600.11,HR,San Francisco,2024-11-20,False,94.3
-1057,Person_1057,69,99539.72,Engineering,New York,2020-04-11,True,94.4
-1058,Person_1058,20,88433.42,HR,Boston,2024-01-06,False,62.1
-1059,Person_1059,40,106013.03,Engineering,San Francisco,2020-12-21,True,9.0
-1060,Person_1060,65,82198.38,Marketing,Austin,2021-09-06,True,48.6
-1061,Person_1061,52,99172.85,Engineering,Austin,2022-02-07,False,42.0
-1062,Person_1062,62,57411.48,Sales,Boston,2021-10-28,False,62.6
-1063,Person_1063,65,76819.6,Finance,Austin,2022-05-11,False,54.1
-1064,Person_1064,46,92089.95,Marketing,San Francisco,2023-01-07,False,20.7
-1065,Person_1065,65,99480.33,HR,Boston,2024-11-30,False,86.7
-1066,Person_1066,71,51946.98,HR,Austin,2021-07-30,False,24.3
-1067,Person_1067,23,107035.92,Finance,Boston,2022-01-24,True,21.7
-1068,Person_1068,29,80888.42,HR,Boston,2021-09-02,False,83.3
-1069,Person_1069,70,131755.31,Sales,Boston,2022-03-10,False,0.3
-1070,Person_1070,44,51132.8,Marketing,Seattle,2022-03-16,True,76.6
-1071,Person_1071,40,32922.28,Engineering,Boston,2021-08-31,True,15.3
-1072,Person_1072,45,124975.11,Finance,New York,2021-06-07,False,20.5
-1073,Person_1073,27,122437.6,Sales,Boston,2022-10-03,False,44.0
-1074,Person_1074,41,147245.28,Marketing,Boston,2020-01-20,False,12.0
-1075,Person_1075,46,78162.18,Engineering,San Francisco,2022-04-25,False,89.2
-1076,Person_1076,74,89361.38,Finance,Austin,2020-08-31,True,43.1
-1077,Person_1077,58,131454.53,Marketing,Austin,2020-08-12,True,95.3
-1078,Person_1078,79,68553.16,Sales,New York,2023-04-11,False,85.7
-1079,Person_1079,33,67444.95,Marketing,Austin,2021-01-05,True,59.2
-1080,Person_1080,35,95584.36,HR,Seattle,2022-10-27,False,19.6
-1081,Person_1081,53,77447.98,Marketing,San Francisco,2022-06-26,False,28.3
-1082,Person_1082,38,47671.83,Finance,Boston,2021-03-18,False,34.5
-1083,Person_1083,35,111468.4,HR,New York,2023-07-23,False,78.0
-1084,Person_1084,68,46458.43,HR,Seattle,2022-03-25,True,3.5
-1085,Person_1085,53,101661.17,HR,San Francisco,2021-04-25,False,14.9
-1086,Person_1086,32,98413.6,HR,Austin,2020-09-26,False,6.8
-1087,Person_1087,67,89101.78,Sales,Austin,2024-11-07,True,76.3
-1088,Person_1088,72,46081.48,Sales,Austin,2023-06-19,True,0.7
-1089,Person_1089,64,37362.19,Marketing,New York,2023-12-24,True,61.8
-1090,Person_1090,18,49388.4,Finance,San Francisco,2022-07-16,False,71.6
-1091,Person_1091,32,133449.26,HR,New York,2022-07-17,False,81.4
-1092,Person_1092,56,144261.1,Marketing,Austin,2022-04-20,True,94.4
-1093,Person_1093,80,144098.86,Finance,San Francisco,2020-07-15,False,19.4
-1094,Person_1094,70,141301.7,Marketing,San Francisco,2024-10-30,False,15.3
-1095,Person_1095,55,42338.91,Engineering,New York,2024-04-03,True,82.3
-1096,Person_1096,53,93043.52,HR,Seattle,2024-07-04,False,12.2
-1097,Person_1097,32,139500.16,Sales,New York,2023-05-24,True,81.7
-1098,Person_1098,64,70672.07,Finance,New York,2022-06-20,False,15.7
-1099,Person_1099,50,68277.52,HR,Boston,2021-12-22,False,99.5
-1100,Person_1100,75,132927.18,Engineering,Austin,2023-01-02,True,96.3
-1101,Person_1101,34,140339.1,Engineering,Austin,2020-09-09,False,70.0
-1102,Person_1102,27,61104.22,Marketing,Seattle,2022-04-24,False,78.1
-1103,Person_1103,25,67893.12,Sales,San Francisco,2023-10-17,False,46.1
-1104,Person_1104,24,62052.42,Engineering,Seattle,2023-11-25,False,31.1
-1105,Person_1105,60,140613.22,Finance,Seattle,2020-11-01,True,14.4
-1106,Person_1106,73,52844.68,Finance,New York,2021-04-06,True,76.8
-1107,Person_1107,60,124037.49,Marketing,New York,2020-04-25,False,50.3
-1108,Person_1108,54,99718.72,Engineering,Austin,2022-02-08,False,13.9
-1109,Person_1109,34,45894.38,Sales,New York,2022-12-04,False,33.0
-1110,Person_1110,25,64852.35,HR,Austin,2023-09-19,True,78.8
-1111,Person_1111,35,75275.16,Sales,San Francisco,2022-04-04,False,87.4
-1112,Person_1112,25,68381.82,HR,Austin,2022-05-11,False,39.2
-1113,Person_1113,44,138622.52,Marketing,San Francisco,2020-07-27,True,10.0
-1114,Person_1114,22,129323.26,Finance,Austin,2021-09-04,False,47.3
-1115,Person_1115,18,128585.13,Marketing,Seattle,2020-08-20,False,87.9
-1116,Person_1116,29,73866.75,Marketing,New York,2021-03-25,False,4.5
-1117,Person_1117,39,127081.89,Sales,San Francisco,2024-03-24,True,77.5
-1118,Person_1118,73,135376.77,Finance,Austin,2022-07-21,False,56.7
-1119,Person_1119,75,75165.47,Marketing,Austin,2020-05-11,True,35.6
-1120,Person_1120,45,117386.33,Marketing,Seattle,2024-01-03,True,45.5
-1121,Person_1121,23,60108.67,HR,New York,2022-01-25,True,63.4
-1122,Person_1122,45,99158.58,Engineering,New York,2024-07-21,False,49.5
-1123,Person_1123,19,107099.19,Engineering,New York,2021-05-11,True,80.0
-1124,Person_1124,51,122078.48,Finance,New York,2024-07-27,True,87.9
-1125,Person_1125,78,82450.04,Finance,San Francisco,2020-05-03,False,58.3
-1126,Person_1126,47,118282.23,Sales,Seattle,2022-11-30,False,22.7
-1127,Person_1127,76,54217.23,Engineering,Boston,2022-09-09,False,49.0
-1128,Person_1128,20,86841.99,Marketing,San Francisco,2024-07-30,True,35.5
-1129,Person_1129,76,43779.34,Marketing,Austin,2022-09-01,False,19.5
-1130,Person_1130,25,63149.25,Engineering,Boston,2022-05-29,False,3.2
-1131,Person_1131,43,122985.33,Marketing,San Francisco,2022-01-03,False,41.3
-1132,Person_1132,44,58727.49,Engineering,Seattle,2020-02-19,False,33.0
-1133,Person_1133,57,72633.7,Engineering,Seattle,2023-05-29,False,11.3
-1134,Person_1134,47,59008.75,Engineering,Seattle,2021-04-05,True,70.6
-1135,Person_1135,70,64642.75,Finance,Seattle,2023-12-04,False,87.2
-1136,Person_1136,42,45575.89,Marketing,Seattle,2020-09-13,True,83.8
-1137,Person_1137,37,115983.28,Finance,New York,2020-02-18,True,97.8
-1138,Person_1138,59,123102.01,HR,Austin,2021-11-08,True,87.6
-1139,Person_1139,65,60295.87,HR,San Francisco,2020-04-24,False,68.1
-1140,Person_1140,48,147829.42,Engineering,Seattle,2022-03-04,False,62.1
-1141,Person_1141,76,99255.53,Finance,New York,2023-11-11,False,86.1
-1142,Person_1142,55,59034.24,Marketing,Boston,2023-02-23,True,55.5
-1143,Person_1143,23,66267.26,HR,New York,2024-03-19,True,66.0
-1144,Person_1144,55,143686.67,Finance,New York,2021-07-04,True,48.0
-1145,Person_1145,43,81348.76,Engineering,Boston,2024-08-16,True,4.1
-1146,Person_1146,19,41849.17,Finance,New York,2021-01-01,True,35.1
-1147,Person_1147,27,103128.92,Marketing,Austin,2022-06-16,True,34.5
-1148,Person_1148,76,126689.64,Finance,New York,2021-05-27,True,59.9
-1149,Person_1149,79,75799.43,Sales,Boston,2023-12-11,True,77.1
-1150,Person_1150,27,53264.12,Engineering,Seattle,2023-03-24,True,15.2
-1151,Person_1151,39,64427.98,Finance,Boston,2021-08-26,False,11.6
-1152,Person_1152,73,38753.99,Marketing,Boston,2023-07-31,True,34.5
-1153,Person_1153,52,148240.41,Engineering,Austin,2023-06-30,True,54.5
-1154,Person_1154,38,146057.16,Engineering,San Francisco,2022-08-04,False,2.5
-1155,Person_1155,43,122718.32,Marketing,Boston,2022-06-05,False,47.5
-1156,Person_1156,53,68299.43,Sales,New York,2021-10-30,True,40.6
-1157,Person_1157,40,52616.48,HR,Boston,2023-09-13,False,57.1
-1158,Person_1158,54,78429.61,Finance,Boston,2024-07-10,True,36.8
-1159,Person_1159,49,34299.19,Marketing,Austin,2021-01-03,True,81.7
-1160,Person_1160,71,55223.11,Engineering,New York,2021-03-10,False,52.4
-1161,Person_1161,65,37657.01,HR,San Francisco,2022-04-14,False,40.1
-1162,Person_1162,70,39642.64,Finance,Boston,2023-11-08,True,44.8
-1163,Person_1163,79,105531.89,HR,Boston,2021-06-06,False,11.7
-1164,Person_1164,77,93165.55,HR,Seattle,2023-03-27,False,66.3
-1165,Person_1165,40,95355.98,Finance,Boston,2021-10-20,False,3.9
-1166,Person_1166,41,93631.43,HR,New York,2021-12-22,True,56.1
-1167,Person_1167,36,108949.98,Finance,New York,2023-01-12,False,19.9
-1168,Person_1168,33,128386.96,Sales,San Francisco,2023-04-13,False,16.6
-1169,Person_1169,37,140690.01,Sales,San Francisco,2024-06-27,True,37.2
-1170,Person_1170,68,53568.62,Sales,Austin,2023-01-09,False,35.5
-1171,Person_1171,47,118612.0,Marketing,San Francisco,2020-06-02,False,5.7
-1172,Person_1172,54,109103.56,Sales,Seattle,2022-04-28,True,68.4
-1173,Person_1173,43,104379.65,Engineering,San Francisco,2024-11-28,True,29.2
-1174,Person_1174,51,133135.35,Finance,Boston,2023-01-26,False,70.1
-1175,Person_1175,66,121877.17,Engineering,Seattle,2023-01-17,False,10.8
-1176,Person_1176,36,48899.24,HR,Seattle,2020-03-23,False,73.9
-1177,Person_1177,32,81180.89,Engineering,Boston,2021-01-11,False,15.4
-1178,Person_1178,28,79517.86,Finance,Austin,2022-07-27,False,5.2
-1179,Person_1179,23,39788.55,Engineering,Austin,2022-01-25,True,58.6
-1180,Person_1180,42,70732.31,HR,Boston,2022-09-07,False,61.4
-1181,Person_1181,56,46141.25,Marketing,San Francisco,2023-04-15,True,7.3
-1182,Person_1182,70,88025.45,Engineering,Boston,2021-07-14,False,7.4
-1183,Person_1183,30,78515.71,Marketing,Seattle,2021-07-06,True,5.1
-1184,Person_1184,66,39758.2,Engineering,Boston,2020-03-07,False,17.2
-1185,Person_1185,42,88838.72,Marketing,Seattle,2024-11-08,True,37.7
-1186,Person_1186,22,141206.15,HR,New York,2021-08-18,False,34.3
-1187,Person_1187,42,106301.6,HR,New York,2020-01-19,True,47.3
-1188,Person_1188,65,41246.4,HR,New York,2021-05-10,False,66.5
-1189,Person_1189,77,139972.66,HR,Boston,2024-02-28,True,28.8
-1190,Person_1190,59,50147.0,Marketing,New York,2021-10-28,False,83.2
-1191,Person_1191,20,121994.04,Finance,Seattle,2020-12-29,False,87.1
-1192,Person_1192,68,53257.34,Finance,New York,2023-11-24,False,57.7
-1193,Person_1193,66,116049.5,Sales,Seattle,2020-10-27,True,25.4
-1194,Person_1194,43,126512.23,Marketing,New York,2021-04-29,True,9.0
-1195,Person_1195,31,41616.4,Marketing,New York,2024-01-11,True,58.3
-1196,Person_1196,77,114804.04,Engineering,Boston,2023-12-08,False,30.2
-1197,Person_1197,65,82658.45,Sales,Austin,2023-02-19,True,23.3
-1198,Person_1198,25,133176.12,Finance,Austin,2022-02-22,True,90.9
-1199,Person_1199,48,141532.08,HR,Boston,2024-11-07,True,9.5
-1200,Person_1200,59,137924.25,Finance,New York,2023-10-14,False,53.1
-1201,Person_1201,50,136519.5,Finance,San Francisco,2020-04-05,True,48.6
-1202,Person_1202,52,86223.81,Finance,San Francisco,2021-11-04,True,32.6
-1203,Person_1203,55,65057.42,Finance,Boston,2022-07-27,False,91.4
-1204,Person_1204,33,139565.55,Marketing,Seattle,2022-04-07,True,83.1
-1205,Person_1205,49,31370.34,Marketing,Seattle,2020-10-31,False,56.2
-1206,Person_1206,76,99057.44,Finance,San Francisco,2020-08-04,True,48.6
-1207,Person_1207,45,50031.33,Finance,Seattle,2021-05-30,False,9.5
-1208,Person_1208,72,99079.19,Finance,Seattle,2023-04-15,True,10.0
-1209,Person_1209,38,116302.03,Finance,Austin,2023-11-10,False,91.2
-1210,Person_1210,78,39866.03,Engineering,Seattle,2021-09-08,True,76.9
-1211,Person_1211,29,65455.28,HR,San Francisco,2022-12-19,False,48.5
-1212,Person_1212,53,132864.6,Sales,New York,2020-12-10,True,93.1
-1213,Person_1213,38,123233.87,Sales,Boston,2024-02-11,True,83.9
-1214,Person_1214,63,74553.62,Marketing,Boston,2022-10-30,False,43.4
-1215,Person_1215,56,135414.85,Sales,Boston,2021-10-07,True,26.4
-1216,Person_1216,72,79148.16,Sales,Boston,2021-12-26,True,87.6
-1217,Person_1217,50,140281.34,Finance,San Francisco,2023-07-22,True,75.1
-1218,Person_1218,62,94867.71,Engineering,Seattle,2023-01-13,True,42.5
-1219,Person_1219,39,96390.22,Finance,San Francisco,2021-09-30,False,69.9
-1220,Person_1220,28,128647.17,Engineering,New York,2022-12-09,True,99.0
-1221,Person_1221,61,80417.7,Finance,San Francisco,2023-03-29,True,26.0
-1222,Person_1222,77,52823.11,Sales,Boston,2021-07-04,True,32.2
-1223,Person_1223,58,52032.63,HR,New York,2020-10-14,False,40.6
-1224,Person_1224,70,40067.01,HR,Austin,2024-07-21,True,40.7
-1225,Person_1225,36,126053.44,Engineering,Boston,2020-08-29,False,32.6
-1226,Person_1226,38,65018.1,HR,Austin,2023-04-14,False,22.6
-1227,Person_1227,56,74850.06,Sales,New York,2022-02-07,True,66.1
-1228,Person_1228,54,116015.67,Engineering,San Francisco,2024-11-26,True,18.7
-1229,Person_1229,49,43999.63,Engineering,Seattle,2023-04-30,False,67.4
-1230,Person_1230,18,36888.04,Sales,Seattle,2020-05-24,True,42.2
-1231,Person_1231,38,72119.14,Engineering,New York,2024-05-03,False,18.0
-1232,Person_1232,31,91807.22,Engineering,Austin,2020-04-29,False,3.9
-1233,Person_1233,34,96719.55,HR,Austin,2022-06-19,False,83.3
-1234,Person_1234,38,99581.92,Sales,San Francisco,2023-11-07,True,36.3
-1235,Person_1235,51,133369.92,HR,San Francisco,2020-11-21,False,60.6
-1236,Person_1236,71,72829.38,Marketing,San Francisco,2020-01-21,True,38.6
-1237,Person_1237,18,56752.04,HR,Seattle,2020-03-10,False,83.6
-1238,Person_1238,48,106122.45,HR,San Francisco,2023-11-30,False,87.0
-1239,Person_1239,34,80192.82,HR,Seattle,2023-10-10,True,80.2
-1240,Person_1240,53,34864.49,Finance,Boston,2022-04-23,False,75.6
-1241,Person_1241,78,105812.52,Sales,San Francisco,2024-10-08,True,25.7
-1242,Person_1242,39,137378.89,Engineering,New York,2023-04-27,False,79.7
-1243,Person_1243,72,84036.74,Finance,Boston,2023-01-17,False,87.2
-1244,Person_1244,35,64458.4,Marketing,Seattle,2024-07-23,True,36.6
-1245,Person_1245,79,43981.77,Finance,Boston,2023-07-15,True,81.7
-1246,Person_1246,27,97229.99,Marketing,San Francisco,2020-03-04,True,23.1
-1247,Person_1247,18,73540.31,Engineering,San Francisco,2023-08-12,True,87.7
-1248,Person_1248,64,134225.99,Sales,Austin,2023-02-19,False,19.7
-1249,Person_1249,78,112580.74,Finance,San Francisco,2023-08-07,False,91.6
-1250,Person_1250,22,147320.87,Sales,New York,2024-04-09,False,88.1
-1251,Person_1251,68,131629.41,Finance,San Francisco,2021-10-22,True,90.3
-1252,Person_1252,27,146058.55,Finance,Seattle,2022-11-23,True,8.3
-1253,Person_1253,51,99514.55,Engineering,Austin,2020-11-23,False,37.7
-1254,Person_1254,29,99898.52,Marketing,New York,2020-04-15,True,45.2
-1255,Person_1255,23,31751.27,Finance,Seattle,2022-04-06,True,0.6
-1256,Person_1256,53,83591.45,Finance,Seattle,2021-05-08,True,94.5
-1257,Person_1257,76,99410.22,Marketing,Boston,2024-06-24,True,19.7
-1258,Person_1258,42,80847.1,Sales,New York,2021-01-12,False,26.1
-1259,Person_1259,26,70984.91,Engineering,Boston,2021-12-17,True,66.1
-1260,Person_1260,20,79614.4,Engineering,Austin,2022-09-25,False,11.8
-1261,Person_1261,72,37943.81,Marketing,Austin,2020-12-09,True,90.2
-1262,Person_1262,69,129331.13,Marketing,New York,2021-04-17,False,47.4
-1263,Person_1263,51,74930.42,HR,Austin,2021-11-04,False,75.1
-1264,Person_1264,79,108761.75,Marketing,Seattle,2024-11-10,True,9.7
-1265,Person_1265,46,30891.64,HR,Seattle,2022-05-30,True,72.1
-1266,Person_1266,60,72556.0,Finance,Seattle,2020-10-14,True,83.3
-1267,Person_1267,41,68185.3,Finance,Austin,2022-07-15,True,58.5
-1268,Person_1268,56,110680.56,HR,Austin,2020-01-18,True,67.9
-1269,Person_1269,64,51894.99,Engineering,Boston,2023-06-22,True,74.7
-1270,Person_1270,33,36116.19,Sales,New York,2021-06-15,False,80.3
-1271,Person_1271,31,126251.69,Marketing,New York,2020-09-19,False,2.3
-1272,Person_1272,37,34524.76,Finance,Boston,2024-10-21,False,18.7
-1273,Person_1273,53,147141.36,Finance,Seattle,2020-06-13,True,48.0
-1274,Person_1274,78,114221.21,Marketing,Seattle,2020-11-18,True,44.5
-1275,Person_1275,62,71889.81,Marketing,New York,2023-03-04,True,97.6
-1276,Person_1276,62,33562.87,Finance,New York,2023-05-15,False,59.8
-1277,Person_1277,41,132053.31,Finance,Austin,2022-03-16,True,91.2
-1278,Person_1278,36,134785.55,Finance,San Francisco,2022-03-28,True,5.9
-1279,Person_1279,74,87672.63,Sales,Boston,2020-10-13,True,60.3
-1280,Person_1280,74,77476.05,HR,Austin,2021-01-16,True,97.4
-1281,Person_1281,52,62102.76,Sales,Boston,2021-12-08,False,59.9
-1282,Person_1282,78,50372.4,Engineering,Seattle,2020-09-26,True,92.5
-1283,Person_1283,23,78834.18,Marketing,Seattle,2022-09-21,True,75.9
-1284,Person_1284,51,33811.5,Finance,San Francisco,2020-09-21,True,17.3
-1285,Person_1285,60,128839.8,Finance,Austin,2023-10-22,False,59.6
-1286,Person_1286,80,54217.83,Sales,Boston,2023-07-22,True,85.2
-1287,Person_1287,78,86475.79,Finance,New York,2023-10-17,False,36.6
-1288,Person_1288,46,55698.84,Finance,San Francisco,2021-06-20,True,7.5
-1289,Person_1289,34,71291.01,HR,San Francisco,2022-02-19,True,42.2
-1290,Person_1290,36,105145.0,HR,Seattle,2020-11-30,True,97.7
-1291,Person_1291,19,68149.68,HR,Boston,2021-07-29,True,16.7
-1292,Person_1292,21,58292.32,Sales,New York,2020-05-12,True,85.1
-1293,Person_1293,48,72042.1,Marketing,Boston,2020-06-14,False,74.3
-1294,Person_1294,32,124653.31,HR,New York,2024-08-20,False,61.3
-1295,Person_1295,31,100488.9,Sales,San Francisco,2022-12-24,False,98.3
-1296,Person_1296,39,57608.95,HR,Boston,2021-01-03,False,80.4
-1297,Person_1297,38,54424.49,Finance,Boston,2020-12-08,True,29.6
-1298,Person_1298,24,35221.62,Marketing,Seattle,2021-04-07,True,15.0
-1299,Person_1299,27,108432.53,Sales,Seattle,2021-08-30,False,96.1
-1300,Person_1300,29,82584.56,Marketing,Austin,2023-06-07,False,41.8
-1301,Person_1301,20,50958.01,Engineering,Boston,2024-09-11,False,99.4
-1302,Person_1302,38,43584.05,Engineering,New York,2023-02-02,True,12.7
-1303,Person_1303,37,61863.89,HR,New York,2024-03-03,False,69.6
-1304,Person_1304,57,66670.71,Sales,New York,2021-10-07,False,79.5
-1305,Person_1305,67,57744.84,Finance,Seattle,2023-03-12,False,91.4
-1306,Person_1306,40,108016.13,Marketing,Seattle,2024-03-02,False,81.5
-1307,Person_1307,23,33919.32,Engineering,Austin,2021-10-14,True,36.0
-1308,Person_1308,61,40647.87,HR,Seattle,2021-05-23,False,85.9
-1309,Person_1309,18,79810.71,HR,Boston,2020-07-20,True,90.6
-1310,Person_1310,51,146244.5,Sales,Seattle,2021-09-25,True,45.3
-1311,Person_1311,68,142665.14,Sales,Boston,2022-05-30,False,80.9
-1312,Person_1312,47,147736.64,Finance,San Francisco,2021-01-05,False,92.7
-1313,Person_1313,57,74318.52,HR,Boston,2021-04-14,False,96.6
-1314,Person_1314,31,43070.28,Sales,Seattle,2023-03-26,True,32.7
-1315,Person_1315,71,91303.46,HR,San Francisco,2023-09-24,False,3.3
-1316,Person_1316,23,95855.58,Finance,San Francisco,2020-05-09,True,53.3
-1317,Person_1317,72,117631.26,Marketing,Seattle,2022-05-02,False,9.7
-1318,Person_1318,74,99544.91,Finance,Austin,2020-10-11,False,91.0
-1319,Person_1319,27,31862.72,Sales,Austin,2022-03-01,False,38.4
-1320,Person_1320,60,44754.9,Sales,Boston,2021-11-13,True,29.5
-1321,Person_1321,33,118200.21,Marketing,Boston,2021-06-02,True,35.8
-1322,Person_1322,65,37812.64,Finance,New York,2024-08-26,False,86.1
-1323,Person_1323,51,141663.95,Finance,Boston,2021-05-27,False,4.8
-1324,Person_1324,71,126202.32,HR,Boston,2021-08-17,False,0.7
-1325,Person_1325,76,30738.07,Sales,New York,2023-03-06,False,75.6
-1326,Person_1326,58,95925.56,Finance,Austin,2021-04-22,False,1.3
-1327,Person_1327,61,59200.72,Engineering,Boston,2022-06-02,True,56.1
-1328,Person_1328,71,39199.75,Finance,Boston,2024-03-29,False,69.3
-1329,Person_1329,55,52417.85,Finance,Boston,2022-05-16,False,78.6
-1330,Person_1330,32,106135.09,Finance,Seattle,2021-08-22,False,67.9
-1331,Person_1331,55,146757.61,Marketing,New York,2023-05-10,True,8.8
-1332,Person_1332,58,87504.39,Marketing,New York,2021-03-20,False,48.1
-1333,Person_1333,51,101840.53,Marketing,Seattle,2021-02-16,True,76.2
-1334,Person_1334,77,72112.81,Finance,Austin,2023-05-24,True,66.3
-1335,Person_1335,47,72273.05,Sales,Austin,2024-08-01,True,5.4
-1336,Person_1336,31,63893.28,Finance,New York,2024-11-26,False,24.5
-1337,Person_1337,52,70826.18,Finance,San Francisco,2022-08-12,True,82.7
-1338,Person_1338,36,130638.46,Finance,New York,2023-04-24,False,2.3
-1339,Person_1339,72,72926.2,Finance,New York,2020-03-08,True,27.8
-1340,Person_1340,51,81623.03,Marketing,San Francisco,2022-04-01,False,28.2
-1341,Person_1341,18,147740.38,Engineering,San Francisco,2022-04-22,True,38.0
-1342,Person_1342,24,116240.57,Finance,San Francisco,2022-11-06,False,19.2
-1343,Person_1343,36,30450.61,Engineering,San Francisco,2020-12-15,True,42.5
-1344,Person_1344,55,136021.72,Engineering,Boston,2023-03-20,False,12.8
-1345,Person_1345,71,47078.59,Marketing,Boston,2020-05-20,True,27.9
-1346,Person_1346,58,82246.44,Finance,Boston,2021-10-17,True,52.7
-1347,Person_1347,62,95312.11,Finance,Austin,2021-04-21,True,67.7
-1348,Person_1348,57,46204.46,Finance,San Francisco,2022-12-03,True,99.1
-1349,Person_1349,66,44705.15,Sales,San Francisco,2022-10-27,True,5.2
-1350,Person_1350,53,112849.77,Sales,San Francisco,2020-08-12,False,44.6
-1351,Person_1351,74,129725.35,Marketing,New York,2020-11-12,False,90.9
-1352,Person_1352,72,90464.49,Marketing,Austin,2021-10-04,True,90.2
-1353,Person_1353,19,47627.9,Sales,New York,2023-01-16,True,19.9
-1354,Person_1354,35,114037.74,Sales,Seattle,2021-11-09,False,68.7
-1355,Person_1355,34,57121.81,Marketing,Austin,2024-04-20,False,30.0
-1356,Person_1356,36,55837.85,Sales,Seattle,2023-04-08,False,62.7
-1357,Person_1357,45,98634.97,Sales,Austin,2020-07-29,False,73.8
-1358,Person_1358,57,134630.1,Finance,Seattle,2023-03-28,True,41.0
-1359,Person_1359,21,109810.73,Marketing,San Francisco,2024-02-20,False,81.2
-1360,Person_1360,47,57735.49,Engineering,New York,2020-01-23,True,44.2
-1361,Person_1361,69,89176.78,HR,New York,2021-10-29,False,70.1
-1362,Person_1362,48,39833.26,Marketing,Seattle,2020-05-17,True,56.4
-1363,Person_1363,24,84253.0,Engineering,Seattle,2020-04-27,False,0.0
-1364,Person_1364,46,116582.38,HR,San Francisco,2020-04-12,True,31.0
-1365,Person_1365,58,64629.6,Engineering,New York,2024-07-01,True,17.7
-1366,Person_1366,46,123131.06,HR,Seattle,2020-06-26,True,89.8
-1367,Person_1367,44,78408.99,HR,New York,2023-10-22,True,19.5
-1368,Person_1368,72,59708.91,Finance,Austin,2024-08-10,False,59.1
-1369,Person_1369,74,51301.5,Finance,New York,2023-03-25,True,82.9
-1370,Person_1370,40,78593.73,Marketing,Austin,2022-07-22,False,40.4
-1371,Person_1371,18,93691.47,Sales,San Francisco,2023-08-19,True,85.2
-1372,Person_1372,40,82046.42,Marketing,Austin,2022-02-10,False,8.7
-1373,Person_1373,47,38877.61,Finance,San Francisco,2022-10-09,False,67.9
-1374,Person_1374,24,137374.11,Engineering,San Francisco,2020-09-02,True,2.6
-1375,Person_1375,48,85395.08,Marketing,Austin,2021-01-16,False,55.3
-1376,Person_1376,55,87484.0,Engineering,New York,2024-11-19,True,88.8
-1377,Person_1377,21,31947.5,Finance,New York,2024-01-14,True,24.6
-1378,Person_1378,32,38993.97,Sales,San Francisco,2023-05-04,True,99.0
-1379,Person_1379,34,87634.46,HR,New York,2020-02-06,True,61.6
-1380,Person_1380,53,130184.74,Sales,Boston,2022-12-09,True,41.6
-1381,Person_1381,47,91448.07,Sales,New York,2022-01-17,True,75.6
-1382,Person_1382,49,58325.24,Sales,San Francisco,2021-06-07,False,35.5
-1383,Person_1383,70,39030.67,Sales,Boston,2022-07-18,True,46.5
-1384,Person_1384,38,94037.11,Finance,San Francisco,2021-11-17,False,73.4
-1385,Person_1385,30,46799.78,Finance,Boston,2020-07-14,False,10.4
-1386,Person_1386,23,96850.54,Finance,New York,2022-04-21,True,87.9
-1387,Person_1387,21,118009.86,Engineering,Boston,2023-01-28,False,46.9
-1388,Person_1388,27,67446.01,Engineering,New York,2021-02-03,True,17.7
-1389,Person_1389,68,88048.38,HR,Boston,2020-04-14,False,67.0
-1390,Person_1390,43,126779.08,Marketing,New York,2023-05-16,True,51.2
-1391,Person_1391,25,96623.5,Marketing,New York,2024-02-10,True,13.9
-1392,Person_1392,37,145179.83,Marketing,San Francisco,2022-10-26,True,85.8
-1393,Person_1393,45,93858.57,Finance,Boston,2021-02-19,True,90.0
-1394,Person_1394,73,121975.48,Marketing,New York,2022-10-09,False,88.0
-1395,Person_1395,18,142455.85,Marketing,Seattle,2024-03-21,True,32.1
-1396,Person_1396,41,48325.9,HR,Boston,2020-12-13,False,19.3
-1397,Person_1397,40,49097.87,Sales,New York,2024-05-12,False,13.3
-1398,Person_1398,70,96989.82,Sales,Boston,2021-11-18,False,26.7
-1399,Person_1399,48,48810.91,Sales,San Francisco,2020-07-08,False,77.2
-1400,Person_1400,30,35292.68,Sales,Seattle,2022-12-08,False,93.3
-1401,Person_1401,38,53886.83,Finance,New York,2021-02-09,False,15.1
-1402,Person_1402,67,60690.05,Finance,Seattle,2022-11-14,False,81.5
-1403,Person_1403,43,51745.39,HR,Boston,2022-02-03,False,72.8
-1404,Person_1404,33,100558.9,Finance,San Francisco,2023-09-19,True,53.3
-1405,Person_1405,54,69564.87,Finance,San Francisco,2021-07-16,False,93.9
-1406,Person_1406,23,63635.13,Engineering,Austin,2022-07-05,True,86.3
-1407,Person_1407,77,33076.35,HR,Boston,2020-05-20,False,91.6
-1408,Person_1408,66,57871.49,HR,San Francisco,2023-04-03,False,36.5
-1409,Person_1409,69,93773.77,HR,Seattle,2023-09-03,True,47.2
-1410,Person_1410,80,46531.81,HR,San Francisco,2021-01-10,False,25.9
-1411,Person_1411,46,52260.57,Sales,Austin,2020-11-21,True,91.4
-1412,Person_1412,19,44773.25,Sales,San Francisco,2021-02-13,False,5.6
-1413,Person_1413,33,132995.91,HR,Austin,2023-02-08,True,9.5
-1414,Person_1414,47,130687.04,Sales,Boston,2020-09-16,False,55.3
-1415,Person_1415,53,75996.93,Finance,Austin,2021-04-01,True,49.6
-1416,Person_1416,45,73654.08,Engineering,Austin,2024-12-03,True,29.0
-1417,Person_1417,33,138667.41,Sales,San Francisco,2020-11-03,True,71.3
-1418,Person_1418,23,121043.94,Sales,San Francisco,2020-07-31,True,43.6
-1419,Person_1419,63,139180.83,Marketing,New York,2021-02-23,False,42.8
-1420,Person_1420,23,60098.66,Sales,Boston,2023-01-08,False,36.8
-1421,Person_1421,30,99641.91,Engineering,Boston,2020-10-22,False,31.4
-1422,Person_1422,53,103363.96,Engineering,Boston,2020-12-13,True,87.7
-1423,Person_1423,53,120023.67,Marketing,San Francisco,2022-06-12,False,57.1
-1424,Person_1424,74,64202.56,Sales,New York,2020-04-22,False,79.1
-1425,Person_1425,20,38038.62,Finance,San Francisco,2022-07-01,False,13.8
-1426,Person_1426,73,112833.63,Marketing,Austin,2024-08-14,False,65.4
-1427,Person_1427,31,100418.27,Engineering,New York,2021-04-13,False,10.1
-1428,Person_1428,33,53344.06,Engineering,New York,2020-05-14,False,78.9
-1429,Person_1429,72,85187.7,Finance,Austin,2024-02-04,False,14.6
-1430,Person_1430,20,38162.05,Marketing,New York,2022-07-03,True,35.5
-1431,Person_1431,73,100342.75,Marketing,Seattle,2023-01-27,False,91.7
-1432,Person_1432,59,99232.61,HR,Austin,2020-05-05,False,96.0
-1433,Person_1433,52,143166.26,Engineering,Seattle,2024-06-19,False,52.5
-1434,Person_1434,26,93793.8,Sales,San Francisco,2021-03-25,False,36.7
-1435,Person_1435,20,45114.09,Engineering,San Francisco,2020-07-29,False,14.5
-1436,Person_1436,48,117839.78,HR,San Francisco,2020-02-13,False,39.7
-1437,Person_1437,29,104268.91,Sales,Seattle,2023-04-12,False,51.4
-1438,Person_1438,52,95173.75,HR,New York,2024-05-31,False,41.0
-1439,Person_1439,67,81585.68,Finance,Boston,2020-10-11,False,70.2
-1440,Person_1440,20,75667.98,Sales,Boston,2022-11-19,False,38.8
-1441,Person_1441,76,74576.39,HR,Austin,2020-07-18,True,46.0
-1442,Person_1442,54,43847.85,Sales,Boston,2020-10-24,True,47.7
-1443,Person_1443,51,55144.17,Engineering,Seattle,2022-02-26,False,37.7
-1444,Person_1444,49,103098.37,Marketing,Boston,2021-02-27,False,41.6
-1445,Person_1445,52,130372.03,Marketing,Boston,2021-02-19,True,11.4
-1446,Person_1446,50,37458.36,Engineering,Boston,2020-04-08,True,62.9
-1447,Person_1447,20,105944.48,Engineering,Seattle,2022-11-30,False,37.8
-1448,Person_1448,64,74098.83,Sales,San Francisco,2021-11-29,False,90.2
-1449,Person_1449,54,44830.4,Engineering,New York,2020-08-03,False,62.9
-1450,Person_1450,77,128309.38,Sales,New York,2020-07-20,False,64.6
-1451,Person_1451,54,111017.62,HR,San Francisco,2022-11-23,True,94.8
-1452,Person_1452,40,108002.63,Marketing,Boston,2024-09-01,True,82.6
-1453,Person_1453,79,81271.83,HR,New York,2024-01-08,False,77.5
-1454,Person_1454,55,98668.06,Marketing,New York,2021-09-04,False,31.8
-1455,Person_1455,22,83434.45,Sales,New York,2021-08-14,True,83.4
-1456,Person_1456,40,83727.18,HR,Boston,2022-08-06,False,0.5
-1457,Person_1457,73,64094.58,HR,Boston,2022-10-22,False,50.6
-1458,Person_1458,61,99383.21,HR,Boston,2024-11-20,False,97.4
-1459,Person_1459,52,97328.33,Sales,San Francisco,2020-10-28,True,60.7
-1460,Person_1460,50,50313.91,Finance,Boston,2024-01-29,True,33.7
-1461,Person_1461,66,105818.66,Finance,New York,2023-08-02,False,62.3
-1462,Person_1462,21,50129.47,Marketing,Boston,2021-01-11,False,95.1
-1463,Person_1463,80,106847.79,Engineering,San Francisco,2024-05-28,True,23.8
-1464,Person_1464,57,82438.55,Engineering,San Francisco,2020-08-01,False,73.2
-1465,Person_1465,42,148238.32,Engineering,Austin,2023-09-15,False,21.6
-1466,Person_1466,71,60867.62,Engineering,New York,2023-04-23,False,58.5
-1467,Person_1467,77,83606.55,Engineering,San Francisco,2020-04-22,False,74.6
-1468,Person_1468,22,86962.45,HR,Austin,2024-08-07,True,52.4
-1469,Person_1469,62,111071.95,HR,San Francisco,2020-03-13,True,26.2
-1470,Person_1470,30,134664.0,HR,Boston,2023-11-02,True,45.1
-1471,Person_1471,48,53603.53,Finance,San Francisco,2022-08-04,True,32.2
-1472,Person_1472,39,53595.06,Engineering,New York,2023-02-12,False,95.7
-1473,Person_1473,42,57687.58,Sales,New York,2021-02-07,True,34.3
-1474,Person_1474,29,102919.16,Finance,Boston,2020-12-08,True,47.5
-1475,Person_1475,65,146292.35,Finance,San Francisco,2023-12-24,False,57.6
-1476,Person_1476,73,97658.72,Finance,Boston,2021-10-13,True,94.4
-1477,Person_1477,32,121907.81,HR,New York,2020-05-07,True,0.6
-1478,Person_1478,21,57771.29,Engineering,New York,2020-12-03,False,54.8
-1479,Person_1479,34,149238.13,Marketing,Austin,2023-06-21,True,91.8
-1480,Person_1480,34,126828.54,HR,Seattle,2020-02-27,False,41.1
-1481,Person_1481,44,123241.44,Marketing,Seattle,2020-01-23,True,41.5
-1482,Person_1482,59,79490.68,Engineering,Austin,2023-07-09,True,10.2
-1483,Person_1483,58,132789.99,Sales,Austin,2024-02-06,False,8.0
-1484,Person_1484,23,105077.42,Finance,San Francisco,2023-04-14,True,43.6
-1485,Person_1485,54,48749.55,Marketing,Seattle,2020-09-22,False,91.8
-1486,Person_1486,23,83193.33,HR,San Francisco,2020-08-14,True,49.0
-1487,Person_1487,23,72548.77,Engineering,Seattle,2022-10-04,False,33.1
-1488,Person_1488,55,121381.92,Finance,Seattle,2023-11-02,True,50.3
-1489,Person_1489,50,131531.68,Finance,Boston,2023-06-29,True,50.6
-1490,Person_1490,33,34318.14,HR,New York,2023-11-16,False,0.6
-1491,Person_1491,24,122559.78,Sales,San Francisco,2024-05-22,False,42.8
-1492,Person_1492,28,51752.22,Marketing,New York,2020-05-30,False,58.7
-1493,Person_1493,24,46743.08,Marketing,Austin,2021-01-27,False,79.1
-1494,Person_1494,58,65513.56,Sales,San Francisco,2022-02-06,True,12.3
-1495,Person_1495,43,138195.95,HR,New York,2023-09-03,False,27.0
-1496,Person_1496,61,88894.02,HR,New York,2020-06-07,True,98.3
-1497,Person_1497,77,92269.83,Marketing,Boston,2021-09-04,True,17.8
-1498,Person_1498,65,76789.97,Marketing,Seattle,2022-10-31,False,99.7
-1499,Person_1499,34,65407.73,Sales,San Francisco,2022-04-16,False,58.4
-1500,Person_1500,60,86788.39,Sales,New York,2022-04-30,True,17.7
+name,age,salary,department,city,join_date,is_active,score
+Person_1,30,140112.47,HR,Seattle,2023-02-25,False,41.9
+Person_2,63,38246.84,HR,New York,2021-09-15,True,76.1
+Person_3,26,61363.18,Finance,Boston,2023-12-13,True,73.3
+Person_4,19,31280.06,Sales,New York,2024-09-22,False,16.6
+Person_5,56,128168.05,Engineering,Austin,2020-03-13,False,32.4
+Person_6,42,51057.71,Sales,San Francisco,2024-03-09,True,50.2
+Person_7,43,77324.18,Engineering,Seattle,2022-01-13,True,18.2
+Person_8,55,74742.87,Sales,Seattle,2024-11-16,True,0.2
+Person_9,62,78537.81,Finance,Austin,2024-02-14,False,64.9
+Person_10,32,115270.04,Finance,San Francisco,2022-07-19,True,81.1
+Person_11,44,93909.83,Sales,Seattle,2023-02-17,True,41.8
+Person_12,54,92673.58,Engineering,Boston,2020-02-22,False,81.5
+Person_13,73,94556.58,Finance,Austin,2023-09-19,False,93.3
+Person_14,35,59717.21,Sales,San Francisco,2020-10-25,False,22.4
+Person_15,80,76468.86,Marketing,Austin,2020-07-12,True,94.0
+Person_16,21,31898.36,Sales,New York,2021-10-16,False,25.2
+Person_17,27,119030.13,HR,Seattle,2021-10-23,True,31.6
+Person_18,21,38086.45,HR,New York,2023-10-02,False,20.9
+Person_19,60,110733.23,Sales,San Francisco,2022-12-12,True,56.0
+Person_20,35,47507.01,Finance,New York,2024-12-01,False,7.2
+Person_21,72,84146.06,Sales,Seattle,2023-06-16,False,16.7
+Person_22,55,49975.83,Finance,Seattle,2020-02-04,True,26.8
+Person_23,78,137769.85,Sales,San Francisco,2021-12-10,False,5.5
+Person_24,39,72449.32,Sales,Seattle,2021-09-08,False,10.2
+Person_25,23,63576.86,Marketing,Austin,2020-04-01,True,35.7
+Person_26,36,79661.4,Finance,New York,2023-11-02,False,12.0
+Person_27,24,53117.25,Finance,San Francisco,2024-01-28,False,67.2
+Person_28,72,36973.42,Sales,San Francisco,2022-09-01,True,69.7
+Person_29,21,93812.68,Engineering,Boston,2024-04-02,False,72.2
+Person_30,37,140628.54,Sales,Austin,2020-03-11,True,5.5
+Person_31,30,81152.05,Finance,Austin,2020-12-15,True,12.1
+Person_32,21,113162.58,Marketing,Austin,2024-05-01,False,60.0
+Person_33,37,144182.87,HR,Seattle,2024-07-23,True,31.6
+Person_34,48,52190.51,HR,Boston,2020-09-29,True,66.8
+Person_35,59,138178.44,HR,Austin,2022-11-05,False,38.0
+Person_36,28,94249.53,Sales,Boston,2020-01-19,False,65.1
+Person_37,49,129397.18,Engineering,New York,2023-08-08,True,76.0
+Person_38,80,116799.92,Finance,Seattle,2023-05-22,False,85.3
+Person_39,41,72355.82,Engineering,Austin,2020-05-18,False,9.3
+Person_40,74,57296.57,HR,Seattle,2024-08-30,False,39.9
+Person_41,69,135613.86,Engineering,Boston,2022-07-18,False,8.3
+Person_42,41,125751.73,Marketing,Boston,2021-10-27,True,32.9
+Person_43,70,68628.5,Finance,San Francisco,2024-07-10,True,94.6
+Person_44,49,130803.31,Marketing,San Francisco,2022-02-26,True,96.8
+Person_45,54,45179.01,Sales,San Francisco,2023-05-05,False,36.5
+Person_46,47,30109.31,Sales,New York,2023-03-01,False,28.9
+Person_47,30,113412.6,HR,Boston,2023-05-05,False,96.3
+Person_48,21,136533.01,Finance,Austin,2023-08-08,False,72.9
+Person_49,47,133619.71,Marketing,New York,2020-01-15,True,97.6
+Person_50,38,147195.64,Marketing,New York,2022-12-04,False,3.5
+Person_51,63,64860.95,Marketing,San Francisco,2023-10-08,True,59.6
+Person_52,50,68577.59,Finance,San Francisco,2023-11-21,True,52.1
+Person_53,70,89539.54,HR,Boston,2023-11-30,False,36.5
+Person_54,43,139334.88,HR,Seattle,2021-06-26,True,46.7
+Person_55,73,135326.94,HR,New York,2021-04-10,False,99.5
+Person_56,21,123982.25,HR,Boston,2024-09-29,False,38.5
+Person_57,19,70966.58,Engineering,Austin,2023-12-25,True,10.7
+Person_58,40,105777.87,Finance,San Francisco,2022-04-26,False,92.4
+Person_59,41,62069.29,Engineering,San Francisco,2022-11-09,True,78.7
+Person_60,18,138522.9,Marketing,Seattle,2021-11-24,False,46.8
+Person_61,47,81521.33,Engineering,Boston,2023-10-14,True,3.7
+Person_62,71,146422.23,HR,Austin,2021-12-01,True,97.3
+Person_63,44,71967.84,Finance,New York,2020-07-28,True,23.7
+Person_64,37,145097.68,Finance,Boston,2020-12-30,False,12.3
+Person_65,19,122685.57,Marketing,Seattle,2020-09-25,True,73.0
+Person_66,75,137831.3,Finance,Seattle,2024-11-18,True,50.6
+Person_67,56,33661.71,Engineering,New York,2020-11-14,False,16.6
+Person_68,44,103405.46,HR,Boston,2020-12-16,False,62.2
+Person_69,24,103121.87,Engineering,Boston,2023-01-06,False,20.2
+Person_70,40,120059.14,Marketing,Boston,2021-05-20,True,0.2
+Person_71,49,67408.0,Marketing,Seattle,2023-09-24,False,77.5
+Person_72,51,91330.35,Marketing,New York,2022-12-14,True,78.4
+Person_73,51,80763.94,Sales,Boston,2021-05-23,True,89.3
+Person_74,26,54489.25,HR,Boston,2021-06-24,False,84.2
+Person_75,55,87189.48,Sales,New York,2020-01-02,True,16.7
+Person_76,25,121442.48,Marketing,Austin,2020-02-28,False,37.5
+Person_77,63,85207.97,HR,New York,2022-03-11,True,48.9
+Person_78,34,144166.95,Finance,San Francisco,2024-05-10,True,97.9
+Person_79,48,58367.0,Finance,Boston,2023-11-09,False,24.2
+Person_80,47,34577.95,Engineering,New York,2022-09-05,True,11.8
+Person_81,65,45264.24,Finance,San Francisco,2021-02-24,True,93.6
+Person_82,65,55687.29,Engineering,Seattle,2021-04-27,False,72.7
+Person_83,76,96032.94,Finance,San Francisco,2020-09-08,True,25.4
+Person_84,52,72132.95,Sales,Seattle,2023-05-26,False,61.0
+Person_85,64,133438.8,HR,San Francisco,2023-07-28,False,58.9
+Person_86,60,94358.15,Marketing,San Francisco,2024-07-10,False,93.5
+Person_87,31,72397.03,Marketing,New York,2020-03-08,False,82.8
+Person_88,74,86003.15,HR,San Francisco,2022-06-24,True,5.0
+Person_89,18,114665.0,Finance,Boston,2020-08-04,False,85.9
+Person_90,40,84651.0,Engineering,San Francisco,2024-03-22,False,43.7
+Person_91,19,108340.31,HR,Austin,2020-02-28,False,74.0
+Person_92,68,79775.71,Marketing,San Francisco,2021-06-16,False,25.5
+Person_93,39,53018.54,HR,Seattle,2024-03-25,False,20.7
+Person_94,50,120431.22,Engineering,New York,2023-12-12,False,55.7
+Person_95,39,63080.57,Marketing,Seattle,2023-12-17,True,48.3
+Person_96,51,127451.34,HR,Boston,2021-11-14,True,13.3
+Person_97,34,52824.07,Engineering,Austin,2024-05-23,False,96.9
+Person_98,52,128115.3,HR,Boston,2022-01-26,False,5.5
+Person_99,60,63262.53,Engineering,New York,2022-02-04,False,37.6
+Person_100,55,147701.21,Engineering,Boston,2020-02-29,True,46.9
+Person_101,73,142542.54,Marketing,Seattle,2024-05-12,True,26.4
+Person_102,65,45839.99,Engineering,New York,2023-12-14,True,93.1
+Person_103,73,63521.35,Sales,Seattle,2022-12-15,True,72.3
+Person_104,23,55494.01,Sales,Seattle,2022-08-09,False,64.4
+Person_105,75,130754.63,Sales,Seattle,2022-08-29,True,64.7
+Person_106,72,76451.18,Sales,Seattle,2023-09-28,False,89.5
+Person_107,75,41047.93,Sales,Boston,2022-12-15,False,8.4
+Person_108,78,118264.35,Finance,New York,2024-08-13,False,23.3
+Person_109,75,46129.03,Marketing,New York,2022-08-27,True,25.0
+Person_110,58,59328.32,Engineering,New York,2022-06-24,False,10.6
+Person_111,56,57826.08,Finance,Seattle,2022-08-04,True,86.8
+Person_112,57,54895.97,Marketing,Austin,2022-11-08,True,53.0
+Person_113,34,93192.37,Sales,Seattle,2023-03-15,True,56.0
+Person_114,39,57881.23,Sales,Seattle,2022-08-11,False,31.3
+Person_115,79,55192.75,HR,Boston,2023-09-07,False,90.4
+Person_116,38,144568.64,Finance,Boston,2021-12-07,False,65.6
+Person_117,75,50371.24,Marketing,Austin,2023-04-16,True,87.8
+Person_118,78,126383.47,Sales,Seattle,2024-02-29,False,93.8
+Person_119,36,85967.7,Sales,Austin,2024-11-16,False,96.1
+Person_120,48,50623.0,Finance,Austin,2023-01-10,False,87.7
+Person_121,54,92763.16,Finance,Austin,2024-06-24,False,90.9
+Person_122,37,32410.61,Finance,San Francisco,2023-05-31,True,84.6
+Person_123,66,87425.02,Marketing,Austin,2024-03-08,False,95.7
+Person_124,77,38849.47,Marketing,Seattle,2022-08-23,False,1.3
+Person_125,66,65190.45,Marketing,New York,2024-04-05,False,61.8
+Person_126,43,121280.05,Engineering,Austin,2020-01-26,True,10.8
+Person_127,49,135968.88,HR,New York,2021-07-15,False,72.7
+Person_128,46,93606.71,Finance,New York,2024-03-30,True,93.4
+Person_129,50,55419.57,Marketing,San Francisco,2022-04-18,False,10.4
+Person_130,53,101476.26,Engineering,Austin,2022-09-15,True,85.3
+Person_131,79,61368.11,Engineering,Boston,2022-08-28,False,51.3
+Person_132,35,114039.22,Finance,San Francisco,2024-07-18,True,19.3
+Person_133,66,60771.53,HR,New York,2022-08-04,False,16.4
+Person_134,29,76284.42,Engineering,Austin,2022-12-16,False,81.3
+Person_135,52,70602.75,Engineering,New York,2020-03-04,True,97.1
+Person_136,47,138720.52,Engineering,Austin,2022-09-23,True,67.9
+Person_137,29,56496.7,Marketing,New York,2023-07-05,False,73.7
+Person_138,29,57922.92,Sales,Seattle,2020-01-03,False,20.1
+Person_139,45,81294.3,Engineering,Seattle,2020-03-03,False,91.3
+Person_140,52,116515.42,Engineering,Seattle,2020-10-11,True,34.6
+Person_141,47,37096.73,Sales,New York,2022-06-03,True,96.1
+Person_142,57,32096.66,Marketing,San Francisco,2024-09-27,True,31.8
+Person_143,46,51288.32,Sales,New York,2020-05-21,True,17.6
+Person_144,79,46474.41,Marketing,Seattle,2022-09-02,False,38.4
+Person_145,51,107596.11,Finance,Seattle,2023-08-08,True,3.0
+Person_146,33,57928.81,Sales,Austin,2020-09-04,True,34.6
+Person_147,35,64895.87,Marketing,Austin,2020-03-25,True,46.4
+Person_148,38,136042.04,HR,New York,2020-10-16,False,17.4
+Person_149,37,120567.08,HR,Austin,2023-12-01,True,56.4
+Person_150,42,143210.97,Marketing,Austin,2020-05-15,False,28.2
+Person_151,60,119565.86,Engineering,Seattle,2024-02-29,False,39.9
+Person_152,22,44780.35,Engineering,New York,2023-11-11,False,16.5
+Person_153,66,139987.3,HR,Seattle,2022-02-20,True,19.5
+Person_154,72,53839.57,Engineering,Seattle,2022-09-21,False,16.5
+Person_155,52,89581.09,Engineering,San Francisco,2022-12-24,True,18.4
+Person_156,28,116227.3,Marketing,San Francisco,2020-11-13,True,41.5
+Person_157,66,130186.51,Finance,Seattle,2022-11-20,False,16.5
+Person_158,55,56414.26,HR,Boston,2022-01-13,True,64.9
+Person_159,57,113342.87,Finance,Boston,2023-08-10,True,27.1
+Person_160,59,53724.33,Engineering,Austin,2022-08-13,True,87.0
+Person_161,29,84022.25,Sales,San Francisco,2023-09-28,False,39.0
+Person_162,33,58067.36,Marketing,Seattle,2023-10-24,False,73.8
+Person_163,44,85246.47,Engineering,Austin,2020-08-13,True,49.5
+Person_164,20,94073.52,Sales,New York,2023-04-07,False,41.3
+Person_165,25,109852.9,Finance,San Francisco,2023-06-22,False,55.2
+Person_166,41,143123.07,Engineering,Boston,2024-08-14,False,33.7
+Person_167,60,51069.73,Sales,Boston,2020-11-15,True,90.0
+Person_168,39,50741.72,Finance,Austin,2023-10-15,True,98.8
+Person_169,33,126366.83,Engineering,Boston,2021-08-15,True,96.3
+Person_170,73,34934.09,Finance,Seattle,2023-07-08,True,24.4
+Person_171,74,36579.69,Engineering,Boston,2021-10-25,False,92.1
+Person_172,52,95788.05,Engineering,San Francisco,2020-07-22,False,30.8
+Person_173,26,97616.69,HR,Boston,2020-07-16,True,21.9
+Person_174,63,148092.85,Marketing,San Francisco,2020-07-17,False,8.5
+Person_175,59,45626.55,Engineering,Boston,2021-04-28,True,72.4
+Person_176,20,78914.54,HR,New York,2024-11-25,False,72.9
+Person_177,63,141213.88,HR,Boston,2020-05-09,False,92.5
+Person_178,41,53429.82,Marketing,San Francisco,2024-06-30,True,97.4
+Person_179,48,99235.16,Sales,Austin,2020-11-10,True,55.2
+Person_180,79,120668.32,HR,New York,2021-09-24,True,14.5
+Person_181,38,106548.82,Marketing,Boston,2022-04-11,False,93.3
+Person_182,41,78241.69,Sales,San Francisco,2022-07-27,False,79.7
+Person_183,26,143895.29,Marketing,Seattle,2021-01-09,False,75.3
+Person_184,71,146680.46,Marketing,Boston,2022-02-06,True,38.7
+Person_185,59,122555.88,HR,New York,2022-03-31,True,90.1
+Person_186,43,99390.34,Sales,San Francisco,2024-06-09,False,94.1
+Person_187,62,31813.14,Engineering,New York,2022-07-01,True,13.4
+Person_188,45,84811.76,Engineering,Austin,2024-07-18,False,72.0
+Person_189,61,106326.47,Finance,San Francisco,2024-08-30,True,22.4
+Person_190,57,43345.57,Sales,Austin,2022-02-13,False,41.5
+Person_191,49,91215.54,Engineering,New York,2024-04-13,False,15.6
+Person_192,51,113248.66,Sales,New York,2024-09-19,True,70.0
+Person_193,75,98087.32,Sales,Boston,2022-10-28,False,34.8
+Person_194,35,106137.99,Finance,San Francisco,2024-01-31,False,70.1
+Person_195,60,33657.84,HR,Boston,2021-09-11,False,48.9
+Person_196,80,140313.87,Marketing,Austin,2024-01-11,False,91.3
+Person_197,44,105306.82,Engineering,Boston,2024-11-05,False,39.1
+Person_198,54,64764.94,Marketing,San Francisco,2022-01-17,True,17.0
+Person_199,41,119222.06,Engineering,San Francisco,2023-04-28,True,31.4
+Person_200,59,117552.63,Sales,Austin,2021-04-29,True,87.3
+Person_201,67,123256.53,Marketing,Seattle,2022-08-08,False,23.3
+Person_202,80,35733.06,Finance,New York,2024-06-20,False,55.0
+Person_203,72,72565.92,Marketing,Austin,2023-04-01,True,38.2
+Person_204,42,50136.82,Marketing,Austin,2024-03-18,False,10.1
+Person_205,75,136938.33,HR,Seattle,2020-07-31,False,92.4
+Person_206,43,31162.09,HR,Seattle,2023-02-08,True,86.7
+Person_207,59,46236.33,Engineering,San Francisco,2022-05-02,True,98.9
+Person_208,53,87789.21,Marketing,Austin,2022-10-20,True,17.6
+Person_209,51,117580.47,Sales,Austin,2021-10-07,True,38.5
+Person_210,72,117489.35,Marketing,Austin,2024-01-20,True,9.8
+Person_211,45,64386.8,Finance,Austin,2020-05-12,True,30.1
+Person_212,38,36207.55,Sales,Seattle,2022-01-16,False,21.5
+Person_213,27,135646.7,Engineering,Austin,2023-10-22,False,1.2
+Person_214,30,125788.95,HR,San Francisco,2023-01-29,True,14.9
+Person_215,33,121570.93,Marketing,New York,2023-07-24,False,71.3
+Person_216,67,139094.79,Sales,New York,2022-05-25,True,25.6
+Person_217,80,90807.33,Finance,Seattle,2020-02-25,False,53.9
+Person_218,35,91781.82,Finance,Austin,2021-12-29,False,34.1
+Person_219,69,134018.85,Engineering,Austin,2024-02-10,True,97.6
+Person_220,21,143582.59,Marketing,New York,2020-06-06,True,2.4
+Person_221,55,59251.37,Finance,San Francisco,2024-04-24,True,67.0
+Person_222,42,143660.48,Engineering,Boston,2022-01-12,False,62.3
+Person_223,72,112759.6,Marketing,Boston,2020-01-14,True,4.9
+Person_224,51,103341.26,Engineering,New York,2023-02-18,False,87.5
+Person_225,58,57322.91,Sales,Seattle,2021-11-25,False,79.3
+Person_226,30,65687.56,HR,Boston,2022-08-21,True,4.9
+Person_227,25,119511.88,Sales,New York,2024-11-12,False,47.5
+Person_228,56,112995.76,HR,Seattle,2024-02-19,False,13.5
+Person_229,54,87665.28,Sales,San Francisco,2022-05-30,False,43.5
+Person_230,31,54542.85,HR,Seattle,2024-08-20,True,84.5
+Person_231,48,121584.64,HR,Seattle,2022-04-27,False,77.1
+Person_232,69,62024.69,Finance,New York,2020-06-28,False,32.4
+Person_233,74,86477.22,Sales,Austin,2024-01-29,True,5.4
+Person_234,19,80317.88,Sales,Boston,2022-05-12,True,20.8
+Person_235,28,105434.03,Sales,Austin,2021-01-01,True,73.1
+Person_236,48,101117.68,Finance,Austin,2020-06-10,True,30.4
+Person_237,42,112846.51,Sales,Austin,2022-05-10,False,6.5
+Person_238,64,129078.43,Finance,San Francisco,2022-12-26,True,99.0
+Person_239,28,140122.37,Finance,New York,2023-06-08,True,49.1
+Person_240,68,132375.16,Finance,New York,2022-02-13,False,62.9
+Person_241,53,73418.2,Marketing,Austin,2024-07-31,False,30.9
+Person_242,38,92715.33,HR,Seattle,2020-09-11,True,12.1
+Person_243,65,74508.56,Sales,San Francisco,2022-07-01,True,36.8
+Person_244,80,98324.47,Marketing,Austin,2020-03-16,False,90.1
+Person_245,55,145329.4,Marketing,New York,2024-07-13,False,75.4
+Person_246,45,80332.32,Engineering,Austin,2023-01-02,False,55.4
+Person_247,56,98351.42,HR,Boston,2022-03-18,False,64.4
+Person_248,54,105275.57,HR,San Francisco,2020-10-07,False,97.5
+Person_249,22,73014.22,Marketing,Seattle,2021-01-19,True,3.6
+Person_250,26,85006.4,Finance,Boston,2020-05-18,False,67.5
+Person_251,72,93424.74,Sales,Austin,2020-09-15,True,20.7
+Person_252,35,63754.42,Engineering,Boston,2022-09-25,True,57.1
+Person_253,67,37677.13,Marketing,Seattle,2021-09-30,True,53.9
+Person_254,51,89858.73,Engineering,Seattle,2020-03-14,True,34.5
+Person_255,29,120781.51,Sales,Seattle,2022-10-08,False,52.5
+Person_256,69,109007.67,Engineering,Boston,2021-03-10,False,5.0
+Person_257,24,131866.29,HR,New York,2024-02-01,True,70.3
+Person_258,48,80710.66,Engineering,New York,2022-01-11,False,35.4
+Person_259,29,144753.34,HR,Seattle,2023-03-07,False,33.0
+Person_260,40,38064.5,Engineering,Austin,2021-01-21,True,56.8
+Person_261,51,105890.77,Finance,Seattle,2024-02-20,False,3.5
+Person_262,58,89952.16,Engineering,Boston,2020-01-17,True,57.0
+Person_263,67,41993.95,Finance,Boston,2023-08-23,True,63.5
+Person_264,68,31796.23,Engineering,Austin,2024-04-22,True,97.3
+Person_265,80,123470.53,Sales,Austin,2023-06-29,False,20.0
+Person_266,32,112883.72,Finance,San Francisco,2022-08-07,False,76.7
+Person_267,52,36013.63,Sales,Seattle,2020-10-23,True,51.6
+Person_268,41,142750.13,Sales,San Francisco,2023-06-30,False,38.4
+Person_269,38,38278.96,HR,San Francisco,2021-06-03,False,27.9
+Person_270,78,108610.15,Marketing,Austin,2022-05-12,False,25.4
+Person_271,44,52427.16,Engineering,Boston,2022-09-08,False,11.8
+Person_272,61,76390.03,Sales,Boston,2021-12-23,True,90.6
+Person_273,46,123700.02,Marketing,San Francisco,2020-02-24,False,76.0
+Person_274,33,118938.15,Finance,Seattle,2024-12-01,False,0.1
+Person_275,71,130323.83,Engineering,Austin,2022-05-21,True,18.0
+Person_276,24,43977.51,Marketing,New York,2020-01-05,False,41.9
+Person_277,21,106155.98,Engineering,Seattle,2024-10-03,False,68.7
+Person_278,36,51844.62,Finance,New York,2021-02-23,False,98.5
+Person_279,60,100894.83,Finance,Austin,2020-10-01,False,48.9
+Person_280,56,84058.25,Sales,Boston,2021-11-30,False,81.5
+Person_281,41,134087.6,Sales,Austin,2023-08-01,False,54.4
+Person_282,30,94968.56,Sales,Boston,2023-05-09,True,54.4
+Person_283,44,74739.23,HR,Austin,2021-08-19,False,35.0
+Person_284,68,130752.66,Sales,New York,2020-09-17,False,73.8
+Person_285,58,142579.06,HR,New York,2024-10-30,False,25.9
+Person_286,49,102357.53,Marketing,San Francisco,2024-07-23,True,40.1
+Person_287,71,59081.54,HR,Seattle,2020-09-11,False,74.4
+Person_288,77,105813.51,Engineering,Austin,2023-10-10,False,95.6
+Person_289,80,76743.83,Marketing,San Francisco,2020-11-05,True,33.5
+Person_290,41,34023.74,HR,New York,2020-02-15,False,10.4
+Person_291,71,72511.6,Marketing,Boston,2020-04-02,False,89.7
+Person_292,50,127002.98,Engineering,Seattle,2024-02-06,True,61.0
+Person_293,39,126818.21,HR,Boston,2020-04-02,True,99.6
+Person_294,35,35317.22,Finance,New York,2023-06-18,True,24.6
+Person_295,27,89619.82,Finance,Austin,2020-05-23,False,53.1
+Person_296,52,68932.0,HR,Seattle,2023-09-23,False,20.8
+Person_297,69,134908.03,Engineering,Seattle,2021-12-16,True,8.1
+Person_298,70,79237.11,Engineering,Seattle,2024-08-08,True,17.9
+Person_299,31,122166.94,Engineering,Seattle,2020-08-15,True,29.4
+Person_300,42,76100.79,Sales,Boston,2021-07-27,False,8.1
+Person_301,70,126319.71,Sales,San Francisco,2020-01-20,True,77.3
+Person_302,44,139980.68,Finance,New York,2021-02-20,False,74.1
+Person_303,68,34561.45,Sales,Seattle,2024-03-11,False,46.4
+Person_304,42,54350.54,HR,New York,2020-04-16,True,67.1
+Person_305,53,129224.0,Engineering,San Francisco,2021-10-18,True,57.3
+Person_306,37,105459.39,Engineering,Seattle,2022-05-08,True,22.6
+Person_307,67,84513.27,Marketing,New York,2021-09-04,True,50.7
+Person_308,31,97180.47,Sales,Boston,2024-04-15,True,37.7
+Person_309,77,60705.42,HR,Seattle,2020-10-02,False,93.9
+Person_310,55,137248.3,Engineering,Seattle,2022-08-12,True,45.9
+Person_311,37,49854.94,Finance,Austin,2023-10-16,False,29.5
+Person_312,18,60995.0,Engineering,New York,2021-06-29,False,78.0
+Person_313,67,37099.33,Sales,New York,2024-11-05,False,81.4
+Person_314,52,110208.6,Marketing,Seattle,2021-04-17,True,89.1
+Person_315,19,147419.53,Marketing,San Francisco,2022-12-13,False,21.6
+Person_316,57,138724.02,Engineering,Austin,2023-06-15,False,86.0
+Person_317,50,55772.53,Engineering,Seattle,2021-08-01,True,32.2
+Person_318,70,114480.73,Engineering,Boston,2024-03-18,True,99.5
+Person_319,48,96142.1,Marketing,Boston,2022-03-19,True,60.0
+Person_320,69,138896.77,Sales,Seattle,2024-03-26,True,13.1
+Person_321,78,58853.1,Finance,Seattle,2020-08-22,True,76.2
+Person_322,39,140299.5,Marketing,Austin,2021-11-29,False,6.8
+Person_323,69,127318.69,Sales,Austin,2022-03-25,True,51.6
+Person_324,61,132912.24,HR,Seattle,2023-11-18,True,36.1
+Person_325,53,40189.25,Sales,New York,2020-10-03,False,1.3
+Person_326,59,95233.56,Engineering,Austin,2020-11-13,False,87.6
+Person_327,36,85459.19,Finance,New York,2022-06-15,False,28.0
+Person_328,50,63130.7,Engineering,Austin,2024-04-29,True,28.9
+Person_329,56,92848.16,Engineering,Seattle,2024-03-11,True,94.8
+Person_330,43,100817.02,Marketing,New York,2024-06-11,True,63.3
+Person_331,37,131270.61,Finance,Seattle,2020-02-18,True,3.5
+Person_332,74,114624.1,Marketing,Seattle,2020-03-11,True,0.5
+Person_333,56,89248.95,Sales,San Francisco,2022-06-21,False,39.2
+Person_334,67,59605.48,HR,San Francisco,2021-02-08,False,12.8
+Person_335,68,42648.37,HR,San Francisco,2020-03-10,False,19.7
+Person_336,54,43628.47,Marketing,Boston,2024-05-10,True,48.7
+Person_337,58,137260.41,Marketing,Boston,2024-09-12,True,57.7
+Person_338,38,88829.16,Finance,Austin,2022-11-20,False,6.5
+Person_339,59,110412.01,Engineering,San Francisco,2022-02-11,False,29.5
+Person_340,68,40867.22,Sales,Boston,2021-11-11,False,15.8
+Person_341,78,68562.67,Finance,New York,2021-07-31,False,78.7
+Person_342,56,113786.05,Marketing,Seattle,2021-03-15,False,16.8
+Person_343,55,60387.28,Sales,San Francisco,2024-08-08,True,53.8
+Person_344,66,101057.73,Marketing,Boston,2023-12-07,True,89.5
+Person_345,22,94533.44,HR,New York,2024-01-02,False,38.7
+Person_346,39,129702.57,Finance,San Francisco,2024-02-20,False,40.2
+Person_347,70,41898.85,Marketing,Seattle,2020-11-29,True,12.1
+Person_348,64,137875.34,Engineering,Austin,2021-07-10,True,85.4
+Person_349,30,39627.05,Marketing,Boston,2024-11-29,True,87.8
+Person_350,57,49045.2,Sales,New York,2022-10-30,False,28.7
+Person_351,37,102910.65,Marketing,Seattle,2020-01-25,True,25.5
+Person_352,37,81220.45,Finance,New York,2022-09-04,False,4.8
+Person_353,53,126948.24,Sales,Seattle,2021-08-30,False,90.1
+Person_354,65,32034.16,Engineering,San Francisco,2020-08-03,True,79.7
+Person_355,80,53345.69,Finance,Seattle,2022-03-23,False,29.9
+Person_356,26,62048.58,Marketing,Austin,2024-10-10,True,84.9
+Person_357,73,60449.72,Finance,New York,2020-11-28,False,9.0
+Person_358,72,38046.55,HR,New York,2021-03-07,False,47.1
+Person_359,28,91309.78,Engineering,Boston,2021-05-09,False,27.5
+Person_360,59,54190.57,Finance,San Francisco,2021-06-16,True,91.0
+Person_361,21,115085.66,Engineering,Boston,2021-07-01,True,6.8
+Person_362,40,90855.39,Sales,New York,2023-07-13,True,23.9
+Person_363,37,126411.65,Finance,San Francisco,2023-07-21,True,8.6
+Person_364,72,68157.19,Engineering,Seattle,2020-04-09,False,32.5
+Person_365,62,91474.14,HR,San Francisco,2022-09-28,False,5.4
+Person_366,56,36139.32,Sales,New York,2022-02-21,True,73.0
+Person_367,45,113107.96,Finance,Boston,2021-08-18,True,41.8
+Person_368,31,31411.7,Marketing,New York,2023-08-08,False,92.8
+Person_369,68,149615.29,Marketing,Seattle,2021-05-28,True,86.6
+Person_370,55,107516.18,Finance,New York,2024-07-11,False,46.5
+Person_371,21,41254.56,Finance,Seattle,2020-07-28,True,81.8
+Person_372,26,39092.63,Finance,New York,2020-07-08,True,33.7
+Person_373,76,62529.15,Marketing,Seattle,2021-09-08,False,98.6
+Person_374,75,131309.23,Engineering,San Francisco,2022-02-12,False,44.3
+Person_375,53,126123.27,HR,Seattle,2022-11-30,True,6.7
+Person_376,69,92149.74,HR,San Francisco,2021-05-08,True,14.3
+Person_377,46,38535.28,Marketing,Seattle,2024-08-22,True,78.1
+Person_378,42,56013.47,Finance,New York,2020-10-13,True,77.1
+Person_379,65,74192.07,HR,Seattle,2024-01-27,True,16.3
+Person_380,55,56009.03,Finance,New York,2020-05-21,False,93.8
+Person_381,25,140068.94,Marketing,Seattle,2020-04-30,True,55.4
+Person_382,55,125881.39,Finance,San Francisco,2023-09-03,True,8.5
+Person_383,25,40621.9,Engineering,Austin,2022-05-14,False,61.5
+Person_384,34,117098.22,Sales,San Francisco,2023-12-25,False,35.5
+Person_385,70,134848.65,Sales,Boston,2021-11-21,False,28.5
+Person_386,79,127890.93,Sales,San Francisco,2022-11-29,False,95.8
+Person_387,20,114832.84,Finance,Boston,2023-06-19,False,96.2
+Person_388,36,134402.01,HR,Boston,2023-11-14,True,46.9
+Person_389,73,141367.57,Marketing,San Francisco,2020-04-27,True,13.6
+Person_390,75,31536.44,Finance,Austin,2021-09-25,False,4.8
+Person_391,50,39802.55,HR,Boston,2024-04-19,False,56.2
+Person_392,30,130521.14,HR,Boston,2021-02-14,False,52.5
+Person_393,21,52796.62,HR,New York,2022-03-10,True,36.3
+Person_394,48,149629.35,Finance,San Francisco,2021-02-15,True,5.4
+Person_395,51,107265.08,Sales,New York,2021-04-09,False,66.9
+Person_396,28,118632.52,Engineering,Austin,2024-06-16,True,43.5
+Person_397,80,49782.84,HR,Seattle,2021-02-01,True,56.4
+Person_398,56,35284.02,Sales,Austin,2023-07-22,True,75.5
+Person_399,19,134168.5,Finance,Austin,2020-09-01,False,35.1
+Person_400,54,80034.93,Engineering,Austin,2021-07-22,False,81.5
+Person_401,54,47584.79,Marketing,New York,2023-12-13,True,54.5
+Person_402,28,133462.96,Engineering,New York,2023-01-14,True,59.5
+Person_403,73,69747.25,Marketing,Seattle,2020-06-20,True,84.1
+Person_404,71,112681.97,Marketing,San Francisco,2024-04-08,False,76.0
+Person_405,28,96496.42,HR,Austin,2024-09-05,True,63.8
+Person_406,48,45827.25,Finance,Seattle,2024-01-31,False,58.3
+Person_407,42,96390.49,Finance,San Francisco,2023-04-10,False,92.6
+Person_408,53,45201.36,HR,Seattle,2023-08-22,True,15.4
+Person_409,44,128357.65,Sales,San Francisco,2021-12-10,True,4.0
+Person_410,58,129496.69,Finance,San Francisco,2020-01-18,True,66.3
+Person_411,76,61579.94,Marketing,New York,2023-08-29,True,85.9
+Person_412,30,48021.94,Engineering,Seattle,2021-02-23,True,15.2
+Person_413,47,73103.84,HR,New York,2023-01-16,False,44.5
+Person_414,32,53574.14,Engineering,Austin,2023-08-21,True,46.4
+Person_415,42,110791.63,Finance,New York,2021-01-23,False,8.5
+Person_416,18,136673.79,Marketing,Seattle,2021-05-18,True,21.3
+Person_417,29,42643.52,Sales,San Francisco,2024-10-09,True,80.5
+Person_418,79,72838.99,Engineering,Boston,2022-11-24,True,33.7
+Person_419,56,122034.25,HR,Seattle,2020-08-24,True,13.9
+Person_420,68,96639.05,Finance,Boston,2024-02-16,True,97.1
+Person_421,30,121673.48,Finance,Austin,2023-11-26,False,31.9
+Person_422,64,83404.49,Marketing,Austin,2020-06-20,True,34.2
+Person_423,75,40977.09,Sales,Austin,2022-03-22,True,48.8
+Person_424,36,139402.43,Finance,Austin,2020-05-04,False,94.7
+Person_425,25,39514.96,Marketing,New York,2024-06-24,False,25.5
+Person_426,70,70858.74,Sales,San Francisco,2022-06-12,False,29.1
+Person_427,47,38295.05,Finance,Seattle,2021-05-02,True,65.8
+Person_428,60,84205.25,HR,Austin,2022-05-23,True,55.4
+Person_429,42,61657.72,Engineering,Boston,2020-11-11,True,52.8
+Person_430,32,86127.7,Finance,San Francisco,2021-10-17,False,25.5
+Person_431,69,46920.11,Sales,Boston,2021-05-04,False,65.0
+Person_432,60,146649.71,Sales,Austin,2023-02-27,True,4.0
+Person_433,22,80336.23,Finance,Austin,2024-05-26,True,54.1
+Person_434,71,58021.36,Finance,New York,2022-03-12,False,9.3
+Person_435,37,48712.88,Engineering,Seattle,2023-01-26,False,85.1
+Person_436,76,113888.22,Finance,Boston,2022-11-23,False,83.0
+Person_437,63,117586.44,Sales,San Francisco,2020-02-11,True,5.2
+Person_438,51,75856.15,Marketing,San Francisco,2023-04-04,False,85.4
+Person_439,54,137749.38,HR,Seattle,2022-10-23,True,54.4
+Person_440,28,87443.73,Engineering,Austin,2022-09-03,True,47.1
+Person_441,29,101382.56,HR,Seattle,2022-11-17,False,35.6
+Person_442,61,84387.71,Engineering,San Francisco,2020-06-16,True,82.7
+Person_443,73,45596.45,Engineering,Austin,2022-06-09,True,1.5
+Person_444,52,129365.27,Sales,Seattle,2021-12-12,True,43.4
+Person_445,64,87467.33,Finance,Austin,2023-12-15,True,22.0
+Person_446,52,77639.58,Finance,New York,2023-08-23,True,60.2
+Person_447,66,115525.5,Finance,New York,2022-11-21,True,67.5
+Person_448,74,67536.24,HR,Boston,2022-02-26,True,24.8
+Person_449,24,48935.26,Finance,San Francisco,2020-03-17,True,79.4
+Person_450,28,119581.73,Engineering,Boston,2023-02-02,True,85.9
+Person_451,49,65544.77,HR,Seattle,2022-05-04,False,17.1
+Person_452,30,114826.25,Engineering,Boston,2020-11-29,True,15.2
+Person_453,47,59558.57,HR,San Francisco,2024-11-20,True,95.2
+Person_454,18,99894.81,HR,Austin,2023-10-23,True,85.1
+Person_455,42,78010.36,Finance,Seattle,2023-11-07,False,20.1
+Person_456,64,78857.46,Finance,Seattle,2020-02-15,False,75.9
+Person_457,42,124594.26,Finance,Austin,2022-04-23,False,82.0
+Person_458,21,76551.63,Finance,Austin,2020-11-16,True,55.4
+Person_459,77,142659.87,Finance,New York,2020-09-11,True,66.9
+Person_460,52,114687.18,Finance,Boston,2021-04-17,False,96.2
+Person_461,61,144991.53,HR,Austin,2020-03-06,True,2.6
+Person_462,41,126528.13,Finance,Seattle,2023-07-05,True,66.2
+Person_463,68,62143.37,Engineering,San Francisco,2021-03-06,True,59.7
+Person_464,65,68823.98,Sales,Seattle,2020-02-11,False,76.9
+Person_465,68,48775.78,Marketing,New York,2022-04-11,True,8.7
+Person_466,21,146810.46,HR,Austin,2024-02-04,True,35.0
+Person_467,40,105789.22,Sales,New York,2021-05-23,False,73.5
+Person_468,72,58838.01,HR,Austin,2020-02-04,True,72.0
+Person_469,27,125514.02,Sales,New York,2021-06-23,False,38.6
+Person_470,28,77670.79,Finance,San Francisco,2024-03-10,False,39.3
+Person_471,71,118884.92,HR,Boston,2023-07-20,False,46.7
+Person_472,46,84596.6,Marketing,Boston,2022-07-26,False,49.1
+Person_473,42,77855.85,Finance,New York,2020-04-30,True,69.6
+Person_474,64,73523.04,Marketing,Austin,2020-11-10,True,28.0
+Person_475,70,39504.2,Marketing,Boston,2021-04-23,True,77.9
+Person_476,59,125360.74,Engineering,San Francisco,2021-06-19,True,80.3
+Person_477,33,51547.92,Sales,New York,2020-08-07,True,18.9
+Person_478,61,63648.47,Marketing,New York,2020-11-15,True,13.7
+Person_479,18,132416.45,Sales,Boston,2024-03-24,False,25.9
+Person_480,62,124547.01,Sales,Boston,2024-05-15,True,98.6
+Person_481,75,96171.97,Engineering,Boston,2020-09-11,False,40.8
+Person_482,18,114174.72,Engineering,Boston,2024-08-24,True,83.8
+Person_483,80,38973.15,HR,Austin,2024-09-28,False,62.0
+Person_484,75,80551.26,Finance,Boston,2023-06-03,True,20.8
+Person_485,50,70762.34,Engineering,New York,2023-02-05,False,25.4
+Person_486,38,42981.7,Sales,San Francisco,2020-03-06,False,51.8
+Person_487,72,139985.0,Engineering,San Francisco,2022-08-27,True,94.7
+Person_488,57,63762.91,Marketing,Seattle,2021-07-06,False,17.7
+Person_489,70,59499.98,Engineering,Austin,2021-06-02,True,75.8
+Person_490,62,84737.98,Engineering,New York,2023-05-06,True,76.3
+Person_491,59,58122.26,HR,Austin,2022-01-11,True,89.3
+Person_492,47,59099.35,Finance,Seattle,2021-09-09,True,46.3
+Person_493,29,56804.05,HR,Boston,2021-03-30,False,89.6
+Person_494,27,39381.99,Engineering,San Francisco,2021-04-01,False,37.7
+Person_495,40,71120.75,Sales,New York,2023-07-18,True,92.4
+Person_496,62,96855.66,HR,Austin,2021-11-23,True,40.8
+Person_497,30,58210.71,Finance,New York,2024-02-14,False,81.9
+Person_498,19,57855.66,HR,San Francisco,2021-04-13,True,64.1
+Person_499,58,55516.19,HR,Boston,2023-08-28,True,96.4
+Person_500,27,113524.55,Sales,New York,2020-05-07,False,82.3
+Person_501,44,122667.37,Marketing,San Francisco,2021-05-19,True,16.0
+Person_502,50,106490.27,HR,New York,2023-02-03,False,49.7
+Person_503,58,121096.92,Marketing,Austin,2023-05-26,True,83.8
+Person_504,80,128538.78,Engineering,New York,2021-10-17,False,81.7
+Person_505,66,108259.8,Sales,San Francisco,2021-05-05,False,59.0
+Person_506,66,131014.72,Finance,Austin,2022-03-12,False,22.7
+Person_507,47,68206.22,HR,Seattle,2023-10-26,True,77.8
+Person_508,50,123847.84,Sales,New York,2024-08-04,True,22.5
+Person_509,51,103213.17,Sales,San Francisco,2020-10-11,False,71.1
+Person_510,55,137035.77,Sales,New York,2022-09-21,True,22.7
+Person_511,37,128066.32,Sales,New York,2020-01-11,True,38.0
+Person_512,39,123679.62,Sales,New York,2022-10-16,False,21.8
+Person_513,26,48473.21,HR,Boston,2023-01-20,False,38.0
+Person_514,62,30395.18,Sales,Seattle,2021-07-18,True,98.4
+Person_515,42,120951.8,HR,New York,2022-08-07,False,35.8
+Person_516,18,98270.26,Marketing,New York,2022-10-23,True,81.4
+Person_517,30,49979.53,Engineering,Boston,2023-07-28,False,23.8
+Person_518,55,35189.94,Sales,Austin,2021-06-25,True,75.9
+Person_519,65,113187.24,Finance,Boston,2022-11-16,False,55.8
+Person_520,57,72639.43,HR,San Francisco,2022-09-02,False,78.2
+Person_521,40,146410.26,Engineering,Seattle,2022-05-07,True,72.0
+Person_522,54,141822.72,Finance,Boston,2024-07-31,True,69.2
+Person_523,65,69260.77,Finance,New York,2021-01-25,True,54.2
+Person_524,50,79460.78,Engineering,Boston,2022-07-05,False,5.3
+Person_525,60,69073.75,Marketing,Seattle,2021-07-20,False,41.2
+Person_526,52,103257.12,Sales,Boston,2022-02-23,True,78.5
+Person_527,66,107691.32,HR,San Francisco,2020-12-10,False,48.1
+Person_528,75,65720.45,Engineering,Boston,2023-05-13,False,20.9
+Person_529,24,97149.67,HR,New York,2024-07-07,True,13.4
+Person_530,51,139089.35,Marketing,Austin,2021-07-31,False,34.7
+Person_531,27,127836.14,HR,Seattle,2023-11-02,False,43.8
+Person_532,18,119184.57,Marketing,Austin,2024-06-15,True,20.8
+Person_533,37,113208.21,HR,Austin,2024-06-27,False,9.3
+Person_534,40,77314.41,HR,Seattle,2022-09-09,True,10.1
+Person_535,28,43152.73,Finance,Boston,2023-05-06,True,74.8
+Person_536,57,31979.96,Finance,Seattle,2023-01-02,False,57.9
+Person_537,65,145866.32,Sales,Austin,2022-05-30,True,25.3
+Person_538,50,121375.91,Marketing,Boston,2020-07-25,True,52.3
+Person_539,65,66996.2,Sales,Seattle,2023-12-01,False,0.6
+Person_540,57,111598.77,Sales,Boston,2020-09-19,False,63.2
+Person_541,75,84801.97,Marketing,Austin,2024-11-10,True,37.1
+Person_542,62,116077.07,Sales,San Francisco,2023-10-21,False,53.7
+Person_543,39,66805.08,Marketing,Boston,2022-06-23,False,87.7
+Person_544,71,117246.39,Sales,San Francisco,2023-05-14,True,40.0
+Person_545,20,59656.75,HR,New York,2021-04-01,True,22.7
+Person_546,32,48665.51,Marketing,Boston,2020-04-29,False,33.4
+Person_547,51,136362.28,Sales,Boston,2020-01-06,True,24.5
+Person_548,61,36605.58,Engineering,Boston,2020-10-16,True,51.8
+Person_549,59,32854.28,Engineering,Boston,2023-07-21,True,37.9
+Person_550,19,52060.94,Sales,Boston,2024-11-11,False,44.4
+Person_551,21,48820.47,Marketing,Boston,2021-08-05,False,29.4
+Person_552,62,31981.11,Finance,Boston,2023-03-19,False,6.7
+Person_553,76,105176.47,Engineering,San Francisco,2024-11-02,True,46.1
+Person_554,23,61370.44,Finance,Seattle,2023-06-17,True,44.9
+Person_555,32,84729.46,Finance,Seattle,2021-04-01,False,90.2
+Person_556,77,42180.59,HR,Boston,2023-01-05,True,47.8
+Person_557,47,31659.24,Marketing,New York,2021-11-17,True,54.9
+Person_558,45,142417.53,Marketing,Austin,2021-06-30,False,3.3
+Person_559,60,114864.91,HR,Austin,2024-07-15,False,24.7
+Person_560,35,94737.73,Marketing,Seattle,2023-12-12,False,77.8
+Person_561,61,86769.84,Finance,New York,2022-11-03,True,70.2
+Person_562,37,46551.41,Sales,Seattle,2022-04-16,False,91.6
+Person_563,32,102164.84,Engineering,Austin,2021-09-03,True,33.3
+Person_564,64,146988.73,Sales,San Francisco,2021-12-24,False,21.0
+Person_565,33,118075.44,HR,Boston,2021-01-21,True,31.6
+Person_566,26,67875.91,Finance,Austin,2023-04-20,False,1.6
+Person_567,51,100510.7,Sales,New York,2023-06-04,False,47.7
+Person_568,80,64844.91,HR,San Francisco,2023-05-01,True,97.2
+Person_569,24,67214.48,HR,Austin,2021-12-28,True,25.9
+Person_570,43,147946.9,Finance,Boston,2024-10-11,True,23.0
+Person_571,79,124653.05,Sales,San Francisco,2021-08-30,True,4.9
+Person_572,30,35591.61,Sales,Austin,2022-08-06,True,29.2
+Person_573,52,82240.88,Engineering,Austin,2024-07-14,False,42.3
+Person_574,79,60680.51,Engineering,New York,2020-11-03,True,64.2
+Person_575,58,86269.39,Engineering,Boston,2023-02-15,False,1.2
+Person_576,20,140271.31,Marketing,Seattle,2023-11-30,False,60.9
+Person_577,56,99671.35,HR,San Francisco,2023-08-24,False,32.4
+Person_578,28,148362.89,Marketing,Austin,2020-12-11,False,25.9
+Person_579,63,134238.26,Engineering,Boston,2023-10-21,True,100.0
+Person_580,36,120582.53,Sales,Seattle,2023-08-15,True,13.8
+Person_581,28,136931.7,Finance,Seattle,2023-03-31,True,51.3
+Person_582,69,123156.91,Finance,Seattle,2022-07-07,False,97.1
+Person_583,73,119561.5,HR,San Francisco,2024-09-04,True,50.4
+Person_584,44,115748.81,Engineering,New York,2023-10-22,True,80.2
+Person_585,23,67693.62,Sales,New York,2022-04-06,True,30.8
+Person_586,64,89811.4,Marketing,San Francisco,2022-05-18,True,92.6
+Person_587,22,74168.66,Sales,Austin,2021-12-01,True,57.5
+Person_588,39,57695.82,Engineering,Austin,2023-09-27,False,73.5
+Person_589,39,139811.56,Engineering,Boston,2020-08-14,False,50.4
+Person_590,63,124337.89,Finance,Boston,2022-11-21,True,77.9
+Person_591,22,39748.64,Finance,San Francisco,2024-06-08,False,47.0
+Person_592,68,86747.3,Marketing,Boston,2020-08-24,False,56.7
+Person_593,48,134231.59,HR,Seattle,2021-11-27,True,12.1
+Person_594,65,41623.73,Engineering,Boston,2024-06-27,True,85.8
+Person_595,72,112809.95,Engineering,Austin,2024-03-25,True,85.3
+Person_596,43,39021.39,Engineering,Seattle,2020-04-30,True,50.3
+Person_597,79,121457.0,Sales,Austin,2020-01-24,True,72.8
+Person_598,43,44946.14,Sales,Austin,2023-07-15,False,66.0
+Person_599,54,40864.53,HR,New York,2022-03-15,False,96.5
+Person_600,59,30928.54,Marketing,Austin,2024-03-28,False,4.9
+Person_601,30,99257.21,Engineering,Austin,2022-09-03,False,4.1
+Person_602,32,82308.07,HR,Boston,2020-05-13,False,58.6
+Person_603,51,142047.07,Sales,New York,2024-09-24,True,42.4
+Person_604,40,143117.6,Marketing,Seattle,2024-05-24,False,69.3
+Person_605,48,121473.31,HR,San Francisco,2024-11-16,False,21.5
+Person_606,27,134857.99,HR,San Francisco,2023-10-04,False,64.1
+Person_607,45,113211.87,Engineering,New York,2024-01-21,True,53.6
+Person_608,64,131791.24,Marketing,Austin,2021-03-11,True,68.6
+Person_609,79,46759.38,Finance,Austin,2020-05-03,False,75.9
+Person_610,50,34281.33,Marketing,Austin,2020-01-28,False,80.5
+Person_611,50,61118.28,HR,Austin,2022-01-20,False,34.5
+Person_612,62,122528.21,Marketing,San Francisco,2024-01-15,False,83.6
+Person_613,25,45442.83,Marketing,Austin,2024-07-24,False,87.3
+Person_614,77,44575.1,Engineering,Seattle,2021-02-12,False,99.2
+Person_615,53,112599.49,Engineering,Boston,2022-07-12,False,69.0
+Person_616,56,93850.6,Marketing,New York,2023-07-28,True,39.8
+Person_617,48,38968.19,Sales,Seattle,2020-08-10,True,86.1
+Person_618,26,142700.32,Sales,New York,2024-07-03,False,31.9
+Person_619,49,69000.37,HR,Seattle,2022-10-02,True,21.1
+Person_620,61,130497.02,Engineering,Austin,2024-04-13,True,33.6
+Person_621,37,83073.59,HR,San Francisco,2023-10-25,False,41.5
+Person_622,58,30765.89,Marketing,Seattle,2021-08-25,False,61.4
+Person_623,66,88573.02,Sales,San Francisco,2024-12-01,True,70.5
+Person_624,47,38422.56,Marketing,New York,2023-05-01,True,38.2
+Person_625,50,96645.4,Engineering,Seattle,2024-02-11,False,77.4
+Person_626,78,73986.67,Sales,New York,2023-05-03,False,15.2
+Person_627,36,47128.9,Sales,New York,2022-05-04,True,25.8
+Person_628,25,117472.53,Sales,New York,2023-09-21,True,39.4
+Person_629,26,78550.26,Sales,New York,2021-07-12,False,79.5
+Person_630,52,132736.6,Finance,Boston,2023-10-22,True,27.5
+Person_631,66,149685.28,Marketing,New York,2022-01-13,False,87.9
+Person_632,67,109344.14,Marketing,Seattle,2021-07-02,True,5.7
+Person_633,34,50450.08,Marketing,Seattle,2022-03-27,False,23.5
+Person_634,62,77220.08,Marketing,Seattle,2020-11-22,True,91.3
+Person_635,75,39973.24,Engineering,New York,2021-11-27,False,24.0
+Person_636,20,127715.72,Marketing,New York,2020-05-07,True,16.3
+Person_637,32,83729.09,Sales,San Francisco,2020-04-19,False,10.8
+Person_638,64,116349.79,Finance,Boston,2021-05-10,False,31.8
+Person_639,37,93496.19,Engineering,Boston,2021-01-04,False,35.8
+Person_640,77,50043.64,HR,New York,2021-02-09,False,46.7
+Person_641,43,34896.69,Marketing,Boston,2024-08-13,False,53.7
+Person_642,52,71226.02,Finance,New York,2021-06-25,False,2.8
+Person_643,24,139567.72,Finance,New York,2020-07-26,True,79.6
+Person_644,58,115076.46,Engineering,San Francisco,2022-01-14,False,43.5
+Person_645,78,102160.89,Finance,San Francisco,2024-05-05,True,45.4
+Person_646,29,138287.42,Finance,Austin,2023-09-16,True,68.9
+Person_647,68,103148.7,Sales,Austin,2023-09-16,False,1.1
+Person_648,23,39934.98,HR,New York,2020-07-07,True,37.7
+Person_649,76,39522.02,Finance,San Francisco,2024-03-20,False,14.5
+Person_650,55,82661.44,HR,New York,2020-08-08,False,39.6
+Person_651,73,41441.78,Finance,Austin,2021-12-13,True,52.6
+Person_652,49,89796.65,HR,San Francisco,2024-08-25,True,28.0
+Person_653,19,102203.26,Sales,Seattle,2021-07-24,False,67.1
+Person_654,65,134271.06,Engineering,Austin,2023-08-09,True,32.6
+Person_655,33,50172.04,Finance,New York,2022-06-26,True,0.5
+Person_656,21,104735.67,Marketing,Austin,2023-12-11,False,62.3
+Person_657,52,141149.54,Marketing,Austin,2023-04-11,True,1.9
+Person_658,68,72116.58,Engineering,Austin,2023-01-16,True,73.1
+Person_659,50,78119.22,HR,Boston,2021-11-15,True,43.4
+Person_660,66,74082.33,Engineering,Austin,2021-06-06,True,1.6
+Person_661,77,33712.42,Engineering,Austin,2020-01-17,False,4.7
+Person_662,35,101833.47,Engineering,Boston,2021-06-11,False,37.2
+Person_663,79,40453.84,HR,New York,2021-12-08,True,18.8
+Person_664,76,127555.68,Sales,Austin,2024-07-14,False,56.9
+Person_665,60,66586.49,Engineering,Austin,2024-09-20,True,31.4
+Person_666,45,96226.63,HR,New York,2021-06-15,True,9.6
+Person_667,52,41229.82,Engineering,Seattle,2024-09-14,False,56.4
+Person_668,47,108519.85,HR,Seattle,2023-06-12,False,48.5
+Person_669,59,142795.55,Finance,Boston,2022-01-19,False,67.5
+Person_670,74,129231.4,Finance,San Francisco,2020-10-03,True,71.0
+Person_671,20,70280.93,Finance,Austin,2020-06-18,True,10.5
+Person_672,56,143993.64,Marketing,New York,2024-08-09,True,3.4
+Person_673,18,80985.38,HR,Boston,2021-04-27,False,65.5
+Person_674,60,55173.5,Finance,Boston,2022-01-11,False,15.5
+Person_675,67,104003.96,Engineering,New York,2022-12-19,True,94.2
+Person_676,60,55371.72,HR,New York,2023-07-30,True,64.9
+Person_677,35,117969.59,Marketing,San Francisco,2021-06-11,True,60.9
+Person_678,70,120272.16,Finance,Seattle,2021-02-11,True,42.0
+Person_679,65,140458.44,HR,San Francisco,2022-10-21,False,80.2
+Person_680,48,124579.53,Finance,New York,2022-08-19,False,70.0
+Person_681,28,107421.18,Finance,New York,2024-10-13,False,29.9
+Person_682,38,149222.6,Finance,Austin,2024-09-01,True,79.7
+Person_683,26,57482.04,Sales,Boston,2020-02-12,False,76.2
+Person_684,47,51906.84,Engineering,Boston,2023-07-09,True,61.3
+Person_685,58,69128.21,HR,Austin,2021-11-10,True,77.7
+Person_686,47,98293.98,Finance,San Francisco,2023-04-02,False,64.7
+Person_687,68,63042.66,HR,Austin,2024-10-27,False,96.3
+Person_688,62,127107.92,Finance,San Francisco,2022-01-13,True,54.0
+Person_689,79,30015.73,Engineering,Seattle,2024-09-28,True,34.0
+Person_690,70,99873.16,Sales,San Francisco,2022-11-10,True,23.7
+Person_691,73,83786.49,Engineering,New York,2024-02-12,False,38.1
+Person_692,38,40874.73,HR,New York,2022-11-18,True,65.1
+Person_693,36,95848.08,HR,New York,2020-10-25,True,52.0
+Person_694,63,64023.33,Finance,Austin,2023-05-20,False,62.8
+Person_695,62,86125.7,Finance,Seattle,2024-12-01,True,43.1
+Person_696,60,149986.74,Finance,Seattle,2024-10-25,False,79.9
+Person_697,73,31243.0,Marketing,Seattle,2020-07-30,False,72.7
+Person_698,31,75678.37,HR,San Francisco,2024-02-15,False,84.0
+Person_699,65,101903.83,Sales,Austin,2021-07-03,True,88.2
+Person_700,54,116869.72,Engineering,New York,2020-02-04,True,5.7
+Person_701,61,96871.64,Sales,San Francisco,2021-02-13,True,1.6
+Person_702,43,78382.0,HR,New York,2022-10-15,False,8.1
+Person_703,43,51744.81,Sales,Austin,2020-11-29,True,81.8
+Person_704,73,111274.48,Engineering,Austin,2020-08-17,True,41.0
+Person_705,34,111100.68,Marketing,Austin,2021-12-04,False,42.6
+Person_706,43,76184.29,Engineering,Seattle,2021-07-03,False,78.9
+Person_707,19,55223.96,Finance,Austin,2021-03-08,False,41.3
+Person_708,30,42715.9,Finance,Boston,2024-08-08,True,66.5
+Person_709,43,113185.79,Marketing,Austin,2024-09-26,False,44.5
+Person_710,50,69393.83,HR,Austin,2024-12-01,False,36.5
+Person_711,64,30460.42,Sales,Austin,2021-02-08,True,45.1
+Person_712,46,95496.57,Sales,Seattle,2023-01-23,True,19.8
+Person_713,71,47801.52,Sales,New York,2023-10-05,True,49.7
+Person_714,26,110715.17,HR,Seattle,2020-01-12,True,23.0
+Person_715,27,67068.95,Sales,New York,2023-08-07,False,19.1
+Person_716,19,43933.75,Marketing,Austin,2022-04-04,True,15.7
+Person_717,33,32053.21,Sales,Boston,2024-11-05,True,15.9
+Person_718,25,108468.4,HR,Austin,2023-07-17,True,87.1
+Person_719,55,42237.75,Finance,Seattle,2020-01-16,True,69.4
+Person_720,50,59994.87,Sales,Seattle,2023-01-10,False,56.4
+Person_721,25,102479.36,Marketing,San Francisco,2022-11-05,True,53.8
+Person_722,77,124812.79,Finance,Austin,2023-02-19,True,68.5
+Person_723,73,87352.83,Engineering,San Francisco,2020-09-14,False,38.4
+Person_724,42,116990.15,Marketing,Boston,2024-09-21,True,51.5
+Person_725,65,99677.52,Finance,Boston,2021-03-25,False,37.6
+Person_726,56,67064.54,Sales,Seattle,2021-05-05,False,10.7
+Person_727,42,103249.09,Marketing,Austin,2024-04-18,False,67.4
+Person_728,31,119307.31,Marketing,Austin,2023-02-13,False,42.8
+Person_729,69,37666.46,Sales,Boston,2024-11-26,False,43.6
+Person_730,78,142388.76,Engineering,Boston,2022-01-31,False,42.6
+Person_731,61,133000.17,HR,San Francisco,2020-07-04,True,61.1
+Person_732,63,54493.31,Engineering,Austin,2020-10-14,True,9.5
+Person_733,74,134700.68,Marketing,Boston,2024-06-12,False,35.6
+Person_734,60,84426.37,HR,New York,2022-06-28,True,75.0
+Person_735,53,54073.18,HR,New York,2021-07-14,False,96.4
+Person_736,32,94676.44,Engineering,Boston,2023-01-17,True,7.5
+Person_737,42,50141.19,Marketing,San Francisco,2023-03-20,False,63.2
+Person_738,56,54082.6,Engineering,Boston,2020-04-30,False,11.2
+Person_739,59,73826.3,Marketing,Austin,2023-09-08,False,0.8
+Person_740,48,65521.24,Finance,Boston,2020-07-04,True,33.3
+Person_741,23,32047.66,Engineering,Boston,2020-05-29,False,18.7
+Person_742,59,70296.12,Sales,New York,2021-08-02,True,2.0
+Person_743,78,93252.14,HR,Seattle,2023-08-01,False,69.4
+Person_744,75,31255.64,HR,Seattle,2022-10-23,True,84.3
+Person_745,28,36827.75,Finance,New York,2023-11-13,False,28.9
+Person_746,70,44869.16,Marketing,San Francisco,2023-05-25,False,77.3
+Person_747,40,93176.18,Marketing,Seattle,2023-08-16,False,15.8
+Person_748,49,60609.96,HR,Boston,2020-02-16,False,31.9
+Person_749,37,131486.21,Sales,Boston,2023-01-26,False,78.4
+Person_750,53,90986.43,HR,Boston,2024-07-06,False,52.9
+Person_751,80,134065.69,HR,San Francisco,2020-10-05,False,91.8
+Person_752,22,118824.97,Marketing,Seattle,2022-09-11,True,40.0
+Person_753,28,44435.4,Marketing,New York,2023-05-01,False,38.6
+Person_754,57,126868.37,Marketing,Seattle,2024-04-18,True,94.3
+Person_755,44,31152.73,Sales,Boston,2023-03-17,False,13.1
+Person_756,60,102836.57,Marketing,Austin,2020-01-13,True,6.8
+Person_757,76,76803.52,Sales,San Francisco,2020-06-01,True,29.9
+Person_758,40,100305.03,HR,San Francisco,2020-11-23,False,0.5
+Person_759,57,56031.47,HR,Seattle,2023-02-20,False,0.0
+Person_760,46,145896.12,Sales,San Francisco,2024-06-17,True,73.3
+Person_761,61,56172.72,HR,San Francisco,2020-04-05,False,27.8
+Person_762,70,68088.72,Engineering,Boston,2023-05-17,True,27.2
+Person_763,25,108242.98,Sales,New York,2020-03-31,True,55.8
+Person_764,30,57181.01,HR,San Francisco,2024-07-08,True,13.5
+Person_765,22,73118.63,Engineering,Boston,2023-06-26,True,57.9
+Person_766,27,142690.86,Marketing,Austin,2024-09-16,False,47.6
+Person_767,27,43677.47,HR,Boston,2023-08-30,True,50.7
+Person_768,44,47670.35,HR,New York,2024-10-22,False,95.3
+Person_769,60,44379.35,Engineering,San Francisco,2022-11-08,False,87.0
+Person_770,26,115488.18,Engineering,Seattle,2023-07-31,False,3.8
+Person_771,46,100374.57,Marketing,Seattle,2020-01-06,True,15.4
+Person_772,39,149029.73,Engineering,Seattle,2020-05-08,True,6.9
+Person_773,66,127564.4,Sales,New York,2023-07-29,False,55.4
+Person_774,80,128411.51,Engineering,Seattle,2022-01-29,True,32.3
+Person_775,30,65497.75,Marketing,Boston,2023-05-20,False,39.9
+Person_776,34,74924.3,Finance,Austin,2024-05-04,True,5.3
+Person_777,79,129953.95,Sales,San Francisco,2020-04-14,True,40.0
+Person_778,23,99044.61,HR,San Francisco,2020-07-13,False,56.9
+Person_779,62,47247.16,HR,New York,2023-02-08,True,44.8
+Person_780,31,110548.06,HR,San Francisco,2021-11-27,False,80.1
+Person_781,48,117203.3,Finance,New York,2021-06-26,True,74.5
+Person_782,48,59963.03,Sales,Boston,2023-08-11,False,2.3
+Person_783,57,31804.15,Engineering,San Francisco,2024-09-15,True,38.3
+Person_784,22,57248.8,Engineering,Seattle,2023-09-01,False,68.3
+Person_785,36,97907.04,Finance,Austin,2020-10-06,True,7.9
+Person_786,37,41002.11,Engineering,New York,2022-07-21,True,21.6
+Person_787,21,63067.3,Marketing,New York,2024-08-04,True,15.7
+Person_788,21,52823.53,Finance,Seattle,2021-02-14,False,22.5
+Person_789,79,60632.81,Finance,New York,2020-03-12,False,92.0
+Person_790,75,69664.92,Finance,New York,2023-06-23,True,95.3
+Person_791,20,125297.75,HR,San Francisco,2024-12-02,False,3.3
+Person_792,21,113712.05,Sales,Seattle,2022-06-22,True,4.1
+Person_793,37,145265.86,HR,San Francisco,2023-04-24,True,42.0
+Person_794,29,81737.47,Engineering,Boston,2020-10-05,True,29.2
+Person_795,32,82795.97,Marketing,Austin,2022-01-02,False,16.0
+Person_796,42,97407.67,Engineering,Boston,2020-04-25,False,70.4
+Person_797,61,128947.8,Engineering,Boston,2023-03-25,False,76.3
+Person_798,28,100032.61,Marketing,Seattle,2023-07-18,True,34.8
+Person_799,57,99630.91,Sales,Seattle,2023-09-22,False,23.6
+Person_800,56,33551.8,Engineering,Austin,2021-04-08,True,7.6
+Person_801,39,57980.03,Marketing,San Francisco,2020-06-30,False,3.3
+Person_802,38,74241.76,HR,Boston,2023-09-07,False,77.0
+Person_803,58,127075.58,Marketing,San Francisco,2020-09-14,True,55.4
+Person_804,61,43147.2,HR,Seattle,2023-05-17,True,34.0
+Person_805,80,140012.33,Engineering,San Francisco,2024-07-01,False,57.0
+Person_806,29,122791.78,Marketing,New York,2023-08-10,False,25.5
+Person_807,79,116417.49,Sales,New York,2023-08-18,True,4.3
+Person_808,23,80575.44,Marketing,San Francisco,2023-11-14,False,41.7
+Person_809,36,79044.21,Sales,Austin,2023-08-29,False,36.8
+Person_810,44,86759.89,HR,Seattle,2024-01-24,True,76.7
+Person_811,31,126994.94,Engineering,San Francisco,2024-10-18,False,10.5
+Person_812,33,71052.64,HR,San Francisco,2021-03-23,False,76.9
+Person_813,52,146695.25,Marketing,Seattle,2021-01-07,True,86.5
+Person_814,48,127197.29,Sales,New York,2023-08-13,False,88.1
+Person_815,68,36868.25,Marketing,San Francisco,2022-03-31,False,33.5
+Person_816,19,81754.93,Marketing,Austin,2020-03-04,False,35.8
+Person_817,20,94954.85,Finance,Seattle,2024-09-07,True,56.6
+Person_818,80,49561.47,HR,Seattle,2021-06-30,True,85.5
+Person_819,20,80448.95,Sales,Austin,2022-07-19,True,90.2
+Person_820,22,67667.76,Engineering,New York,2020-09-17,True,62.9
+Person_821,79,136741.17,Finance,Boston,2020-12-30,False,19.1
+Person_822,50,115824.34,HR,Boston,2024-07-03,True,92.7
+Person_823,22,133755.35,HR,Boston,2024-12-05,False,59.8
+Person_824,63,149136.38,HR,Seattle,2022-09-08,True,54.6
+Person_825,20,47790.68,Finance,San Francisco,2022-05-05,True,61.6
+Person_826,56,126500.06,Sales,Boston,2024-06-07,False,1.1
+Person_827,35,65948.7,Finance,San Francisco,2023-06-13,True,77.9
+Person_828,60,108291.39,Sales,San Francisco,2023-10-06,False,29.0
+Person_829,46,105847.2,HR,Boston,2020-02-14,False,2.1
+Person_830,48,54322.39,Sales,San Francisco,2021-10-07,True,64.7
+Person_831,22,130559.93,Marketing,San Francisco,2021-02-27,False,6.6
+Person_832,52,143944.42,HR,San Francisco,2022-09-20,True,13.8
+Person_833,49,76341.16,Marketing,San Francisco,2024-10-24,True,55.5
+Person_834,31,65858.62,Sales,Austin,2020-04-06,False,45.1
+Person_835,33,44830.86,Engineering,New York,2020-07-11,False,28.2
+Person_836,56,132790.78,Finance,San Francisco,2021-03-12,False,10.9
+Person_837,66,44378.43,Finance,New York,2022-03-10,True,68.7
+Person_838,24,104625.45,HR,San Francisco,2021-11-26,True,37.4
+Person_839,59,58255.96,Engineering,San Francisco,2023-02-17,True,4.6
+Person_840,80,79891.55,Sales,Boston,2021-04-16,True,13.7
+Person_841,23,92838.77,Engineering,New York,2022-02-20,True,17.5
+Person_842,69,35807.54,Marketing,San Francisco,2021-07-29,False,26.4
+Person_843,34,46859.58,Sales,San Francisco,2021-12-27,False,93.1
+Person_844,46,100537.56,Finance,Austin,2020-12-09,False,57.4
+Person_845,80,122208.43,HR,Austin,2022-07-24,False,84.7
+Person_846,30,89990.09,Sales,New York,2022-10-19,False,41.2
+Person_847,59,118860.21,Engineering,Boston,2020-08-28,False,30.9
+Person_848,24,37630.81,Engineering,New York,2021-06-19,True,90.6
+Person_849,47,89286.97,Engineering,Austin,2024-03-28,False,94.2
+Person_850,76,51450.26,Sales,Austin,2020-01-05,False,25.4
+Person_851,28,66730.86,Sales,Boston,2023-10-10,False,82.0
+Person_852,46,61138.5,HR,New York,2024-07-03,False,77.3
+Person_853,30,58615.1,Finance,San Francisco,2024-11-16,True,46.0
+Person_854,67,43573.51,Finance,San Francisco,2022-06-25,False,7.5
+Person_855,68,80213.43,Marketing,Austin,2021-02-21,True,47.7
+Person_856,72,46315.39,Marketing,San Francisco,2024-05-11,False,40.1
+Person_857,65,61896.09,Sales,New York,2024-02-15,False,74.1
+Person_858,19,114550.46,Finance,Seattle,2021-06-24,True,24.1
+Person_859,40,114121.58,Sales,Boston,2021-08-09,False,18.6
+Person_860,32,132534.59,HR,Boston,2024-05-05,True,17.7
+Person_861,60,56125.36,Engineering,New York,2020-02-15,True,17.4
+Person_862,39,118722.5,Finance,New York,2020-05-29,False,12.6
+Person_863,18,57145.74,Engineering,Seattle,2021-04-13,True,89.9
+Person_864,45,117378.04,Engineering,Seattle,2021-10-05,False,25.1
+Person_865,24,126719.11,HR,San Francisco,2021-11-19,True,49.8
+Person_866,55,91990.97,Marketing,New York,2021-05-25,True,5.6
+Person_867,29,61389.12,Sales,New York,2021-09-23,False,49.2
+Person_868,31,41964.96,Sales,Austin,2024-04-03,True,21.9
+Person_869,36,58867.84,Sales,Austin,2021-04-06,False,55.3
+Person_870,54,91125.89,Sales,Seattle,2023-06-29,True,79.5
+Person_871,29,92698.09,Sales,Austin,2024-06-02,False,93.7
+Person_872,41,139838.93,Engineering,San Francisco,2024-05-09,False,41.1
+Person_873,30,144478.75,HR,Austin,2024-11-21,True,5.0
+Person_874,52,63677.3,Marketing,Seattle,2023-09-13,True,94.4
+Person_875,19,138621.26,Marketing,San Francisco,2020-01-14,False,73.5
+Person_876,56,126801.22,Sales,Boston,2024-03-12,False,49.2
+Person_877,71,43336.68,Finance,Seattle,2024-06-27,True,37.2
+Person_878,79,91625.43,Engineering,Seattle,2023-09-13,False,27.2
+Person_879,49,52556.51,Sales,San Francisco,2022-06-16,False,32.2
+Person_880,44,52893.83,Finance,Seattle,2021-04-20,False,21.7
+Person_881,49,67150.67,HR,San Francisco,2023-09-30,False,88.6
+Person_882,18,133122.19,Finance,San Francisco,2024-04-05,False,92.7
+Person_883,54,109044.12,HR,Seattle,2021-10-22,False,99.9
+Person_884,38,124302.95,Finance,Boston,2022-04-14,False,68.1
+Person_885,68,65119.0,HR,New York,2024-01-17,False,34.3
+Person_886,23,141614.54,Engineering,Seattle,2022-05-11,True,95.4
+Person_887,59,45580.78,Finance,Boston,2024-11-06,False,48.4
+Person_888,41,143404.6,Sales,Austin,2021-10-28,True,73.2
+Person_889,35,73438.46,Finance,Austin,2020-05-18,True,51.6
+Person_890,24,102586.89,Marketing,San Francisco,2022-09-27,False,70.5
+Person_891,18,92591.5,HR,Boston,2020-07-15,True,71.9
+Person_892,43,45217.13,Sales,San Francisco,2020-03-11,True,85.4
+Person_893,73,138066.83,Engineering,New York,2024-01-24,True,21.0
+Person_894,66,78971.07,Marketing,Austin,2020-01-26,True,36.1
+Person_895,30,120464.65,Sales,New York,2024-03-14,False,48.4
+Person_896,54,97430.15,Sales,San Francisco,2024-12-03,True,57.4
+Person_897,73,50211.88,HR,Seattle,2024-08-04,True,97.6
+Person_898,57,79388.24,Engineering,Boston,2024-11-27,False,93.3
+Person_899,68,77237.95,Sales,New York,2023-02-28,False,95.7
+Person_900,27,40492.93,HR,New York,2023-06-26,False,74.8
+Person_901,59,135496.96,Finance,San Francisco,2020-04-07,False,34.1
+Person_902,26,35635.35,Engineering,Austin,2020-03-14,True,96.2
+Person_903,69,31982.15,HR,Austin,2021-12-04,True,38.0
+Person_904,61,127765.77,Finance,Austin,2024-06-13,True,69.2
+Person_905,64,140759.41,Engineering,Seattle,2024-06-05,True,49.0
+Person_906,18,92666.74,Marketing,Austin,2024-07-15,False,75.8
+Person_907,77,147718.12,Sales,San Francisco,2021-03-30,False,94.2
+Person_908,46,79105.03,Sales,New York,2024-09-08,False,17.2
+Person_909,39,98864.74,HR,Seattle,2023-03-21,True,69.1
+Person_910,22,76134.81,HR,New York,2023-10-23,True,6.7
+Person_911,59,74889.27,Engineering,San Francisco,2022-06-07,False,64.8
+Person_912,63,61727.83,Marketing,New York,2020-02-26,False,63.0
+Person_913,41,108568.9,Engineering,Seattle,2021-01-17,False,2.2
+Person_914,30,58781.42,Finance,Boston,2021-02-22,True,57.3
+Person_915,21,111332.24,Marketing,Boston,2023-08-15,False,18.2
+Person_916,63,57304.51,Engineering,New York,2024-02-20,True,69.2
+Person_917,53,82453.81,Marketing,Boston,2024-01-08,False,34.6
+Person_918,39,133349.23,Marketing,Austin,2020-12-07,True,5.6
+Person_919,61,67615.88,Engineering,San Francisco,2022-11-22,False,10.2
+Person_920,24,55392.64,HR,Boston,2020-05-06,True,19.1
+Person_921,75,38255.03,Finance,New York,2022-02-21,True,6.0
+Person_922,52,61344.06,HR,New York,2022-08-27,False,31.1
+Person_923,25,34237.87,Marketing,New York,2021-05-12,False,94.3
+Person_924,43,59625.28,Sales,San Francisco,2023-11-29,False,87.8
+Person_925,65,76475.68,Finance,Seattle,2024-10-28,False,87.7
+Person_926,46,62517.59,Marketing,San Francisco,2023-01-06,False,20.5
+Person_927,67,52212.33,Sales,New York,2021-08-03,True,19.1
+Person_928,58,48672.31,HR,Seattle,2023-03-03,False,84.8
+Person_929,46,68149.98,Marketing,Boston,2023-07-12,True,87.3
+Person_930,24,88578.05,Finance,Boston,2024-06-08,False,29.6
+Person_931,38,63277.2,Sales,Boston,2020-10-09,True,9.2
+Person_932,56,104429.22,Sales,Seattle,2023-07-26,False,93.6
+Person_933,50,143662.72,Finance,San Francisco,2023-11-04,True,18.5
+Person_934,59,85717.6,Engineering,Boston,2021-02-23,True,33.7
+Person_935,66,133955.2,Engineering,Boston,2023-04-01,True,94.6
+Person_936,22,110337.59,HR,Boston,2021-12-10,True,2.0
+Person_937,72,117716.81,HR,Austin,2024-07-28,False,12.1
+Person_938,60,80655.79,HR,Austin,2023-02-17,False,49.6
+Person_939,47,131912.73,Finance,San Francisco,2022-06-21,False,54.5
+Person_940,77,69107.8,HR,Seattle,2020-07-26,True,2.5
+Person_941,57,120919.29,HR,San Francisco,2023-09-12,False,87.2
+Person_942,50,127745.28,Marketing,Seattle,2021-10-07,True,92.0
+Person_943,62,114484.46,Engineering,Boston,2022-04-01,True,35.9
+Person_944,73,32158.23,Engineering,Austin,2022-03-29,False,5.3
+Person_945,62,90409.69,Engineering,Austin,2020-04-13,False,75.4
+Person_946,71,59808.74,Marketing,Boston,2021-11-05,True,44.5
+Person_947,67,128263.89,Marketing,Boston,2020-10-10,True,57.3
+Person_948,18,87710.07,Engineering,New York,2024-05-02,False,34.0
+Person_949,49,39358.66,HR,Boston,2024-07-13,False,45.0
+Person_950,28,120990.9,Finance,Boston,2023-08-29,False,54.2
+Person_951,62,117452.72,HR,Austin,2021-08-29,True,97.1
+Person_952,40,34195.46,HR,Seattle,2021-11-09,True,76.5
+Person_953,58,97632.6,HR,Seattle,2021-07-19,True,91.2
+Person_954,22,63873.54,Engineering,Austin,2024-01-05,False,68.4
+Person_955,45,105177.06,Finance,Austin,2022-12-03,True,60.1
+Person_956,70,90065.3,Marketing,Boston,2022-06-15,True,58.7
+Person_957,46,138861.92,HR,Seattle,2022-09-25,False,63.4
+Person_958,50,105197.68,Sales,Boston,2022-09-27,False,82.6
+Person_959,54,86354.26,Sales,Austin,2022-01-02,False,23.9
+Person_960,28,44067.97,Engineering,Boston,2023-09-12,True,42.8
+Person_961,66,96327.88,Marketing,Seattle,2024-04-10,False,52.4
+Person_962,32,139385.18,Marketing,Seattle,2021-02-16,True,55.0
+Person_963,55,92247.22,Finance,Boston,2021-08-05,False,97.3
+Person_964,63,58350.43,Marketing,San Francisco,2021-10-23,False,63.1
+Person_965,65,99405.91,HR,Seattle,2021-01-28,True,95.4
+Person_966,23,146827.42,HR,Seattle,2023-04-22,False,76.5
+Person_967,45,134785.37,Finance,Seattle,2021-07-25,False,20.2
+Person_968,61,67729.66,Marketing,New York,2021-03-26,False,43.0
+Person_969,32,133383.75,Marketing,Austin,2022-07-09,True,69.5
+Person_970,49,103246.84,Marketing,San Francisco,2021-05-06,False,32.9
+Person_971,53,83482.61,Marketing,Austin,2020-05-14,True,91.7
+Person_972,37,64254.29,HR,San Francisco,2021-03-16,True,45.2
+Person_973,78,118965.78,Sales,Austin,2023-02-14,True,40.0
+Person_974,58,87158.73,Sales,New York,2024-07-07,True,35.6
+Person_975,57,131686.24,Marketing,San Francisco,2021-01-10,False,52.7
+Person_976,79,45442.86,Sales,Boston,2024-04-23,True,14.1
+Person_977,27,122102.18,Finance,Austin,2024-10-29,False,51.4
+Person_978,23,87186.52,Finance,Austin,2021-08-03,False,33.2
+Person_979,31,101825.8,HR,Austin,2021-12-17,False,64.8
+Person_980,38,93689.9,Finance,Boston,2020-06-04,True,30.2
+Person_981,36,63688.07,Sales,Boston,2023-07-07,False,11.8
+Person_982,37,144138.18,Marketing,Austin,2020-06-29,True,53.4
+Person_983,26,135019.1,Finance,New York,2024-10-23,True,27.4
+Person_984,72,81326.17,HR,Seattle,2022-04-05,False,16.5
+Person_985,34,38191.89,Sales,Seattle,2020-08-02,False,65.9
+Person_986,69,144167.48,Engineering,New York,2022-11-06,False,33.5
+Person_987,33,56437.63,Marketing,San Francisco,2023-06-15,True,12.1
+Person_988,48,130190.64,Engineering,Austin,2024-08-04,False,12.0
+Person_989,44,148452.01,HR,Boston,2024-09-11,True,35.8
+Person_990,22,50921.61,HR,Austin,2024-03-05,True,82.5
+Person_991,19,107423.27,Sales,New York,2021-07-11,False,72.6
+Person_992,28,70891.39,Sales,Boston,2022-09-28,False,63.1
+Person_993,60,115878.62,Marketing,Austin,2020-10-19,True,95.6
+Person_994,41,117552.49,Finance,Austin,2024-02-03,True,4.9
+Person_995,53,40422.74,Engineering,Boston,2024-12-03,False,71.3
+Person_996,76,115701.02,Finance,San Francisco,2020-05-06,False,98.0
+Person_997,39,134550.75,Sales,Boston,2021-11-07,True,37.8
+Person_998,34,122287.84,Marketing,San Francisco,2022-11-08,False,83.3
+Person_999,75,148853.81,Marketing,Boston,2021-04-08,False,96.9
+Person_1000,50,123782.78,Engineering,Boston,2022-12-26,False,98.1
+Person_1001,34,132874.84,Sales,San Francisco,2023-02-08,True,84.2
+Person_1002,59,39977.66,Engineering,Boston,2022-07-05,True,8.8
+Person_1003,49,52593.27,Engineering,New York,2023-11-13,False,34.6
+Person_1004,66,35717.02,Sales,Boston,2021-11-21,True,70.4
+Person_1005,58,119747.5,HR,San Francisco,2021-08-28,False,51.5
+Person_1006,41,65373.98,Finance,Seattle,2021-01-07,True,78.5
+Person_1007,29,137086.37,Engineering,Seattle,2020-02-02,True,34.8
+Person_1008,32,129596.06,Marketing,San Francisco,2022-02-15,False,26.3
+Person_1009,18,74077.07,HR,Boston,2020-02-06,False,12.4
+Person_1010,65,105884.78,Marketing,Seattle,2024-05-15,True,25.8
+Person_1011,36,65981.14,Sales,San Francisco,2021-12-19,False,6.4
+Person_1012,22,64976.11,Finance,New York,2020-03-25,False,13.4
+Person_1013,80,40650.35,HR,Austin,2023-10-27,False,54.7
+Person_1014,77,90903.42,HR,Austin,2020-10-15,False,38.9
+Person_1015,45,141456.08,HR,Seattle,2020-10-17,True,72.7
+Person_1016,64,60648.18,Engineering,San Francisco,2022-06-22,True,19.1
+Person_1017,36,148980.67,Finance,Seattle,2021-11-18,True,23.4
+Person_1018,56,77534.45,Engineering,San Francisco,2020-06-09,False,92.6
+Person_1019,43,111948.78,HR,New York,2022-12-12,True,62.5
+Person_1020,73,132211.06,Engineering,New York,2021-11-06,True,4.2
+Person_1021,45,74330.11,Marketing,Boston,2024-04-07,False,14.6
+Person_1022,33,43760.45,Sales,Austin,2022-09-05,True,40.5
+Person_1023,75,87752.14,HR,New York,2020-03-07,True,58.3
+Person_1024,48,77304.34,Engineering,San Francisco,2022-06-03,True,62.3
+Person_1025,61,34487.3,HR,Boston,2023-04-05,True,4.7
+Person_1026,79,119997.79,Sales,New York,2020-12-19,True,29.8
+Person_1027,37,64437.66,Sales,Austin,2020-08-28,True,21.2
+Person_1028,69,39268.69,Finance,Austin,2022-08-03,False,89.2
+Person_1029,41,115900.66,Marketing,Boston,2022-01-01,True,55.9
+Person_1030,27,105530.99,Marketing,New York,2021-12-18,True,60.7
+Person_1031,71,120120.49,HR,New York,2021-03-28,False,99.5
+Person_1032,46,132982.53,Sales,Austin,2023-01-10,False,8.2
+Person_1033,66,131665.61,Engineering,Seattle,2024-05-11,True,36.8
+Person_1034,67,104504.89,Sales,Austin,2020-08-07,False,11.7
+Person_1035,24,96606.17,Sales,Seattle,2022-01-23,True,68.1
+Person_1036,80,123571.6,Sales,Seattle,2022-04-29,True,29.8
+Person_1037,45,58083.45,Sales,Boston,2022-06-21,True,98.2
+Person_1038,44,120118.88,Sales,Austin,2022-09-01,True,6.8
+Person_1039,54,53210.44,HR,San Francisco,2023-06-23,True,25.2
+Person_1040,31,128209.79,Marketing,Austin,2020-08-09,False,72.1
+Person_1041,70,62545.59,Sales,Austin,2022-09-16,False,13.2
+Person_1042,20,127468.8,Finance,Boston,2024-09-07,True,16.5
+Person_1043,47,114195.74,Sales,Boston,2022-11-04,False,22.8
+Person_1044,49,105121.09,Marketing,Seattle,2021-06-04,True,0.9
+Person_1045,65,94102.43,Marketing,San Francisco,2020-04-21,False,39.3
+Person_1046,46,148924.4,Marketing,Seattle,2022-12-02,False,18.2
+Person_1047,33,87880.18,Marketing,Austin,2024-04-01,False,43.6
+Person_1048,22,39878.54,HR,Seattle,2024-10-03,False,39.3
+Person_1049,49,99485.99,Engineering,Seattle,2020-01-14,False,93.5
+Person_1050,28,56135.95,Marketing,Boston,2023-04-06,True,92.4
+Person_1051,78,80667.84,Sales,Boston,2022-06-23,False,21.5
+Person_1052,23,63221.36,HR,San Francisco,2024-08-09,True,27.7
+Person_1053,69,70406.86,Engineering,New York,2024-05-14,True,96.3
+Person_1054,29,34421.36,Sales,New York,2020-06-07,True,55.3
+Person_1055,76,97277.57,Sales,Austin,2021-06-11,False,84.9
+Person_1056,71,87600.11,HR,San Francisco,2024-11-20,False,94.3
+Person_1057,69,99539.72,Engineering,New York,2020-04-11,True,94.4
+Person_1058,20,88433.42,HR,Boston,2024-01-06,False,62.1
+Person_1059,40,106013.03,Engineering,San Francisco,2020-12-21,True,9.0
+Person_1060,65,82198.38,Marketing,Austin,2021-09-06,True,48.6
+Person_1061,52,99172.85,Engineering,Austin,2022-02-07,False,42.0
+Person_1062,62,57411.48,Sales,Boston,2021-10-28,False,62.6
+Person_1063,65,76819.6,Finance,Austin,2022-05-11,False,54.1
+Person_1064,46,92089.95,Marketing,San Francisco,2023-01-07,False,20.7
+Person_1065,65,99480.33,HR,Boston,2024-11-30,False,86.7
+Person_1066,71,51946.98,HR,Austin,2021-07-30,False,24.3
+Person_1067,23,107035.92,Finance,Boston,2022-01-24,True,21.7
+Person_1068,29,80888.42,HR,Boston,2021-09-02,False,83.3
+Person_1069,70,131755.31,Sales,Boston,2022-03-10,False,0.3
+Person_1070,44,51132.8,Marketing,Seattle,2022-03-16,True,76.6
+Person_1071,40,32922.28,Engineering,Boston,2021-08-31,True,15.3
+Person_1072,45,124975.11,Finance,New York,2021-06-07,False,20.5
+Person_1073,27,122437.6,Sales,Boston,2022-10-03,False,44.0
+Person_1074,41,147245.28,Marketing,Boston,2020-01-20,False,12.0
+Person_1075,46,78162.18,Engineering,San Francisco,2022-04-25,False,89.2
+Person_1076,74,89361.38,Finance,Austin,2020-08-31,True,43.1
+Person_1077,58,131454.53,Marketing,Austin,2020-08-12,True,95.3
+Person_1078,79,68553.16,Sales,New York,2023-04-11,False,85.7
+Person_1079,33,67444.95,Marketing,Austin,2021-01-05,True,59.2
+Person_1080,35,95584.36,HR,Seattle,2022-10-27,False,19.6
+Person_1081,53,77447.98,Marketing,San Francisco,2022-06-26,False,28.3
+Person_1082,38,47671.83,Finance,Boston,2021-03-18,False,34.5
+Person_1083,35,111468.4,HR,New York,2023-07-23,False,78.0
+Person_1084,68,46458.43,HR,Seattle,2022-03-25,True,3.5
+Person_1085,53,101661.17,HR,San Francisco,2021-04-25,False,14.9
+Person_1086,32,98413.6,HR,Austin,2020-09-26,False,6.8
+Person_1087,67,89101.78,Sales,Austin,2024-11-07,True,76.3
+Person_1088,72,46081.48,Sales,Austin,2023-06-19,True,0.7
+Person_1089,64,37362.19,Marketing,New York,2023-12-24,True,61.8
+Person_1090,18,49388.4,Finance,San Francisco,2022-07-16,False,71.6
+Person_1091,32,133449.26,HR,New York,2022-07-17,False,81.4
+Person_1092,56,144261.1,Marketing,Austin,2022-04-20,True,94.4
+Person_1093,80,144098.86,Finance,San Francisco,2020-07-15,False,19.4
+Person_1094,70,141301.7,Marketing,San Francisco,2024-10-30,False,15.3
+Person_1095,55,42338.91,Engineering,New York,2024-04-03,True,82.3
+Person_1096,53,93043.52,HR,Seattle,2024-07-04,False,12.2
+Person_1097,32,139500.16,Sales,New York,2023-05-24,True,81.7
+Person_1098,64,70672.07,Finance,New York,2022-06-20,False,15.7
+Person_1099,50,68277.52,HR,Boston,2021-12-22,False,99.5
+Person_1100,75,132927.18,Engineering,Austin,2023-01-02,True,96.3
+Person_1101,34,140339.1,Engineering,Austin,2020-09-09,False,70.0
+Person_1102,27,61104.22,Marketing,Seattle,2022-04-24,False,78.1
+Person_1103,25,67893.12,Sales,San Francisco,2023-10-17,False,46.1
+Person_1104,24,62052.42,Engineering,Seattle,2023-11-25,False,31.1
+Person_1105,60,140613.22,Finance,Seattle,2020-11-01,True,14.4
+Person_1106,73,52844.68,Finance,New York,2021-04-06,True,76.8
+Person_1107,60,124037.49,Marketing,New York,2020-04-25,False,50.3
+Person_1108,54,99718.72,Engineering,Austin,2022-02-08,False,13.9
+Person_1109,34,45894.38,Sales,New York,2022-12-04,False,33.0
+Person_1110,25,64852.35,HR,Austin,2023-09-19,True,78.8
+Person_1111,35,75275.16,Sales,San Francisco,2022-04-04,False,87.4
+Person_1112,25,68381.82,HR,Austin,2022-05-11,False,39.2
+Person_1113,44,138622.52,Marketing,San Francisco,2020-07-27,True,10.0
+Person_1114,22,129323.26,Finance,Austin,2021-09-04,False,47.3
+Person_1115,18,128585.13,Marketing,Seattle,2020-08-20,False,87.9
+Person_1116,29,73866.75,Marketing,New York,2021-03-25,False,4.5
+Person_1117,39,127081.89,Sales,San Francisco,2024-03-24,True,77.5
+Person_1118,73,135376.77,Finance,Austin,2022-07-21,False,56.7
+Person_1119,75,75165.47,Marketing,Austin,2020-05-11,True,35.6
+Person_1120,45,117386.33,Marketing,Seattle,2024-01-03,True,45.5
+Person_1121,23,60108.67,HR,New York,2022-01-25,True,63.4
+Person_1122,45,99158.58,Engineering,New York,2024-07-21,False,49.5
+Person_1123,19,107099.19,Engineering,New York,2021-05-11,True,80.0
+Person_1124,51,122078.48,Finance,New York,2024-07-27,True,87.9
+Person_1125,78,82450.04,Finance,San Francisco,2020-05-03,False,58.3
+Person_1126,47,118282.23,Sales,Seattle,2022-11-30,False,22.7
+Person_1127,76,54217.23,Engineering,Boston,2022-09-09,False,49.0
+Person_1128,20,86841.99,Marketing,San Francisco,2024-07-30,True,35.5
+Person_1129,76,43779.34,Marketing,Austin,2022-09-01,False,19.5
+Person_1130,25,63149.25,Engineering,Boston,2022-05-29,False,3.2
+Person_1131,43,122985.33,Marketing,San Francisco,2022-01-03,False,41.3
+Person_1132,44,58727.49,Engineering,Seattle,2020-02-19,False,33.0
+Person_1133,57,72633.7,Engineering,Seattle,2023-05-29,False,11.3
+Person_1134,47,59008.75,Engineering,Seattle,2021-04-05,True,70.6
+Person_1135,70,64642.75,Finance,Seattle,2023-12-04,False,87.2
+Person_1136,42,45575.89,Marketing,Seattle,2020-09-13,True,83.8
+Person_1137,37,115983.28,Finance,New York,2020-02-18,True,97.8
+Person_1138,59,123102.01,HR,Austin,2021-11-08,True,87.6
+Person_1139,65,60295.87,HR,San Francisco,2020-04-24,False,68.1
+Person_1140,48,147829.42,Engineering,Seattle,2022-03-04,False,62.1
+Person_1141,76,99255.53,Finance,New York,2023-11-11,False,86.1
+Person_1142,55,59034.24,Marketing,Boston,2023-02-23,True,55.5
+Person_1143,23,66267.26,HR,New York,2024-03-19,True,66.0
+Person_1144,55,143686.67,Finance,New York,2021-07-04,True,48.0
+Person_1145,43,81348.76,Engineering,Boston,2024-08-16,True,4.1
+Person_1146,19,41849.17,Finance,New York,2021-01-01,True,35.1
+Person_1147,27,103128.92,Marketing,Austin,2022-06-16,True,34.5
+Person_1148,76,126689.64,Finance,New York,2021-05-27,True,59.9
+Person_1149,79,75799.43,Sales,Boston,2023-12-11,True,77.1
+Person_1150,27,53264.12,Engineering,Seattle,2023-03-24,True,15.2
+Person_1151,39,64427.98,Finance,Boston,2021-08-26,False,11.6
+Person_1152,73,38753.99,Marketing,Boston,2023-07-31,True,34.5
+Person_1153,52,148240.41,Engineering,Austin,2023-06-30,True,54.5
+Person_1154,38,146057.16,Engineering,San Francisco,2022-08-04,False,2.5
+Person_1155,43,122718.32,Marketing,Boston,2022-06-05,False,47.5
+Person_1156,53,68299.43,Sales,New York,2021-10-30,True,40.6
+Person_1157,40,52616.48,HR,Boston,2023-09-13,False,57.1
+Person_1158,54,78429.61,Finance,Boston,2024-07-10,True,36.8
+Person_1159,49,34299.19,Marketing,Austin,2021-01-03,True,81.7
+Person_1160,71,55223.11,Engineering,New York,2021-03-10,False,52.4
+Person_1161,65,37657.01,HR,San Francisco,2022-04-14,False,40.1
+Person_1162,70,39642.64,Finance,Boston,2023-11-08,True,44.8
+Person_1163,79,105531.89,HR,Boston,2021-06-06,False,11.7
+Person_1164,77,93165.55,HR,Seattle,2023-03-27,False,66.3
+Person_1165,40,95355.98,Finance,Boston,2021-10-20,False,3.9
+Person_1166,41,93631.43,HR,New York,2021-12-22,True,56.1
+Person_1167,36,108949.98,Finance,New York,2023-01-12,False,19.9
+Person_1168,33,128386.96,Sales,San Francisco,2023-04-13,False,16.6
+Person_1169,37,140690.01,Sales,San Francisco,2024-06-27,True,37.2
+Person_1170,68,53568.62,Sales,Austin,2023-01-09,False,35.5
+Person_1171,47,118612.0,Marketing,San Francisco,2020-06-02,False,5.7
+Person_1172,54,109103.56,Sales,Seattle,2022-04-28,True,68.4
+Person_1173,43,104379.65,Engineering,San Francisco,2024-11-28,True,29.2
+Person_1174,51,133135.35,Finance,Boston,2023-01-26,False,70.1
+Person_1175,66,121877.17,Engineering,Seattle,2023-01-17,False,10.8
+Person_1176,36,48899.24,HR,Seattle,2020-03-23,False,73.9
+Person_1177,32,81180.89,Engineering,Boston,2021-01-11,False,15.4
+Person_1178,28,79517.86,Finance,Austin,2022-07-27,False,5.2
+Person_1179,23,39788.55,Engineering,Austin,2022-01-25,True,58.6
+Person_1180,42,70732.31,HR,Boston,2022-09-07,False,61.4
+Person_1181,56,46141.25,Marketing,San Francisco,2023-04-15,True,7.3
+Person_1182,70,88025.45,Engineering,Boston,2021-07-14,False,7.4
+Person_1183,30,78515.71,Marketing,Seattle,2021-07-06,True,5.1
+Person_1184,66,39758.2,Engineering,Boston,2020-03-07,False,17.2
+Person_1185,42,88838.72,Marketing,Seattle,2024-11-08,True,37.7
+Person_1186,22,141206.15,HR,New York,2021-08-18,False,34.3
+Person_1187,42,106301.6,HR,New York,2020-01-19,True,47.3
+Person_1188,65,41246.4,HR,New York,2021-05-10,False,66.5
+Person_1189,77,139972.66,HR,Boston,2024-02-28,True,28.8
+Person_1190,59,50147.0,Marketing,New York,2021-10-28,False,83.2
+Person_1191,20,121994.04,Finance,Seattle,2020-12-29,False,87.1
+Person_1192,68,53257.34,Finance,New York,2023-11-24,False,57.7
+Person_1193,66,116049.5,Sales,Seattle,2020-10-27,True,25.4
+Person_1194,43,126512.23,Marketing,New York,2021-04-29,True,9.0
+Person_1195,31,41616.4,Marketing,New York,2024-01-11,True,58.3
+Person_1196,77,114804.04,Engineering,Boston,2023-12-08,False,30.2
+Person_1197,65,82658.45,Sales,Austin,2023-02-19,True,23.3
+Person_1198,25,133176.12,Finance,Austin,2022-02-22,True,90.9
+Person_1199,48,141532.08,HR,Boston,2024-11-07,True,9.5
+Person_1200,59,137924.25,Finance,New York,2023-10-14,False,53.1
+Person_1201,50,136519.5,Finance,San Francisco,2020-04-05,True,48.6
+Person_1202,52,86223.81,Finance,San Francisco,2021-11-04,True,32.6
+Person_1203,55,65057.42,Finance,Boston,2022-07-27,False,91.4
+Person_1204,33,139565.55,Marketing,Seattle,2022-04-07,True,83.1
+Person_1205,49,31370.34,Marketing,Seattle,2020-10-31,False,56.2
+Person_1206,76,99057.44,Finance,San Francisco,2020-08-04,True,48.6
+Person_1207,45,50031.33,Finance,Seattle,2021-05-30,False,9.5
+Person_1208,72,99079.19,Finance,Seattle,2023-04-15,True,10.0
+Person_1209,38,116302.03,Finance,Austin,2023-11-10,False,91.2
+Person_1210,78,39866.03,Engineering,Seattle,2021-09-08,True,76.9
+Person_1211,29,65455.28,HR,San Francisco,2022-12-19,False,48.5
+Person_1212,53,132864.6,Sales,New York,2020-12-10,True,93.1
+Person_1213,38,123233.87,Sales,Boston,2024-02-11,True,83.9
+Person_1214,63,74553.62,Marketing,Boston,2022-10-30,False,43.4
+Person_1215,56,135414.85,Sales,Boston,2021-10-07,True,26.4
+Person_1216,72,79148.16,Sales,Boston,2021-12-26,True,87.6
+Person_1217,50,140281.34,Finance,San Francisco,2023-07-22,True,75.1
+Person_1218,62,94867.71,Engineering,Seattle,2023-01-13,True,42.5
+Person_1219,39,96390.22,Finance,San Francisco,2021-09-30,False,69.9
+Person_1220,28,128647.17,Engineering,New York,2022-12-09,True,99.0
+Person_1221,61,80417.7,Finance,San Francisco,2023-03-29,True,26.0
+Person_1222,77,52823.11,Sales,Boston,2021-07-04,True,32.2
+Person_1223,58,52032.63,HR,New York,2020-10-14,False,40.6
+Person_1224,70,40067.01,HR,Austin,2024-07-21,True,40.7
+Person_1225,36,126053.44,Engineering,Boston,2020-08-29,False,32.6
+Person_1226,38,65018.1,HR,Austin,2023-04-14,False,22.6
+Person_1227,56,74850.06,Sales,New York,2022-02-07,True,66.1
+Person_1228,54,116015.67,Engineering,San Francisco,2024-11-26,True,18.7
+Person_1229,49,43999.63,Engineering,Seattle,2023-04-30,False,67.4
+Person_1230,18,36888.04,Sales,Seattle,2020-05-24,True,42.2
+Person_1231,38,72119.14,Engineering,New York,2024-05-03,False,18.0
+Person_1232,31,91807.22,Engineering,Austin,2020-04-29,False,3.9
+Person_1233,34,96719.55,HR,Austin,2022-06-19,False,83.3
+Person_1234,38,99581.92,Sales,San Francisco,2023-11-07,True,36.3
+Person_1235,51,133369.92,HR,San Francisco,2020-11-21,False,60.6
+Person_1236,71,72829.38,Marketing,San Francisco,2020-01-21,True,38.6
+Person_1237,18,56752.04,HR,Seattle,2020-03-10,False,83.6
+Person_1238,48,106122.45,HR,San Francisco,2023-11-30,False,87.0
+Person_1239,34,80192.82,HR,Seattle,2023-10-10,True,80.2
+Person_1240,53,34864.49,Finance,Boston,2022-04-23,False,75.6
+Person_1241,78,105812.52,Sales,San Francisco,2024-10-08,True,25.7
+Person_1242,39,137378.89,Engineering,New York,2023-04-27,False,79.7
+Person_1243,72,84036.74,Finance,Boston,2023-01-17,False,87.2
+Person_1244,35,64458.4,Marketing,Seattle,2024-07-23,True,36.6
+Person_1245,79,43981.77,Finance,Boston,2023-07-15,True,81.7
+Person_1246,27,97229.99,Marketing,San Francisco,2020-03-04,True,23.1
+Person_1247,18,73540.31,Engineering,San Francisco,2023-08-12,True,87.7
+Person_1248,64,134225.99,Sales,Austin,2023-02-19,False,19.7
+Person_1249,78,112580.74,Finance,San Francisco,2023-08-07,False,91.6
+Person_1250,22,147320.87,Sales,New York,2024-04-09,False,88.1
+Person_1251,68,131629.41,Finance,San Francisco,2021-10-22,True,90.3
+Person_1252,27,146058.55,Finance,Seattle,2022-11-23,True,8.3
+Person_1253,51,99514.55,Engineering,Austin,2020-11-23,False,37.7
+Person_1254,29,99898.52,Marketing,New York,2020-04-15,True,45.2
+Person_1255,23,31751.27,Finance,Seattle,2022-04-06,True,0.6
+Person_1256,53,83591.45,Finance,Seattle,2021-05-08,True,94.5
+Person_1257,76,99410.22,Marketing,Boston,2024-06-24,True,19.7
+Person_1258,42,80847.1,Sales,New York,2021-01-12,False,26.1
+Person_1259,26,70984.91,Engineering,Boston,2021-12-17,True,66.1
+Person_1260,20,79614.4,Engineering,Austin,2022-09-25,False,11.8
+Person_1261,72,37943.81,Marketing,Austin,2020-12-09,True,90.2
+Person_1262,69,129331.13,Marketing,New York,2021-04-17,False,47.4
+Person_1263,51,74930.42,HR,Austin,2021-11-04,False,75.1
+Person_1264,79,108761.75,Marketing,Seattle,2024-11-10,True,9.7
+Person_1265,46,30891.64,HR,Seattle,2022-05-30,True,72.1
+Person_1266,60,72556.0,Finance,Seattle,2020-10-14,True,83.3
+Person_1267,41,68185.3,Finance,Austin,2022-07-15,True,58.5
+Person_1268,56,110680.56,HR,Austin,2020-01-18,True,67.9
+Person_1269,64,51894.99,Engineering,Boston,2023-06-22,True,74.7
+Person_1270,33,36116.19,Sales,New York,2021-06-15,False,80.3
+Person_1271,31,126251.69,Marketing,New York,2020-09-19,False,2.3
+Person_1272,37,34524.76,Finance,Boston,2024-10-21,False,18.7
+Person_1273,53,147141.36,Finance,Seattle,2020-06-13,True,48.0
+Person_1274,78,114221.21,Marketing,Seattle,2020-11-18,True,44.5
+Person_1275,62,71889.81,Marketing,New York,2023-03-04,True,97.6
+Person_1276,62,33562.87,Finance,New York,2023-05-15,False,59.8
+Person_1277,41,132053.31,Finance,Austin,2022-03-16,True,91.2
+Person_1278,36,134785.55,Finance,San Francisco,2022-03-28,True,5.9
+Person_1279,74,87672.63,Sales,Boston,2020-10-13,True,60.3
+Person_1280,74,77476.05,HR,Austin,2021-01-16,True,97.4
+Person_1281,52,62102.76,Sales,Boston,2021-12-08,False,59.9
+Person_1282,78,50372.4,Engineering,Seattle,2020-09-26,True,92.5
+Person_1283,23,78834.18,Marketing,Seattle,2022-09-21,True,75.9
+Person_1284,51,33811.5,Finance,San Francisco,2020-09-21,True,17.3
+Person_1285,60,128839.8,Finance,Austin,2023-10-22,False,59.6
+Person_1286,80,54217.83,Sales,Boston,2023-07-22,True,85.2
+Person_1287,78,86475.79,Finance,New York,2023-10-17,False,36.6
+Person_1288,46,55698.84,Finance,San Francisco,2021-06-20,True,7.5
+Person_1289,34,71291.01,HR,San Francisco,2022-02-19,True,42.2
+Person_1290,36,105145.0,HR,Seattle,2020-11-30,True,97.7
+Person_1291,19,68149.68,HR,Boston,2021-07-29,True,16.7
+Person_1292,21,58292.32,Sales,New York,2020-05-12,True,85.1
+Person_1293,48,72042.1,Marketing,Boston,2020-06-14,False,74.3
+Person_1294,32,124653.31,HR,New York,2024-08-20,False,61.3
+Person_1295,31,100488.9,Sales,San Francisco,2022-12-24,False,98.3
+Person_1296,39,57608.95,HR,Boston,2021-01-03,False,80.4
+Person_1297,38,54424.49,Finance,Boston,2020-12-08,True,29.6
+Person_1298,24,35221.62,Marketing,Seattle,2021-04-07,True,15.0
+Person_1299,27,108432.53,Sales,Seattle,2021-08-30,False,96.1
+Person_1300,29,82584.56,Marketing,Austin,2023-06-07,False,41.8
+Person_1301,20,50958.01,Engineering,Boston,2024-09-11,False,99.4
+Person_1302,38,43584.05,Engineering,New York,2023-02-02,True,12.7
+Person_1303,37,61863.89,HR,New York,2024-03-03,False,69.6
+Person_1304,57,66670.71,Sales,New York,2021-10-07,False,79.5
+Person_1305,67,57744.84,Finance,Seattle,2023-03-12,False,91.4
+Person_1306,40,108016.13,Marketing,Seattle,2024-03-02,False,81.5
+Person_1307,23,33919.32,Engineering,Austin,2021-10-14,True,36.0
+Person_1308,61,40647.87,HR,Seattle,2021-05-23,False,85.9
+Person_1309,18,79810.71,HR,Boston,2020-07-20,True,90.6
+Person_1310,51,146244.5,Sales,Seattle,2021-09-25,True,45.3
+Person_1311,68,142665.14,Sales,Boston,2022-05-30,False,80.9
+Person_1312,47,147736.64,Finance,San Francisco,2021-01-05,False,92.7
+Person_1313,57,74318.52,HR,Boston,2021-04-14,False,96.6
+Person_1314,31,43070.28,Sales,Seattle,2023-03-26,True,32.7
+Person_1315,71,91303.46,HR,San Francisco,2023-09-24,False,3.3
+Person_1316,23,95855.58,Finance,San Francisco,2020-05-09,True,53.3
+Person_1317,72,117631.26,Marketing,Seattle,2022-05-02,False,9.7
+Person_1318,74,99544.91,Finance,Austin,2020-10-11,False,91.0
+Person_1319,27,31862.72,Sales,Austin,2022-03-01,False,38.4
+Person_1320,60,44754.9,Sales,Boston,2021-11-13,True,29.5
+Person_1321,33,118200.21,Marketing,Boston,2021-06-02,True,35.8
+Person_1322,65,37812.64,Finance,New York,2024-08-26,False,86.1
+Person_1323,51,141663.95,Finance,Boston,2021-05-27,False,4.8
+Person_1324,71,126202.32,HR,Boston,2021-08-17,False,0.7
+Person_1325,76,30738.07,Sales,New York,2023-03-06,False,75.6
+Person_1326,58,95925.56,Finance,Austin,2021-04-22,False,1.3
+Person_1327,61,59200.72,Engineering,Boston,2022-06-02,True,56.1
+Person_1328,71,39199.75,Finance,Boston,2024-03-29,False,69.3
+Person_1329,55,52417.85,Finance,Boston,2022-05-16,False,78.6
+Person_1330,32,106135.09,Finance,Seattle,2021-08-22,False,67.9
+Person_1331,55,146757.61,Marketing,New York,2023-05-10,True,8.8
+Person_1332,58,87504.39,Marketing,New York,2021-03-20,False,48.1
+Person_1333,51,101840.53,Marketing,Seattle,2021-02-16,True,76.2
+Person_1334,77,72112.81,Finance,Austin,2023-05-24,True,66.3
+Person_1335,47,72273.05,Sales,Austin,2024-08-01,True,5.4
+Person_1336,31,63893.28,Finance,New York,2024-11-26,False,24.5
+Person_1337,52,70826.18,Finance,San Francisco,2022-08-12,True,82.7
+Person_1338,36,130638.46,Finance,New York,2023-04-24,False,2.3
+Person_1339,72,72926.2,Finance,New York,2020-03-08,True,27.8
+Person_1340,51,81623.03,Marketing,San Francisco,2022-04-01,False,28.2
+Person_1341,18,147740.38,Engineering,San Francisco,2022-04-22,True,38.0
+Person_1342,24,116240.57,Finance,San Francisco,2022-11-06,False,19.2
+Person_1343,36,30450.61,Engineering,San Francisco,2020-12-15,True,42.5
+Person_1344,55,136021.72,Engineering,Boston,2023-03-20,False,12.8
+Person_1345,71,47078.59,Marketing,Boston,2020-05-20,True,27.9
+Person_1346,58,82246.44,Finance,Boston,2021-10-17,True,52.7
+Person_1347,62,95312.11,Finance,Austin,2021-04-21,True,67.7
+Person_1348,57,46204.46,Finance,San Francisco,2022-12-03,True,99.1
+Person_1349,66,44705.15,Sales,San Francisco,2022-10-27,True,5.2
+Person_1350,53,112849.77,Sales,San Francisco,2020-08-12,False,44.6
+Person_1351,74,129725.35,Marketing,New York,2020-11-12,False,90.9
+Person_1352,72,90464.49,Marketing,Austin,2021-10-04,True,90.2
+Person_1353,19,47627.9,Sales,New York,2023-01-16,True,19.9
+Person_1354,35,114037.74,Sales,Seattle,2021-11-09,False,68.7
+Person_1355,34,57121.81,Marketing,Austin,2024-04-20,False,30.0
+Person_1356,36,55837.85,Sales,Seattle,2023-04-08,False,62.7
+Person_1357,45,98634.97,Sales,Austin,2020-07-29,False,73.8
+Person_1358,57,134630.1,Finance,Seattle,2023-03-28,True,41.0
+Person_1359,21,109810.73,Marketing,San Francisco,2024-02-20,False,81.2
+Person_1360,47,57735.49,Engineering,New York,2020-01-23,True,44.2
+Person_1361,69,89176.78,HR,New York,2021-10-29,False,70.1
+Person_1362,48,39833.26,Marketing,Seattle,2020-05-17,True,56.4
+Person_1363,24,84253.0,Engineering,Seattle,2020-04-27,False,0.0
+Person_1364,46,116582.38,HR,San Francisco,2020-04-12,True,31.0
+Person_1365,58,64629.6,Engineering,New York,2024-07-01,True,17.7
+Person_1366,46,123131.06,HR,Seattle,2020-06-26,True,89.8
+Person_1367,44,78408.99,HR,New York,2023-10-22,True,19.5
+Person_1368,72,59708.91,Finance,Austin,2024-08-10,False,59.1
+Person_1369,74,51301.5,Finance,New York,2023-03-25,True,82.9
+Person_1370,40,78593.73,Marketing,Austin,2022-07-22,False,40.4
+Person_1371,18,93691.47,Sales,San Francisco,2023-08-19,True,85.2
+Person_1372,40,82046.42,Marketing,Austin,2022-02-10,False,8.7
+Person_1373,47,38877.61,Finance,San Francisco,2022-10-09,False,67.9
+Person_1374,24,137374.11,Engineering,San Francisco,2020-09-02,True,2.6
+Person_1375,48,85395.08,Marketing,Austin,2021-01-16,False,55.3
+Person_1376,55,87484.0,Engineering,New York,2024-11-19,True,88.8
+Person_1377,21,31947.5,Finance,New York,2024-01-14,True,24.6
+Person_1378,32,38993.97,Sales,San Francisco,2023-05-04,True,99.0
+Person_1379,34,87634.46,HR,New York,2020-02-06,True,61.6
+Person_1380,53,130184.74,Sales,Boston,2022-12-09,True,41.6
+Person_1381,47,91448.07,Sales,New York,2022-01-17,True,75.6
+Person_1382,49,58325.24,Sales,San Francisco,2021-06-07,False,35.5
+Person_1383,70,39030.67,Sales,Boston,2022-07-18,True,46.5
+Person_1384,38,94037.11,Finance,San Francisco,2021-11-17,False,73.4
+Person_1385,30,46799.78,Finance,Boston,2020-07-14,False,10.4
+Person_1386,23,96850.54,Finance,New York,2022-04-21,True,87.9
+Person_1387,21,118009.86,Engineering,Boston,2023-01-28,False,46.9
+Person_1388,27,67446.01,Engineering,New York,2021-02-03,True,17.7
+Person_1389,68,88048.38,HR,Boston,2020-04-14,False,67.0
+Person_1390,43,126779.08,Marketing,New York,2023-05-16,True,51.2
+Person_1391,25,96623.5,Marketing,New York,2024-02-10,True,13.9
+Person_1392,37,145179.83,Marketing,San Francisco,2022-10-26,True,85.8
+Person_1393,45,93858.57,Finance,Boston,2021-02-19,True,90.0
+Person_1394,73,121975.48,Marketing,New York,2022-10-09,False,88.0
+Person_1395,18,142455.85,Marketing,Seattle,2024-03-21,True,32.1
+Person_1396,41,48325.9,HR,Boston,2020-12-13,False,19.3
+Person_1397,40,49097.87,Sales,New York,2024-05-12,False,13.3
+Person_1398,70,96989.82,Sales,Boston,2021-11-18,False,26.7
+Person_1399,48,48810.91,Sales,San Francisco,2020-07-08,False,77.2
+Person_1400,30,35292.68,Sales,Seattle,2022-12-08,False,93.3
+Person_1401,38,53886.83,Finance,New York,2021-02-09,False,15.1
+Person_1402,67,60690.05,Finance,Seattle,2022-11-14,False,81.5
+Person_1403,43,51745.39,HR,Boston,2022-02-03,False,72.8
+Person_1404,33,100558.9,Finance,San Francisco,2023-09-19,True,53.3
+Person_1405,54,69564.87,Finance,San Francisco,2021-07-16,False,93.9
+Person_1406,23,63635.13,Engineering,Austin,2022-07-05,True,86.3
+Person_1407,77,33076.35,HR,Boston,2020-05-20,False,91.6
+Person_1408,66,57871.49,HR,San Francisco,2023-04-03,False,36.5
+Person_1409,69,93773.77,HR,Seattle,2023-09-03,True,47.2
+Person_1410,80,46531.81,HR,San Francisco,2021-01-10,False,25.9
+Person_1411,46,52260.57,Sales,Austin,2020-11-21,True,91.4
+Person_1412,19,44773.25,Sales,San Francisco,2021-02-13,False,5.6
+Person_1413,33,132995.91,HR,Austin,2023-02-08,True,9.5
+Person_1414,47,130687.04,Sales,Boston,2020-09-16,False,55.3
+Person_1415,53,75996.93,Finance,Austin,2021-04-01,True,49.6
+Person_1416,45,73654.08,Engineering,Austin,2024-12-03,True,29.0
+Person_1417,33,138667.41,Sales,San Francisco,2020-11-03,True,71.3
+Person_1418,23,121043.94,Sales,San Francisco,2020-07-31,True,43.6
+Person_1419,63,139180.83,Marketing,New York,2021-02-23,False,42.8
+Person_1420,23,60098.66,Sales,Boston,2023-01-08,False,36.8
+Person_1421,30,99641.91,Engineering,Boston,2020-10-22,False,31.4
+Person_1422,53,103363.96,Engineering,Boston,2020-12-13,True,87.7
+Person_1423,53,120023.67,Marketing,San Francisco,2022-06-12,False,57.1
+Person_1424,74,64202.56,Sales,New York,2020-04-22,False,79.1
+Person_1425,20,38038.62,Finance,San Francisco,2022-07-01,False,13.8
+Person_1426,73,112833.63,Marketing,Austin,2024-08-14,False,65.4
+Person_1427,31,100418.27,Engineering,New York,2021-04-13,False,10.1
+Person_1428,33,53344.06,Engineering,New York,2020-05-14,False,78.9
+Person_1429,72,85187.7,Finance,Austin,2024-02-04,False,14.6
+Person_1430,20,38162.05,Marketing,New York,2022-07-03,True,35.5
+Person_1431,73,100342.75,Marketing,Seattle,2023-01-27,False,91.7
+Person_1432,59,99232.61,HR,Austin,2020-05-05,False,96.0
+Person_1433,52,143166.26,Engineering,Seattle,2024-06-19,False,52.5
+Person_1434,26,93793.8,Sales,San Francisco,2021-03-25,False,36.7
+Person_1435,20,45114.09,Engineering,San Francisco,2020-07-29,False,14.5
+Person_1436,48,117839.78,HR,San Francisco,2020-02-13,False,39.7
+Person_1437,29,104268.91,Sales,Seattle,2023-04-12,False,51.4
+Person_1438,52,95173.75,HR,New York,2024-05-31,False,41.0
+Person_1439,67,81585.68,Finance,Boston,2020-10-11,False,70.2
+Person_1440,20,75667.98,Sales,Boston,2022-11-19,False,38.8
+Person_1441,76,74576.39,HR,Austin,2020-07-18,True,46.0
+Person_1442,54,43847.85,Sales,Boston,2020-10-24,True,47.7
+Person_1443,51,55144.17,Engineering,Seattle,2022-02-26,False,37.7
+Person_1444,49,103098.37,Marketing,Boston,2021-02-27,False,41.6
+Person_1445,52,130372.03,Marketing,Boston,2021-02-19,True,11.4
+Person_1446,50,37458.36,Engineering,Boston,2020-04-08,True,62.9
+Person_1447,20,105944.48,Engineering,Seattle,2022-11-30,False,37.8
+Person_1448,64,74098.83,Sales,San Francisco,2021-11-29,False,90.2
+Person_1449,54,44830.4,Engineering,New York,2020-08-03,False,62.9
+Person_1450,77,128309.38,Sales,New York,2020-07-20,False,64.6
+Person_1451,54,111017.62,HR,San Francisco,2022-11-23,True,94.8
+Person_1452,40,108002.63,Marketing,Boston,2024-09-01,True,82.6
+Person_1453,79,81271.83,HR,New York,2024-01-08,False,77.5
+Person_1454,55,98668.06,Marketing,New York,2021-09-04,False,31.8
+Person_1455,22,83434.45,Sales,New York,2021-08-14,True,83.4
+Person_1456,40,83727.18,HR,Boston,2022-08-06,False,0.5
+Person_1457,73,64094.58,HR,Boston,2022-10-22,False,50.6
+Person_1458,61,99383.21,HR,Boston,2024-11-20,False,97.4
+Person_1459,52,97328.33,Sales,San Francisco,2020-10-28,True,60.7
+Person_1460,50,50313.91,Finance,Boston,2024-01-29,True,33.7
+Person_1461,66,105818.66,Finance,New York,2023-08-02,False,62.3
+Person_1462,21,50129.47,Marketing,Boston,2021-01-11,False,95.1
+Person_1463,80,106847.79,Engineering,San Francisco,2024-05-28,True,23.8
+Person_1464,57,82438.55,Engineering,San Francisco,2020-08-01,False,73.2
+Person_1465,42,148238.32,Engineering,Austin,2023-09-15,False,21.6
+Person_1466,71,60867.62,Engineering,New York,2023-04-23,False,58.5
+Person_1467,77,83606.55,Engineering,San Francisco,2020-04-22,False,74.6
+Person_1468,22,86962.45,HR,Austin,2024-08-07,True,52.4
+Person_1469,62,111071.95,HR,San Francisco,2020-03-13,True,26.2
+Person_1470,30,134664.0,HR,Boston,2023-11-02,True,45.1
+Person_1471,48,53603.53,Finance,San Francisco,2022-08-04,True,32.2
+Person_1472,39,53595.06,Engineering,New York,2023-02-12,False,95.7
+Person_1473,42,57687.58,Sales,New York,2021-02-07,True,34.3
+Person_1474,29,102919.16,Finance,Boston,2020-12-08,True,47.5
+Person_1475,65,146292.35,Finance,San Francisco,2023-12-24,False,57.6
+Person_1476,73,97658.72,Finance,Boston,2021-10-13,True,94.4
+Person_1477,32,121907.81,HR,New York,2020-05-07,True,0.6
+Person_1478,21,57771.29,Engineering,New York,2020-12-03,False,54.8
+Person_1479,34,149238.13,Marketing,Austin,2023-06-21,True,91.8
+Person_1480,34,126828.54,HR,Seattle,2020-02-27,False,41.1
+Person_1481,44,123241.44,Marketing,Seattle,2020-01-23,True,41.5
+Person_1482,59,79490.68,Engineering,Austin,2023-07-09,True,10.2
+Person_1483,58,132789.99,Sales,Austin,2024-02-06,False,8.0
+Person_1484,23,105077.42,Finance,San Francisco,2023-04-14,True,43.6
+Person_1485,54,48749.55,Marketing,Seattle,2020-09-22,False,91.8
+Person_1486,23,83193.33,HR,San Francisco,2020-08-14,True,49.0
+Person_1487,23,72548.77,Engineering,Seattle,2022-10-04,False,33.1
+Person_1488,55,121381.92,Finance,Seattle,2023-11-02,True,50.3
+Person_1489,50,131531.68,Finance,Boston,2023-06-29,True,50.6
+Person_1490,33,34318.14,HR,New York,2023-11-16,False,0.6
+Person_1491,24,122559.78,Sales,San Francisco,2024-05-22,False,42.8
+Person_1492,28,51752.22,Marketing,New York,2020-05-30,False,58.7
+Person_1493,24,46743.08,Marketing,Austin,2021-01-27,False,79.1
+Person_1494,58,65513.56,Sales,San Francisco,2022-02-06,True,12.3
+Person_1495,43,138195.95,HR,New York,2023-09-03,False,27.0
+Person_1496,61,88894.02,HR,New York,2020-06-07,True,98.3
+Person_1497,77,92269.83,Marketing,Boston,2021-09-04,True,17.8
+Person_1498,65,76789.97,Marketing,Seattle,2022-10-31,False,99.7
+Person_1499,34,65407.73,Sales,San Francisco,2022-04-16,False,58.4
+Person_1500,60,86788.39,Sales,New York,2022-04-30,True,17.7
