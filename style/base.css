@@ -178,8 +178,8 @@
   min-width: 60px;
   max-width: 60px;
   width: 60px;
-  border-right: 1px solid var(--jp-border-color1) !important;
-  border-bottom: 1px solid var(--jp-border-color1) !important;
+  border-right: 1px solid var(--jp-border-color0) !important;
+  border-bottom: 1px solid var(--jp-border-color0) !important;
 }
 
 .jp-TabularDataViewer-cell:last-child {
