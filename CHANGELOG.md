@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.30] - 2025-11-04
 
+**Tag**: RELEASE_1.2.30
+
 ### Fixed
 
 - **Column Resize Index Offset**: Fixed off-by-one error when resizing columns
