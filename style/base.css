@@ -293,19 +293,22 @@
 /* Column Info Icon */
 .jp-TabularDataViewer-infoIcon {
   margin-left: 6px;
-  font-size: 16px;
+  font-size: 14px;
   color: transparent;
   cursor: pointer;
   transition: color 0.2s ease;
   user-select: none;
+  opacity: 0;
 }
 
 .jp-TabularDataViewer-headerCell:hover .jp-TabularDataViewer-infoIcon {
   color: var(--jp-brand-color1) !important;
+  opacity: 1;
 }
 
 .jp-TabularDataViewer-infoIcon:hover {
   color: var(--jp-brand-color1) !important;
+  opacity: 1;
 }
 
 /* Column Statistics Modal */
