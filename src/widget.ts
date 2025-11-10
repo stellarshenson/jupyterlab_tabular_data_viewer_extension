@@ -223,6 +223,34 @@ export class TabularDataViewer extends Widget {
   }
 
   /**
+   * Refresh the data view by reloading from the file
+   * Preserves scroll position and current filters/sorting
+   */
+  public async refresh(): Promise<void> {
+    // Store current scroll position
+    const scrollTop = this._tableContainer.scrollTop;
+    const scrollLeft = this._tableContainer.scrollLeft;
+
+    try {
+      // Reload metadata (in case file structure changed)
+      await this._loadMetadata();
+
+      // Reload data with current filters and sorting
+      await this._loadData(true);
+
+      // Restore scroll position after a short delay to allow rendering
+      setTimeout(() => {
+        this._tableContainer.scrollTop = scrollTop;
+        this._tableContainer.scrollLeft = scrollLeft;
+      }, 100);
+
+      console.log(`Refreshed tabular data view: ${this._filePath}`);
+    } catch (error) {
+      this._showError(`Failed to refresh data: ${error}`);
+    }
+  }
+
+  /**
    * Initialize the viewer by loading metadata and initial data
    */
   private async _initialize(): Promise<void> {

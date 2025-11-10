@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.2.35] - 2025-11-10
+
+**Tag**: RELEASE_1.2.35
+
+### Added
+
+- **Refresh Data Command**: Added ability to refresh tabular data view from file
+  - New `refresh()` method in `TabularDataViewer` widget
+  - Preserves scroll position during refresh
+  - Maintains current filters and sorting settings
+  - Reloads metadata to detect file structure changes
+  - Available via context menu: right-click on viewer and select "Refresh Tabular Data"
+  - Command ID: `tabular-data-viewer:refresh`
+
 ## [1.2.30] - 2025-11-04
 
 **Tag**: RELEASE_1.2.30

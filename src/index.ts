@@ -46,6 +46,12 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
     const widget = new TabularDataDocument({ content, context });
     widget.title.label = context.path.split('/').pop() || 'Tabular Data File';
 
+    // Listen to context fileChanged signal to refresh data when file is reverted
+    context.fileChanged.connect(() => {
+      console.log('[Tabular Data Viewer] File changed, refreshing data');
+      content.refresh();
+    });
+
     // Track this as the active widget when context menu is used
     this._setActiveWidget(content);
 
@@ -110,6 +116,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
       // console.log('[Tabular Data Viewer] Using default settings:', settings);
     }
 
+    // Command to refresh tabular data view
+    const refreshCommand = 'tabular-data-viewer:refresh';
+    commands.addCommand(refreshCommand, {
+      label: 'Refresh Tabular Data',
+      caption: 'Refresh the tabular data view from file',
+      isEnabled: () => {
+        return activeWidget !== null;
+      },
+      execute: async () => {
+        if (activeWidget) {
+          await activeWidget.refresh();
+        }
+      }
+    });
+
     // Command to copy row as JSON
     const copyRowCommand = 'tabular-data-viewer:copy-row-json';
     commands.addCommand(copyRowCommand, {
@@ -132,6 +153,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
         }
       }
+    });
+
+    // Add refresh command to context menu for tabular data viewer
+    contextMenu.addItem({
+      command: refreshCommand,
+      selector: '.jp-TabularDataViewer',
+      rank: 0
     });
 
     // Add to context menu for tabular data viewer rows

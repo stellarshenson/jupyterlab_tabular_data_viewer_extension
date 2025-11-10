@@ -124,9 +124,13 @@
 }
 
 .jp-TabularDataViewer-sortIndicator {
-  margin-left: 4px;
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
   color: var(--jp-brand-color1);
-  font-size: var(--jp-ui-font-size0);
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
 }
 
 /* Column Resize Handle */
