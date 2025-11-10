@@ -133,12 +133,13 @@
 .jp-TabularDataViewer-resizeHandle {
   position: absolute;
   top: 0;
-  right: -12px;
-  width: 24px;
+  right: -8px;
+  width: 16px;
   height: 100%;
   cursor: col-resize;
   z-index: 100;
   background: transparent;
+  pointer-events: auto;
 }
 
 /* Table Body */
