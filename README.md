@@ -54,6 +54,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 - Right-click context menu on rows to copy data as JSON
 - Refresh view - Right-click on viewer and select "Refresh View" to reload data from file while preserving scroll position, filters, and sorting
 - Cell text truncation - Configurable maximum character limit for cell display (default: 100 characters). Text longer than limit shows "..." ellipsis. Set to 0 for unlimited display
+- Complex data types display - List/tuple and dict values display as JSON strings for easy inspection of nested/structured data
 - Absolute row indices - Row numbers always show original file position, even with active filters or sorting
 - Configurable file type support via Settings - Enable/disable Parquet, Excel, or CSV/TSV handling
 - All features work seamlessly across all supported file formats

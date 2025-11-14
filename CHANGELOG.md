@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.3.2] - 2025-11-14
+
+**Tag**: RELEASE_1.3.2
+
+### Added
+
+- **Slash Command**: Added `/install` command for quick development installation
+  - Executes `make install` to build and install extension
+  - Simplifies development workflow
+  - Available in Claude Code workspace
+
+### Changed
+
+- **List and Dict Display**: Enhanced handling of complex data types in Parquet files
+  - List/tuple values now display as JSON strings in cells
+  - Dict values now display as JSON strings in cells
+  - Improves readability of nested/structured data
+  - Applies to all file formats (Parquet, Excel, CSV, TSV)
+
 ## [1.3.1] - 2025-11-14
 
 **Tag**: RELEASE_1.3.1

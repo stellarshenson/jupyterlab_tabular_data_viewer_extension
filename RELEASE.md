@@ -1,5 +1,41 @@
 # Making a new release of jupyterlab_tabular_data_viewer_extension
 
+## What's New in Version 1.3
+
+Version 1.3 introduces significant improvements to data display, user interaction, and development workflow:
+
+### Complex Data Types Display (1.3.2)
+Enhanced handling of nested and structured data types. List, tuple, and dict values now display as JSON strings in cells, making it easy to inspect complex data structures without requiring additional processing.
+
+**Features:**
+- List/tuple values automatically converted to JSON format
+- Dict values displayed as readable JSON strings
+- Applies to all file formats (Parquet, Excel, CSV, TSV)
+- Improves data exploration for files with nested structures
+
+### Cell Text Truncation (1.3.0)
+Configurable maximum character limit for cell display prevents overwhelming the interface with extremely long text values.
+
+**Features:**
+- Default: 100 characters with "..." ellipsis for longer text
+- Set to 0 for unlimited display
+- Visual truncation only - original data unchanged
+- Configurable via Settings Editor
+
+### Refresh View Integration (1.3.0)
+Unified refresh command that works seamlessly with JupyterLab's refresh view extension. Right-click on viewer and select "Refresh View" to reload data from file while preserving scroll position, filters, and sorting.
+
+**Features:**
+- Overrides jupyterlab_refresh_view:refresh for tabular viewers
+- Falls back to original behavior for other document types
+- Eliminates duplicate context menu items
+- Maintains current view state during refresh
+
+### Absolute Row Indices (1.3.0)
+Row numbers display original file position even when filters or sorting are active, making it easy to identify exact row locations in source data.
+
+---
+
 ## What's New in Version 1.2
 
 Version 1.2 introduces significant enhancements to data exploration and navigation capabilities:
