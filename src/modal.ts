@@ -95,7 +95,9 @@ export class ColumnStatsModal extends Widget {
         items.push(`Std Dev: ${this._formatNumber(this._stats.std_dev)}`);
       }
       if (this._stats.outlier_count !== undefined) {
-        items.push(`Outliers: ${this._formatNumber(this._stats.outlier_count)} (${this._stats.outlier_percentage}%)`);
+        items.push(
+          `Outliers: ${this._formatNumber(this._stats.outlier_count)} (${this._stats.outlier_percentage}%)`
+        );
       }
 
       numericList.innerHTML = items.map(item => `<li>${item}</li>`).join('');
@@ -108,7 +110,9 @@ export class ColumnStatsModal extends Widget {
       const items: string[] = [];
 
       if (this._stats.most_common_value !== undefined) {
-        items.push(`Most common: "${this._stats.most_common_value}" (${this._stats.most_common_count})`);
+        items.push(
+          `Most common: "${this._stats.most_common_value}" (${this._stats.most_common_count})`
+        );
       }
       if (this._stats.min_length !== undefined) {
         items.push(`Min length: ${this._stats.min_length} characters`);
@@ -117,7 +121,9 @@ export class ColumnStatsModal extends Widget {
         items.push(`Max length: ${this._stats.max_length} characters`);
       }
       if (this._stats.avg_length !== undefined) {
-        items.push(`Avg length: ${this._formatNumber(this._stats.avg_length)} characters`);
+        items.push(
+          `Avg length: ${this._formatNumber(this._stats.avg_length)} characters`
+        );
       }
 
       // Only show section if we have stats to display
@@ -136,7 +142,10 @@ export class ColumnStatsModal extends Widget {
     }
 
     // Date/datetime statistics
-    if (this._stats.data_type === 'date' || this._stats.data_type === 'datetime') {
+    if (
+      this._stats.data_type === 'date' ||
+      this._stats.data_type === 'datetime'
+    ) {
       const dateSection = document.createElement('div');
       dateSection.className = 'jp-ColumnStatsModal-section';
       const dateTitle = document.createElement('h4');
@@ -153,7 +162,9 @@ export class ColumnStatsModal extends Widget {
         items.push(`Latest: ${this._stats.latest_date}`);
       }
       if (this._stats.date_range_days !== undefined) {
-        items.push(`Span: ${this._formatNumber(this._stats.date_range_days)} days`);
+        items.push(
+          `Span: ${this._formatNumber(this._stats.date_range_days)} days`
+        );
       }
 
       dateList.innerHTML = items.map(item => `<li>${item}</li>`).join('');
@@ -393,7 +404,9 @@ export class FilterModal extends Widget {
    * Update checkbox states
    */
   private _updateCheckboxes(): void {
-    const checkboxes = this.node.querySelectorAll<HTMLInputElement>('.jp-FilterModal-checkbox');
+    const checkboxes = this.node.querySelectorAll<HTMLInputElement>(
+      '.jp-FilterModal-checkbox'
+    );
     checkboxes.forEach(cb => {
       const value = cb.dataset.value || '';
       cb.checked = this._selectedValues.has(value);

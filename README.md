@@ -28,12 +28,14 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 ## Features
 
 **Supported File Formats:**
+
 - **Parquet files** (.parquet) - Full support with efficient columnar data reading
 - **Excel files** (.xlsx) - Reads first worksheet only. Excel files must be simple tabular data without merged cells, complex formulas, or advanced formatting. Files with these features may not display correctly or fail to load
 - **CSV files** (.csv) - Comma-separated values with UTF-8 encoding (fallback to latin1)
 - **TSV files** (.tsv) - Tab-separated values with UTF-8 encoding (fallback to latin1)
 
 **Core viewing and navigation:**
+
 - Simple table display showing your data in familiar spreadsheet format
 - Column headers with field names and simplified datatype indicators
 - Interactive column resizing - drag column borders to adjust width independently
@@ -43,6 +45,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 - Handles large files efficiently with server-side processing
 
 **Advanced filtering and sorting:**
+
 - Column sorting with three-state toggle (ascending, descending, off)
 - Per-column filtering with substring or regex pattern matching
 - Multi-select value filter - Click filter button next to any column to select from unique values with counts. Supports filtering on empty strings and null values
@@ -52,6 +55,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 - Multiple filters work together to narrow down results
 
 **Additional features:**
+
 - Column statistics modal - View comprehensive statistics including data type, row counts, null values, unique counts, and type-specific metrics (numeric: min/max/mean/median/std dev/outliers; string: most common value/length stats; date: earliest/latest dates). Copy statistics as JSON with one click
 - Right-click context menu on rows to copy data as JSON
 - Refresh view - Right-click on viewer and select "Refresh View" to reload data from file while preserving scroll position, filters, and sorting
@@ -70,6 +74,7 @@ pip install jupyterlab_tabular_data_viewer_extension
 ```
 
 Uninstall:
+
 ```bash
 pip uninstall jupyterlab_tabular_data_viewer_extension
 ```
@@ -125,12 +130,14 @@ jupyter server extension enable jupyterlab_tabular_data_viewer_extension
 **Development workflow:**
 
 Use two terminals for efficient development:
+
 - Terminal 1: `jlpm watch` (auto-rebuild on file changes)
 - Terminal 2: `jupyter lab` (run development instance)
 
 Refresh browser after changes to see updates. Build generates source maps for debugging.
 
 Enable deeper debugging with unminimized JupyterLab build:
+
 ```bash
 jupyter lab build --minimize=False
 ```
@@ -150,6 +157,7 @@ Three-tier testing strategy: Python backend, TypeScript frontend, and integratio
 
 **Python tests** (pytest with coverage):
 Tests cover backend API endpoints including metadata fetching, unique values with counts, data filtering, and content validation.
+
 ```bash
 pip install -e ".[test]"
 jupyter labextension develop . --overwrite
@@ -157,6 +165,7 @@ pytest -vv -r ap --cov jupyterlab_tabular_data_viewer_extension
 ```
 
 **TypeScript tests** (Jest):
+
 ```bash
 jlpm
 jlpm test

@@ -6,7 +6,11 @@ test.describe('Tabular Data Viewer Extension', () => {
     // Upload test data files for this test
     const contents = galata.newContentsHelper(request);
     const dataDir = path.resolve(__dirname, '..', '..', 'data');
-    const testFiles = ['sample_data.parquet', 'sample_data.csv', 'sample_data.xlsx'];
+    const testFiles = [
+      'sample_data.parquet',
+      'sample_data.csv',
+      'sample_data.xlsx'
+    ];
 
     for (const filename of testFiles) {
       const filePath = path.join(dataDir, filename);
@@ -17,7 +21,10 @@ test.describe('Tabular Data Viewer Extension', () => {
     await page.goto();
 
     // Wait for JupyterLab to be fully loaded
-    await page.waitForSelector('#jupyterlab-splash', { state: 'detached', timeout: 30000 });
+    await page.waitForSelector('#jupyterlab-splash', {
+      state: 'detached',
+      timeout: 30000
+    });
 
     // Ensure file browser is visible - click the file browser tab if needed
     const fileBrowserTab = page.locator('.jp-SideBar .jp-FileBrowser-tab');
@@ -36,7 +43,11 @@ test.describe('Tabular Data Viewer Extension', () => {
     await page.goto();
 
     expect(
-      logs.filter(s => s === 'JupyterLab extension jupyterlab_tabular_data_viewer_extension is activated!')
+      logs.filter(
+        s =>
+          s ===
+          'JupyterLab extension jupyterlab_tabular_data_viewer_extension is activated!'
+      )
     ).toHaveLength(1);
   });
 
@@ -48,10 +59,13 @@ test.describe('Tabular Data Viewer Extension', () => {
     await page.dblclick('text=sample_data.parquet');
 
     // Verify the viewer opens and is visible in the main area
-    await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
-      state: 'visible',
-      timeout: 15000
-    });
+    await page.waitForSelector(
+      '.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer',
+      {
+        state: 'visible',
+        timeout: 15000
+      }
+    );
   });
 
   test('should open and display CSV file', async ({ page }) => {
@@ -64,14 +78,19 @@ test.describe('Tabular Data Viewer Extension', () => {
     // Wait for context menu to appear and click "Open With" -> "Tabular Data Viewer (Text)"
     await page.waitForSelector('.lm-Menu-content', { timeout: 5000 });
     await page.click('text=Open With');
-    await page.waitForSelector('text=Tabular Data Viewer (Text)', { timeout: 5000 });
+    await page.waitForSelector('text=Tabular Data Viewer (Text)', {
+      timeout: 5000
+    });
     await page.click('text=Tabular Data Viewer (Text)');
 
     // Verify the viewer opens and is visible in the main area
-    await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
-      state: 'visible',
-      timeout: 15000
-    });
+    await page.waitForSelector(
+      '.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer',
+      {
+        state: 'visible',
+        timeout: 15000
+      }
+    );
   });
 
   test('should open and display Excel file', async ({ page }) => {
@@ -82,14 +101,21 @@ test.describe('Tabular Data Viewer Extension', () => {
     await page.dblclick('text=sample_data.xlsx');
 
     // Verify the viewer opens and is visible in the main area
-    await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
-      state: 'visible',
-      timeout: 15000
-    });
+    await page.waitForSelector(
+      '.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer',
+      {
+        state: 'visible',
+        timeout: 15000
+      }
+    );
   });
 
   test('should open all three file types sequentially', async ({ page }) => {
-    const fileTypes = ['sample_data.parquet', 'sample_data.csv', 'sample_data.xlsx'];
+    const fileTypes = [
+      'sample_data.parquet',
+      'sample_data.csv',
+      'sample_data.xlsx'
+    ];
 
     for (const fileName of fileTypes) {
       // Wait for file to be visible in file browser
@@ -101,7 +127,9 @@ test.describe('Tabular Data Viewer Extension', () => {
         await page.click(`text=${fileName}`, { button: 'right' });
         await page.waitForSelector('.lm-Menu-content', { timeout: 5000 });
         await page.click('text=Open With');
-        await page.waitForSelector('text=Tabular Data Viewer (Text)', { timeout: 5000 });
+        await page.waitForSelector('text=Tabular Data Viewer (Text)', {
+          timeout: 5000
+        });
         await page.click('text=Tabular Data Viewer (Text)');
       } else {
         // Double-click for other file types
@@ -109,10 +137,13 @@ test.describe('Tabular Data Viewer Extension', () => {
       }
 
       // Verify the viewer opens and is visible in the main area
-      await page.waitForSelector('.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer', {
-        state: 'visible',
-        timeout: 15000
-      });
+      await page.waitForSelector(
+        '.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer',
+        {
+          state: 'visible',
+          timeout: 15000
+        }
+      );
 
       // Close the tab to prepare for next file
       await page.keyboard.press('Control+w');

@@ -5,33 +5,40 @@
 Version 1.3 introduces significant improvements to data display, user interaction, and development workflow:
 
 ### Complex Data Types Display (1.3.2)
+
 Enhanced handling of nested and structured data types. List, tuple, and dict values now display as JSON strings in cells, making it easy to inspect complex data structures without requiring additional processing.
 
 **Features:**
+
 - List/tuple values automatically converted to JSON format
 - Dict values displayed as readable JSON strings
 - Applies to all file formats (Parquet, Excel, CSV, TSV)
 - Improves data exploration for files with nested structures
 
 ### Cell Text Truncation (1.3.0)
+
 Configurable maximum character limit for cell display prevents overwhelming the interface with extremely long text values.
 
 **Features:**
+
 - Default: 100 characters with "..." ellipsis for longer text
 - Set to 0 for unlimited display
 - Visual truncation only - original data unchanged
 - Configurable via Settings Editor
 
 ### Refresh View Integration (1.3.0)
+
 Unified refresh command that works seamlessly with JupyterLab's refresh view extension. Right-click on viewer and select "Refresh View" to reload data from file while preserving scroll position, filters, and sorting.
 
 **Features:**
+
 - Overrides jupyterlab_refresh_view:refresh for tabular viewers
 - Falls back to original behavior for other document types
 - Eliminates duplicate context menu items
 - Maintains current view state during refresh
 
 ### Absolute Row Indices (1.3.0)
+
 Row numbers display original file position even when filters or sorting are active, making it easy to identify exact row locations in source data.
 
 ---
@@ -41,9 +48,11 @@ Row numbers display original file position even when filters or sorting are acti
 Version 1.2 introduces significant enhancements to data exploration and navigation capabilities:
 
 ### Column Statistics Modal (1.2.8)
+
 Interactive statistics viewer providing comprehensive column analysis with a single click. Hover over any column header to reveal an info icon, then click to view detailed statistics in a modal dialog.
 
 **Features:**
+
 - **Data Summary**: Total rows, non-null count/percentage, null count/percentage, unique values
 - **Type-Specific Statistics**:
   - Numeric columns: min, max, mean, median, standard deviation, outlier detection
@@ -54,17 +63,21 @@ Interactive statistics viewer providing comprehensive column analysis with a sin
 - Supports all file types (Parquet, CSV, TSV, Excel)
 
 ### Absolute Row Indices (1.2.20)
+
 Row numbers now display absolute position in the original file rather than position within filtered or sorted views. When filters or sorting are applied, row numbers maintain their original file position, making it easy to identify exact row locations in source data.
 
 **Technical Implementation:**
+
 - Backend tracks original indices through all filtering and sorting operations
 - Context menu "Copy Row as JSON" automatically excludes internal metadata
 - Works across all supported file formats
 
 ### Enhanced Row Number Column Styling (1.2.20)
+
 Visual improvements to the row number column for better readability and data grid structure.
 
 **Styling Enhancements:**
+
 - Vertical border separating row numbers from data columns
 - Horizontal borders between data rows in the row number column
 - Subtle, theme-consistent border colors

@@ -46,7 +46,11 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
     // console.log(`[Tabular Data Viewer] File type: ${context.contentsModel?.type}, Format: ${context.contentsModel?.format}`);
 
     const settings = this._getSettings();
-    const content = new TabularDataViewer(context.path, this._setLastContextMenuRow, settings.maxCellCharacters);
+    const content = new TabularDataViewer(
+      context.path,
+      this._setLastContextMenuRow,
+      settings.maxCellCharacters
+    );
     const widget = new TabularDataDocument({ content, context });
     widget.title.label = context.path.split('/').pop() || 'Tabular Data File';
 
@@ -182,7 +186,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         binaryFileTypes.push('parquet');
         // console.log('[Tabular Data Viewer] Parquet file type registered');
       } catch (e) {
-        console.warn('[Tabular Data Viewer] Parquet file type already registered', e);
+        console.warn(
+          '[Tabular Data Viewer] Parquet file type already registered',
+          e
+        );
       }
     }
 
@@ -193,7 +200,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
           name: 'xlsx-parquet-viewer',
           displayName: 'Excel (Parquet Viewer)',
           extensions: ['.xlsx'],
-          mimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+          mimeTypes: [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          ],
           iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
           contentType: 'file',
           fileFormat: 'base64'
@@ -201,7 +210,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         binaryFileTypes.push('xlsx-parquet-viewer');
         // console.log('[Tabular Data Viewer] Excel file type registered');
       } catch (e) {
-        console.warn('[Tabular Data Viewer] Excel file type already registered', e);
+        console.warn(
+          '[Tabular Data Viewer] Excel file type already registered',
+          e
+        );
       }
     }
 
@@ -220,7 +232,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         textFileTypes.push('csv-tabular-viewer');
         // console.log('[Tabular Data Viewer] CSV file type registered');
       } catch (e) {
-        console.warn('[Tabular Data Viewer] CSV file type already registered', e);
+        console.warn(
+          '[Tabular Data Viewer] CSV file type already registered',
+          e
+        );
       }
     }
 
@@ -239,7 +254,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         textFileTypes.push('tsv-tabular-viewer');
         // console.log('[Tabular Data Viewer] TSV file type registered');
       } catch (e) {
-        console.warn('[Tabular Data Viewer] TSV file type already registered', e);
+        console.warn(
+          '[Tabular Data Viewer] TSV file type already registered',
+          e
+        );
       }
     }
 

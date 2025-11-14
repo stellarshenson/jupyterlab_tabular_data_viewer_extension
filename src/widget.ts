@@ -17,7 +17,7 @@ interface IFilterSpec {
   type: 'text' | 'number';
   value: string;
   operator?: string;
-  valueList?: string[];  // For multi-select filter
+  valueList?: string[]; // For multi-select filter
 }
 
 /**
@@ -41,7 +41,11 @@ export class TabularDataViewer extends Widget {
   private _useRegex = false;
   private _contextMenuOpen = false;
   private _columnWidths: Map<string, number> = new Map();
-  private _resizing: { columnName: string; startX: number; startWidth: number } | null = null;
+  private _resizing: {
+    columnName: string;
+    startX: number;
+    startWidth: number;
+  } | null = null;
 
   private _tableContainer: HTMLDivElement;
   private _table: HTMLTableElement;
@@ -59,7 +63,11 @@ export class TabularDataViewer extends Widget {
   private _menuObserver: MutationObserver | null = null;
   private _maxCellCharacters: number = 100;
 
-  constructor(filePath: string, setLastContextMenuRow: (row: any) => void, maxCellCharacters: number = 100) {
+  constructor(
+    filePath: string,
+    setLastContextMenuRow: (row: any) => void,
+    maxCellCharacters: number = 100
+  ) {
     super();
     this._filePath = filePath;
     this._setLastContextMenuRow = setLastContextMenuRow;
@@ -111,7 +119,8 @@ export class TabularDataViewer extends Widget {
 
     this._caseInsensitiveCheckbox = document.createElement('input');
     this._caseInsensitiveCheckbox.type = 'checkbox';
-    this._caseInsensitiveCheckbox.className = 'jp-TabularDataViewer-caseInsensitiveCheckbox';
+    this._caseInsensitiveCheckbox.className =
+      'jp-TabularDataViewer-caseInsensitiveCheckbox';
     this._caseInsensitiveCheckbox.checked = this._caseInsensitive;
     this._caseInsensitiveCheckbox.addEventListener('change', () => {
       this._caseInsensitive = this._caseInsensitiveCheckbox.checked;
@@ -193,13 +202,16 @@ export class TabularDataViewer extends Widget {
     }
 
     // Create observer to watch for menu removal from DOM
-    this._menuObserver = new MutationObserver((mutations) => {
+    this._menuObserver = new MutationObserver(mutations => {
       for (const mutation of mutations) {
         if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
           // Check if any removed node is a Lumino menu
           for (const node of Array.from(mutation.removedNodes)) {
-            if (node instanceof HTMLElement &&
-                (node.classList.contains('lm-Menu') || node.classList.contains('p-Menu'))) {
+            if (
+              node instanceof HTMLElement &&
+              (node.classList.contains('lm-Menu') ||
+                node.classList.contains('p-Menu'))
+            ) {
               // Menu was removed, clear highlight
               if (this._cleanupHighlight) {
                 this._cleanupHighlight();
@@ -341,11 +353,13 @@ export class TabularDataViewer extends Widget {
 
     // Add row number column header
     const rowNumFilterCell = document.createElement('th');
-    rowNumFilterCell.className = 'jp-TabularDataViewer-filterCell jp-TabularDataViewer-rowNumberCell';
+    rowNumFilterCell.className =
+      'jp-TabularDataViewer-filterCell jp-TabularDataViewer-rowNumberCell';
     this._filterRow.appendChild(rowNumFilterCell);
 
     const rowNumHeaderCell = document.createElement('th');
-    rowNumHeaderCell.className = 'jp-TabularDataViewer-headerCell jp-TabularDataViewer-rowNumberCell';
+    rowNumHeaderCell.className =
+      'jp-TabularDataViewer-headerCell jp-TabularDataViewer-rowNumberCell';
     const rowNumContent = document.createElement('div');
     rowNumContent.className = 'jp-TabularDataViewer-headerContent';
     const rowNumName = document.createElement('div');
@@ -392,15 +406,25 @@ export class TabularDataViewer extends Widget {
       svg.setAttribute('viewBox', '0 0 16 16');
       svg.setAttribute('fill', 'currentColor');
 
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', 'M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z');
+      const path = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'path'
+      );
+      path.setAttribute(
+        'd',
+        'M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z'
+      );
 
       svg.appendChild(path);
       filterButton.appendChild(svg);
 
       // Check if this column has an active multi-select filter
       const currentFilter = this._filters[col.name];
-      if (currentFilter && currentFilter.valueList && currentFilter.valueList.length > 0) {
+      if (
+        currentFilter &&
+        currentFilter.valueList &&
+        currentFilter.valueList.length > 0
+      ) {
         filterButton.classList.add('jp-TabularDataViewer-filterButton-active');
       }
 
@@ -482,7 +506,9 @@ export class TabularDataViewer extends Widget {
     });
 
     // Set table width to sum of all column widths plus row number column (60px)
-    const totalWidth = Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0) + 60;
+    const totalWidth =
+      Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0) +
+      60;
     this._table.style.width = `${totalWidth}px`;
   }
 
@@ -490,7 +516,10 @@ export class TabularDataViewer extends Widget {
    * Truncate text to max characters with ellipsis
    */
   private _truncateText(text: string): string {
-    if (this._maxCellCharacters === 0 || text.length <= this._maxCellCharacters) {
+    if (
+      this._maxCellCharacters === 0 ||
+      text.length <= this._maxCellCharacters
+    ) {
       return text;
     }
     return text.substring(0, this._maxCellCharacters) + '...';
@@ -500,13 +529,14 @@ export class TabularDataViewer extends Widget {
    * Render data rows
    */
   private _renderData(rows: any[]): void {
-    rows.forEach((row) => {
+    rows.forEach(row => {
       const tr = document.createElement('tr');
       tr.className = 'jp-TabularDataViewer-row';
 
       // Add row number cell using original row index from backend
       const rowNumCell = document.createElement('td');
-      rowNumCell.className = 'jp-TabularDataViewer-cell jp-TabularDataViewer-rowNumberCell';
+      rowNumCell.className =
+        'jp-TabularDataViewer-cell jp-TabularDataViewer-rowNumberCell';
       rowNumCell.textContent = String(row['__row_index__'] || '');
       tr.appendChild(rowNumCell);
 
@@ -514,7 +544,8 @@ export class TabularDataViewer extends Widget {
         const td = document.createElement('td');
         td.className = 'jp-TabularDataViewer-cell';
         const value = row[col.name];
-        const textValue = value !== null && value !== undefined ? String(value) : '';
+        const textValue =
+          value !== null && value !== undefined ? String(value) : '';
         td.textContent = this._truncateText(textValue);
         tr.appendChild(td);
       });
@@ -530,7 +561,7 @@ export class TabularDataViewer extends Widget {
       });
 
       // Add right-click handler to store row data and maintain hover styling
-      tr.addEventListener('contextmenu', (e) => {
+      tr.addEventListener('contextmenu', e => {
         // Mark context menu as open
         this._contextMenuOpen = true;
 
@@ -559,7 +590,11 @@ export class TabularDataViewer extends Widget {
   /**
    * Start column resize
    */
-  private _startResize(columnName: string, startX: number, headerCell: HTMLElement): void {
+  private _startResize(
+    columnName: string,
+    startX: number,
+    headerCell: HTMLElement
+  ): void {
     this._resizing = {
       columnName,
       startX,
@@ -591,11 +626,17 @@ export class TabularDataViewer extends Widget {
 
     // Apply the new width to the column header and filter cell only
     // With table-layout: fixed, this automatically applies to all cells in the column
-    const columnIndex = this._columns.findIndex(col => col.name === this._resizing!.columnName);
+    const columnIndex = this._columns.findIndex(
+      col => col.name === this._resizing!.columnName
+    );
     if (columnIndex !== -1) {
       // Add 1 to account for row number column being first cell
-      const headerCell = this._headerRow.children[columnIndex + 1] as HTMLElement;
-      const filterCell = this._filterRow.children[columnIndex + 1] as HTMLElement;
+      const headerCell = this._headerRow.children[
+        columnIndex + 1
+      ] as HTMLElement;
+      const filterCell = this._filterRow.children[
+        columnIndex + 1
+      ] as HTMLElement;
 
       if (headerCell) {
         headerCell.style.width = `${newWidth}px`;
@@ -605,7 +646,9 @@ export class TabularDataViewer extends Widget {
       }
 
       // Update table width to sum of all column widths plus row number column (60px)
-      const totalWidth = Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0) + 60;
+      const totalWidth =
+        Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0) +
+        60;
       this._table.style.width = `${totalWidth}px`;
     }
   };
@@ -632,7 +675,11 @@ export class TabularDataViewer extends Widget {
   /**
    * Apply filter to a column
    */
-  private _applyFilter(columnName: string, value: string, columnType: string): void {
+  private _applyFilter(
+    columnName: string,
+    value: string,
+    columnType: string
+  ): void {
     if (!value.trim()) {
       // Remove filter if empty
       delete this._filters[columnName];
@@ -668,7 +715,11 @@ export class TabularDataViewer extends Widget {
   /**
    * Open filter modal for selecting unique values
    */
-  private async _openFilterModal(columnName: string, filterInput: HTMLInputElement, filterButton: HTMLElement): Promise<void> {
+  private async _openFilterModal(
+    columnName: string,
+    filterInput: HTMLInputElement,
+    filterButton: HTMLElement
+  ): Promise<void> {
     try {
       // Fetch unique values for this column
       const uniqueValues = await fetchUniqueValues(this._filePath, columnName);
@@ -707,7 +758,9 @@ export class TabularDataViewer extends Widget {
             };
 
             // Mark button as active
-            filterButton.classList.add('jp-TabularDataViewer-filterButton-active');
+            filterButton.classList.add(
+              'jp-TabularDataViewer-filterButton-active'
+            );
 
             // Reload data with filters
             this._loadData(true);
@@ -717,7 +770,9 @@ export class TabularDataViewer extends Widget {
             delete this._filters[columnName];
 
             // Mark button as inactive
-            filterButton.classList.remove('jp-TabularDataViewer-filterButton-active');
+            filterButton.classList.remove(
+              'jp-TabularDataViewer-filterButton-active'
+            );
 
             // Reload data
             this._loadData(true);
@@ -769,7 +824,12 @@ export class TabularDataViewer extends Widget {
     }
 
     // String types
-    if (lowerType === 'string' || lowerType === 'utf8' || lowerType === 'large_string' || lowerType === 'large_utf8') {
+    if (
+      lowerType === 'string' ||
+      lowerType === 'utf8' ||
+      lowerType === 'large_string' ||
+      lowerType === 'large_utf8'
+    ) {
       return 'string';
     }
 
@@ -796,7 +856,20 @@ export class TabularDataViewer extends Widget {
    * Check if column type is numeric
    */
   private _isNumericType(type: string): boolean {
-    const numericTypes = ['int', 'float', 'double', 'decimal', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'];
+    const numericTypes = [
+      'int',
+      'float',
+      'double',
+      'decimal',
+      'int8',
+      'int16',
+      'int32',
+      'int64',
+      'uint8',
+      'uint16',
+      'uint32',
+      'uint64'
+    ];
     return numericTypes.some(t => type.toLowerCase().includes(t));
   }
 
@@ -819,7 +892,11 @@ export class TabularDataViewer extends Widget {
     const scrollHeight = container.scrollHeight;
 
     // Load more when scrolled to within 200px of bottom
-    if (scrollPosition >= scrollHeight - 200 && this._hasMore && !this._loading) {
+    if (
+      scrollPosition >= scrollHeight - 200 &&
+      this._hasMore &&
+      !this._loading
+    ) {
       this._loadData(false);
     }
   }
@@ -870,7 +947,9 @@ export class TabularDataViewer extends Widget {
     const headers = this._headerRow.querySelectorAll('th');
     headers.forEach(header => {
       const columnName = header.dataset.columnName;
-      const indicator = header.querySelector('.jp-TabularDataViewer-sortIndicator') as HTMLElement;
+      const indicator = header.querySelector(
+        '.jp-TabularDataViewer-sortIndicator'
+      ) as HTMLElement;
 
       // Skip if no indicator (e.g., row number column)
       if (!indicator) {
@@ -939,7 +1018,7 @@ export class TabularDataViewer extends Widget {
         clearLink.href = '#';
         clearLink.className = 'jp-TabularDataViewer-clearFilters';
         clearLink.textContent = 'Clear filters';
-        clearLink.addEventListener('click', (e) => {
+        clearLink.addEventListener('click', e => {
           e.preventDefault();
           this._clearFilters();
         });

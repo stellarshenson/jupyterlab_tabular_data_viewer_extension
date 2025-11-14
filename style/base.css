@@ -208,7 +208,8 @@
 }
 
 /* Only enable hover when context menu is not open */
-.jp-TabularDataViewer-tbody:not(.jp-TabularDataViewer-context-menu-open) .jp-TabularDataViewer-row:hover,
+.jp-TabularDataViewer-tbody:not(.jp-TabularDataViewer-context-menu-open)
+  .jp-TabularDataViewer-row:hover,
 .jp-TabularDataViewer-row-context-active {
   background-color: var(--jp-layout-color2);
 }
@@ -574,7 +575,9 @@
   font-size: 13px;
   font-weight: 500;
   font-family: var(--jp-ui-font-family);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .jp-FilterModal-button:hover {
@@ -681,7 +684,9 @@
   font-size: 14px;
   font-weight: 500;
   font-family: var(--jp-ui-font-family);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .jp-FilterModal-cancelButton:hover {

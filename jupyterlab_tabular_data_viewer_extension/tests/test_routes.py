@@ -7,7 +7,11 @@ from pathlib import Path
 async def test_metadata_endpoint(jp_fetch, jp_root_dir):
     """Test fetching metadata from email classification parquet file"""
     # Copy test file to pytest temporary directory
-    source_file = Path(__file__).parent.parent.parent / "data" / "email_classification_dataset.parquet"
+    source_file = (
+        Path(__file__).parent.parent.parent
+        / "data"
+        / "email_classification_dataset.parquet"
+    )
     target_dir = jp_root_dir / "data"
     target_dir.mkdir(exist_ok=True)
     target_file = target_dir / "email_classification_dataset.parquet"
@@ -21,7 +25,7 @@ async def test_metadata_endpoint(jp_fetch, jp_root_dir):
         "jupyterlab-tabular-data-viewer-extension",
         "metadata",
         method="POST",
-        body=json.dumps({"path": test_file})
+        body=json.dumps({"path": test_file}),
     )
 
     # Then
@@ -46,7 +50,11 @@ async def test_metadata_endpoint(jp_fetch, jp_root_dir):
 async def test_unique_values_endpoint(jp_fetch, jp_root_dir):
     """Test fetching unique values with counts from is_maintenance column"""
     # Copy test file to pytest temporary directory
-    source_file = Path(__file__).parent.parent.parent / "data" / "email_classification_dataset.parquet"
+    source_file = (
+        Path(__file__).parent.parent.parent
+        / "data"
+        / "email_classification_dataset.parquet"
+    )
     target_dir = jp_root_dir / "data"
     target_dir.mkdir(exist_ok=True)
     target_file = target_dir / "email_classification_dataset.parquet"
@@ -60,10 +68,7 @@ async def test_unique_values_endpoint(jp_fetch, jp_root_dir):
         "jupyterlab-tabular-data-viewer-extension",
         "unique-values",
         method="POST",
-        body=json.dumps({
-            "path": test_file,
-            "columnName": "is_maintenance"
-        })
+        body=json.dumps({"path": test_file, "columnName": "is_maintenance"}),
     )
 
     # Then
@@ -95,7 +100,11 @@ async def test_unique_values_endpoint(jp_fetch, jp_root_dir):
 async def test_data_endpoint_with_filter(jp_fetch, jp_root_dir):
     """Test fetching data with regex filter on is_maintenance column"""
     # Copy test file to pytest temporary directory
-    source_file = Path(__file__).parent.parent.parent / "data" / "email_classification_dataset.parquet"
+    source_file = (
+        Path(__file__).parent.parent.parent
+        / "data"
+        / "email_classification_dataset.parquet"
+    )
     target_dir = jp_root_dir / "data"
     target_dir.mkdir(exist_ok=True)
     target_file = target_dir / "email_classification_dataset.parquet"
@@ -109,19 +118,16 @@ async def test_data_endpoint_with_filter(jp_fetch, jp_root_dir):
         "jupyterlab-tabular-data-viewer-extension",
         "data",
         method="POST",
-        body=json.dumps({
-            "path": test_file,
-            "offset": 0,
-            "limit": 100,
-            "filters": {
-                "is_maintenance": {
-                    "type": "text",
-                    "value": "^(1)$"
-                }
-            },
-            "useRegex": True,
-            "caseInsensitive": False
-        })
+        body=json.dumps(
+            {
+                "path": test_file,
+                "offset": 0,
+                "limit": 100,
+                "filters": {"is_maintenance": {"type": "text", "value": "^(1)$"}},
+                "useRegex": True,
+                "caseInsensitive": False,
+            }
+        ),
     )
 
     # Then
@@ -137,8 +143,12 @@ async def test_data_endpoint_with_filter(jp_fetch, jp_root_dir):
 
     # Verify filtering worked - totalRows is filtered count
     assert result["totalRows"] > 0  # Some maintenance emails exist
-    assert result["totalRows"] < 13  # Not all emails are maintenance (we know total is 13)
-    assert result["totalRows"] == 4  # Based on email_classification_dataset.parquet data
+    assert (
+        result["totalRows"] < 13
+    )  # Not all emails are maintenance (we know total is 13)
+    assert (
+        result["totalRows"] == 4
+    )  # Based on email_classification_dataset.parquet data
 
     # Verify all returned rows have is_maintenance = 1
     for row in result["data"]:
@@ -154,7 +164,11 @@ async def test_data_endpoint_with_filter(jp_fetch, jp_root_dir):
 async def test_first_row_content(jp_fetch, jp_root_dir):
     """Test that the first row contains the expected email content"""
     # Copy test file to pytest temporary directory
-    source_file = Path(__file__).parent.parent.parent / "data" / "email_classification_dataset.parquet"
+    source_file = (
+        Path(__file__).parent.parent.parent
+        / "data"
+        / "email_classification_dataset.parquet"
+    )
     target_dir = jp_root_dir / "data"
     target_dir.mkdir(exist_ok=True)
     target_file = target_dir / "email_classification_dataset.parquet"
@@ -168,14 +182,16 @@ async def test_first_row_content(jp_fetch, jp_root_dir):
         "jupyterlab-tabular-data-viewer-extension",
         "data",
         method="POST",
-        body=json.dumps({
-            "path": test_file,
-            "offset": 0,
-            "limit": 1,
-            "filters": {},
-            "useRegex": False,
-            "caseInsensitive": False
-        })
+        body=json.dumps(
+            {
+                "path": test_file,
+                "offset": 0,
+                "limit": 1,
+                "filters": {},
+                "useRegex": False,
+                "caseInsensitive": False,
+            }
+        ),
     )
 
     # Then
