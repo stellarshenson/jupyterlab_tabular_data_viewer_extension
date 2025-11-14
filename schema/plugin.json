@@ -1,6 +1,8 @@
 {
   "title": "Tabular Data Viewer Extension",
   "description": "Settings for the Tabular Data Viewer Extension. Supports Parquet, Excel, CSV, and TSV files.",
+  "jupyter.lab.setting-icon": "ui-components:spreadsheet",
+  "jupyter.lab.setting-icon-class": "jp-SpreadsheetIcon",
   "type": "object",
   "properties": {
     "enableParquet": {
@@ -30,6 +32,13 @@
     "maxCellCharacters": {
       "title": "Maximum Cell Characters",
       "description": "Maximum number of characters to display in a cell before truncating with '...'. Set to 0 for no limit.",
+      "type": "number",
+      "default": 100,
+      "minimum": 0
+    },
+    "maxUniqueValues": {
+      "title": "Maximum Unique Values",
+      "description": "Maximum number of unique values to display in filter dialog and statistics. Set to 0 for no limit.",
       "type": "number",
       "default": 100,
       "minimum": 0

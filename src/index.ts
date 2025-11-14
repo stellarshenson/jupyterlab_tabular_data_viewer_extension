@@ -49,7 +49,8 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
     const content = new TabularDataViewer(
       context.path,
       this._setLastContextMenuRow,
-      settings.maxCellCharacters
+      settings.maxCellCharacters,
+      settings.maxUniqueValues
     );
     const widget = new TabularDataDocument({ content, context });
     widget.title.label = context.path.split('/').pop() || 'Tabular Data File';
@@ -76,6 +77,7 @@ interface ISettings {
   enableCSV: boolean;
   enableTSV: boolean;
   maxCellCharacters: number;
+  maxUniqueValues: number;
 }
 
 /**
@@ -104,7 +106,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       enableExcel: true,
       enableCSV: true,
       enableTSV: true,
-      maxCellCharacters: 100
+      maxCellCharacters: 100,
+      maxUniqueValues: 100
     };
 
     // console.log('[Tabular Data Viewer] Default settings:', settings);

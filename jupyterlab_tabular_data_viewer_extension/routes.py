@@ -538,8 +538,10 @@ class UniqueValuesHandler(APIHandler):
             # Replace null values with the string "(null)" for consistent handling
             column_str = pc.fill_null(column_str, '(null)')
 
+            # Get limit from request (default to 100 if not provided)
+            limit = input_data.get('limit', 100)
+
             # Get value counts
-            limit = 1000
             value_counts = pc.value_counts(column_str)
 
             # value_counts returns a StructArray with 'values' and 'counts' fields
@@ -549,21 +551,13 @@ class UniqueValuesHandler(APIHandler):
             # Combine into list of tuples
             value_count_pairs = list(zip(values_array.to_pylist(), counts_array.to_pylist()))
 
-            # Sort by value (alphabetically), with empty string and (null) first
-            def sort_key(x):
-                val = x[0]
-                if val == '':
-                    return (0, '')  # Empty string first
-                elif val == '(null)':
-                    return (1, '')  # Null second
-                else:
-                    return (2, val)  # Everything else alphabetically
-
-            value_count_pairs.sort(key=sort_key)
+            # Sort by count (frequency) descending - most frequent first
+            value_count_pairs.sort(key=lambda x: x[1], reverse=True)
 
             # Limit the results
             total_unique = len(value_count_pairs)
-            value_count_pairs = value_count_pairs[:limit]
+            if limit > 0:
+                value_count_pairs = value_count_pairs[:limit]
 
             # Separate back into values and counts
             values_list = [v for v, c in value_count_pairs]

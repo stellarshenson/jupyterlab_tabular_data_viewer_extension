@@ -163,14 +163,14 @@
 
 .jp-TabularDataViewer-columnName {
   color: var(--jp-ui-font-color1);
-  font-size: var(--jp-ui-font-size1);
+  font-size: calc(var(--jp-ui-font-size1) * 1.10);
   margin-bottom: 2px;
   word-break: break-word;
 }
 
 .jp-TabularDataViewer-columnType {
   color: var(--jp-ui-font-color2);
-  font-size: 0.85em;
+  font-size: var(--jp-ui-font-size1);
   font-weight: normal;
   font-style: italic;
 }
@@ -219,6 +219,7 @@
   border-right: 1px solid var(--jp-border-color2);
   border-bottom: 1px solid var(--jp-border-color2);
   color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
   word-break: break-word;
   max-width: 400px;
   overflow: hidden;
@@ -231,6 +232,7 @@
   text-align: center;
   background-color: var(--jp-layout-color2);
   color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size1);
   font-weight: 500;
   user-select: none;
   min-width: 60px;
@@ -351,7 +353,7 @@
 /* Column Info Icon */
 .jp-TabularDataViewer-infoIcon {
   margin-left: 6px;
-  font-size: 1em;
+  font-size: 14px;
   color: transparent;
   cursor: pointer;
   transition: color 0.2s ease;
@@ -489,6 +491,34 @@
 }
 
 .jp-ColumnStatsModal-section li::before {
+  content: '• ';
+  color: var(--jp-brand-color1);
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.jp-ColumnStatsModal-info {
+  font-size: 13px;
+  color: var(--jp-ui-font-color2);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.jp-ColumnStatsModal-uniqueValuesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.jp-ColumnStatsModal-uniqueValueItem {
+  padding: 4px 0;
+  font-size: 14px;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-ColumnStatsModal-uniqueValueItem::before {
   content: '• ';
   color: var(--jp-brand-color1);
   font-weight: bold;

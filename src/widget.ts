@@ -62,16 +62,19 @@ export class TabularDataViewer extends Widget {
   private _cleanupHighlight: (() => void) | null = null;
   private _menuObserver: MutationObserver | null = null;
   private _maxCellCharacters: number = 100;
+  private _maxUniqueValues: number = 100;
 
   constructor(
     filePath: string,
     setLastContextMenuRow: (row: any) => void,
-    maxCellCharacters: number = 100
+    maxCellCharacters: number = 100,
+    maxUniqueValues: number = 100
   ) {
     super();
     this._filePath = filePath;
     this._setLastContextMenuRow = setLastContextMenuRow;
     this._maxCellCharacters = maxCellCharacters;
+    this._maxUniqueValues = maxUniqueValues;
     this.addClass('jp-TabularDataViewer');
 
     // Create table container (scrollable)
@@ -456,9 +459,8 @@ export class TabularDataViewer extends Widget {
       nameSpan.textContent = col.name;
 
       // Add info icon for column statistics
-      const infoIcon = document.createElement('span');
-      infoIcon.className =
-        'jp-TabularDataViewer-infoIcon jp-MaterialIcon jp-SpreadsheetIcon';
+      const infoIcon = document.createElement('i');
+      infoIcon.className = 'jp-TabularDataViewer-infoIcon fas fa-info-circle';
       infoIcon.title = 'Show column statistics';
       infoIcon.addEventListener('click', async (e: MouseEvent) => {
         e.preventDefault();
@@ -722,8 +724,12 @@ export class TabularDataViewer extends Widget {
     filterButton: HTMLElement
   ): Promise<void> {
     try {
-      // Fetch unique values for this column
-      const uniqueValues = await fetchUniqueValues(this._filePath, columnName);
+      // Fetch unique values for this column with the limit from settings
+      const uniqueValues = await fetchUniqueValues(
+        this._filePath,
+        columnName,
+        this._maxUniqueValues
+      );
 
       // Get current filter values if any
       const currentFilter = this._filters[columnName];
@@ -932,7 +938,13 @@ export class TabularDataViewer extends Widget {
     try {
       // Show loading indicator (we could add a spinner here)
       const stats = await fetchColumnStats(this._filePath, columnName);
-      const modal = new ColumnStatsModal(stats);
+      // Fetch unique values with the limit from settings
+      const uniqueValues = await fetchUniqueValues(
+        this._filePath,
+        columnName,
+        this._maxUniqueValues
+      );
+      const modal = new ColumnStatsModal(stats, uniqueValues);
       modal.show();
     } catch (error) {
       console.error('Failed to load column statistics:', error);

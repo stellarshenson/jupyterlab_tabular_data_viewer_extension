@@ -119,13 +119,15 @@ export interface IUniqueValues {
  */
 export async function fetchUniqueValues(
   filePath: string,
-  columnName: string
+  columnName: string,
+  limit: number = 100
 ): Promise<IUniqueValues> {
   return requestAPI<IUniqueValues>('unique-values', {
     method: 'POST',
     body: JSON.stringify({
       path: filePath,
-      columnName: columnName
+      columnName: columnName,
+      limit: limit
     })
   });
 }

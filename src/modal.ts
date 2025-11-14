@@ -6,10 +6,12 @@ import { IColumnStats, IUniqueValues } from './request';
  */
 export class ColumnStatsModal extends Widget {
   private _stats: IColumnStats;
+  private _uniqueValues: IUniqueValues | null;
 
-  constructor(stats: IColumnStats) {
+  constructor(stats: IColumnStats, uniqueValues: IUniqueValues | null = null) {
     super();
     this._stats = stats;
+    this._uniqueValues = uniqueValues;
     this.addClass('jp-ColumnStatsModal');
     this._render();
     this._setupEventListeners();
@@ -39,7 +41,7 @@ export class ColumnStatsModal extends Widget {
     const copySection = document.createElement('div');
     copySection.className = 'jp-ColumnStatsModal-copy';
     const copyBtn = document.createElement('button');
-    copyBtn.className = 'jp-ColumnStatsModal-copyButton';
+    copyBtn.className = 'jp-FilterModal-button'; // Use filter modal button style
     copyBtn.textContent = 'Copy Stats as JSON';
     copyBtn.onclick = () => this._copyStatsAsJson();
     copySection.appendChild(copyBtn);
@@ -172,6 +174,46 @@ export class ColumnStatsModal extends Widget {
       content.appendChild(dateSection);
     }
 
+    // Unique values section (if provided)
+    if (this._uniqueValues && this._uniqueValues.values.length > 0) {
+      const uniqueSection = document.createElement('div');
+      uniqueSection.className = 'jp-ColumnStatsModal-section';
+      const uniqueTitle = document.createElement('h4');
+      uniqueTitle.textContent = 'Unique Values';
+      uniqueSection.appendChild(uniqueTitle);
+
+      // Info about showing limited values (only if limited)
+      const showing = this._uniqueValues.values.length;
+      const totalUnique = this._stats.unique_count;
+      if (showing < totalUnique) {
+        const info = document.createElement('div');
+        info.className = 'jp-ColumnStatsModal-info';
+        info.textContent = `Showing ${showing} of ${totalUnique} unique values`;
+        uniqueSection.appendChild(info);
+      }
+
+      // Values list as bullet points
+      const valuesList = document.createElement('ul');
+      valuesList.className = 'jp-ColumnStatsModal-uniqueValuesList';
+
+      this._uniqueValues.values.forEach((value, index) => {
+        const count = this._uniqueValues!.counts[index];
+        const percentage = ((count / this._stats.total_rows) * 100).toFixed(2);
+
+        const item = document.createElement('li');
+        item.className = 'jp-ColumnStatsModal-uniqueValueItem';
+
+        const valueText = value || '(empty)';
+        const statsText = `${count.toLocaleString()} (${percentage}%)`;
+
+        item.textContent = `${valueText}: ${statsText}`;
+        valuesList.appendChild(item);
+      });
+
+      uniqueSection.appendChild(valuesList);
+      content.appendChild(uniqueSection);
+    }
+
     this.node.appendChild(content);
   }
 
@@ -190,7 +232,7 @@ export class ColumnStatsModal extends Widget {
       const json = JSON.stringify(this._stats, null, 2);
       await navigator.clipboard.writeText(json);
       // Provide visual feedback
-      const btn = this.node.querySelector('.jp-ColumnStatsModal-copyButton');
+      const btn = this.node.querySelector('.jp-FilterModal-button');
       if (btn) {
         const originalText = btn.textContent;
         btn.textContent = 'Copied!';
