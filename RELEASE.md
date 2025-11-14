@@ -1,5 +1,50 @@
 # Making a new release of jupyterlab_tabular_data_viewer_extension
 
+## What's New in Version 1.3.14
+
+Version 1.3.14 adds comprehensive backend testing infrastructure and CI/CD integration to ensure code quality and reliability.
+
+### Backend Test Suite (1.3.14)
+
+Comprehensive pytest test suite validates all backend API endpoints with automated execution in CI/CD pipeline.
+
+**Tests:**
+
+- **test_metadata_endpoint** - validates metadata fetching returns correct column names, types, and row count
+- **test_unique_values_endpoint** - validates unique values with counts functionality, ensures proper string casting and null handling
+- **test_data_endpoint_with_filter** - validates regex filtering on numeric columns, ensures type casting works correctly
+- **test_first_row_content** - validates specific data content matches expected values
+
+**Features:**
+
+- All tests use test data file with 13 rows of email classification data
+- Tests copy data to pytest temporary directory for proper isolation
+- Validates filtering on null values and empty strings
+- Ensures numeric column filtering works with string casting
+
+### CI/CD Integration (1.3.14)
+
+Python tests now run automatically in GitHub Actions workflow on every push and pull request.
+
+**Features:**
+
+- Added pytest execution step to build.yml workflow
+- Installs test dependencies from pyproject.toml [test] extras
+- Runs all backend tests with verbose output
+- Ensures code quality before merging changes
+
+### Project Infrastructure (1.3.14)
+
+Improved project organization and documentation tracking.
+
+**Changes:**
+
+- Merged duplicate JOURNAL.md files into single .claude/JOURNAL.md
+- All 49 journal entries properly numbered and tracked in git
+- Removed .claude from .gitignore to enable version control
+- Code formatted with Prettier (TypeScript/JavaScript) and Black (Python)
+- Fixed Refresh View integration to use signal-based approach
+
 ## What's New in Version 1.3
 
 Version 1.3 introduces significant improvements to data display, user interaction, and development workflow:

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.3.14] - 2025-11-14
+
+**Tag**: RELEASE_1.3.14
+
+### Added
+
+- **Backend Tests**: Comprehensive pytest test suite for API endpoints
+  - test_metadata_endpoint - validates metadata fetching and column information
+  - test_unique_values_endpoint - validates unique values with counts functionality
+  - test_data_endpoint_with_filter - validates regex filtering on numeric columns
+  - test_first_row_content - validates specific data content and structure
+  - All tests copy test data to pytest temporary directory for isolation
+- **CI/CD Integration**: Python test execution in GitHub Actions workflow
+  - Added pytest execution step to .github/workflows/build.yml
+  - Tests run automatically on every push and pull request
+  - Installs test dependencies and runs full test suite
+- **KOLOMOLO Badge**: Added branding badge to README.md
+  - Shields.io format with cyan color (#00ffff)
+  - Links to kolomolo.com
+- **Test Data**: email_classification_dataset.parquet test file
+  - 13 rows with email content and is_maintenance classification
+  - Used for comprehensive backend testing
+
+### Changed
+
+- **Refresh View Integration**: Fixed integration breaking other file types
+  - Removed command override approach that interfered with menu registration
+  - Reverted to signal-based integration using context.fileChanged
+  - Now works seamlessly with all file types without interference
+- **Code Formatting**: Applied Prettier and Black formatting
+  - All TypeScript/JavaScript files formatted with Prettier
+  - All Python files formatted with Black
+- **Project Journal**: Merged duplicate journals into single tracked file
+  - Consolidated root JOURNAL.md and .claude/JOURNAL.md
+  - All 49 entries properly numbered and organized
+  - Removed .claude from .gitignore for git tracking
+
+### Fixed
+
+- Context menu integration with refresh view extension
+- TypeScript compilation errors in index.ts
+
 ## [1.3.2] - 2025-11-14
 
 **Tag**: RELEASE_1.3.2
