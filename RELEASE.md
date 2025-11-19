@@ -1,5 +1,74 @@
 # Making a new release of jupyterlab_tabular_data_viewer_extension
 
+## What's New in Version 1.4.4
+
+Version 1.4.4 delivers major UX improvements with frozen index column for horizontal scrolling, interactive row selection, and automatic filter clearing.
+
+### Frozen Index Column (1.4.4)
+
+Row number column stays fixed when scrolling horizontally, keeping row references always visible for wide datasets.
+
+**Features:**
+
+- **Sticky positioning** - row number column remains visible at left edge during horizontal scroll
+- **Proper z-index layering** - row numbers appear above regular cells (z-index: 5) and header row numbers above sticky header (z-index: 15)
+- **Visual depth** - subtle box-shadow (2px 0 4px rgba(0, 0, 0, 0.1)) on right edge creates depth effect during scrolling
+- **Always visible** - improves navigation by keeping row numbers in view when browsing wide tables
+
+**Implementation:**
+
+- CSS-only solution using `position: sticky` and `left: 0` on `.jp-TabularDataViewer-rowNumberCell`
+- Separate z-index rules for tbody cells (5) and thead cells (15) for proper stacking context
+- No JavaScript changes required - pure CSS solution for optimal performance
+
+### Row Selection (1.4.4)
+
+Click anywhere on a row to highlight it with subtle color shading, improving data inspection workflow.
+
+**Features:**
+
+- **Click anywhere** - clicking any cell in row selects/highlights entire row
+- **Toggle selection** - clicking same row again deselects/unhighlights the row
+- **Switch selection** - clicking different row switches highlight to new row
+- **Visual feedback** - pointer cursor across entire row indicates clickability
+- **Subtle highlighting** - selected rows use transparent brand color overlay (10% opacity) for cells
+- **Opaque index cell** - row number cell uses darker opaque shading (20% brand color mixed with background)
+- **Automatic cleanup** - selection clears when data refreshes or errors occur
+
+**Implementation:**
+
+- Click handler on entire row element (not just index cell)
+- Uses CSS `color-mix()` for sophisticated color blending
+- Selected cells: `color-mix(in srgb, var(--jp-brand-color1) 10%, transparent)`
+- Selected index cell: `color-mix(in srgb, var(--jp-brand-color1) 20%, var(--jp-layout-color2))`
+- Added `_selectedRow` private property to track selection state
+
+### Auto-clear Filter Fix (1.4.4)
+
+Filters now automatically clear when input field is emptied, without requiring Enter key press.
+
+**Problem Solved:**
+
+- Previously filters only applied/cleared when user pressed Enter
+- Clearing filter text without pressing Enter left filter active
+- Filter box appeared empty but data remained filtered
+- Confusing UX requiring explicit Enter press to clear
+
+**Solution:**
+
+- Added `input` event listener to filter input fields
+- Detects when field is emptied and filter is still active
+- Automatically removes filter from internal state
+- Clears filter button active state for multi-select filters
+- Reloads data without the filter immediately
+- More intuitive and immediate filter clearing behavior
+
+**Technical Details:**
+
+- base.css:style/base.css lines 242-275 - frozen index column and row selection styling
+- widget.ts:src/widget.ts lines 401-414 - auto-clear filter input listener
+- widget.ts:src/widget.ts lines 568-586 - row selection click handler
+
 ## What's New in Version 1.3.32
 
 Version 1.3.32 adds interactive row selection functionality via index column clicks, providing visual feedback for data inspection.

@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.4.4] - 2025-11-18
+
+**Tag**: RELEASE_1.4.4
+
+### Added
+
+- **Frozen Index Column**: Row number column stays fixed when scrolling horizontally through wide datasets
+  - Implemented using CSS sticky positioning with `position: sticky` and `left: 0`
+  - Row number cells use `z-index: 5` for proper layering above regular cells
+  - Header row number cells use `z-index: 15` to appear above sticky header
+  - Subtle box-shadow (2px 0 4px) on right edge for visual depth during scrolling
+  - Improves usability by keeping row numbers always visible
+
+- **Row Selection**: Click anywhere on a row to highlight it with subtle color shading
+  - Click any cell in row to select/highlight entire row
+  - Click again to toggle off (deselect)
+  - Click different row to switch selection
+  - Entire row shows pointer cursor indicating clickability
+  - Selected row cells use `color-mix(in srgb, var(--jp-brand-color1) 10%, transparent)` for subtle highlighting
+  - Selected row index cell uses `color-mix(in srgb, var(--jp-brand-color1) 20%, var(--jp-layout-color2))` for opaque shading
+  - Selection clears automatically on data reset or error states
+  - Improves data inspection workflow with visual feedback
+
+### Fixed
+
+- **Auto-clear Filter**: Filters now automatically clear when input field is emptied
+  - Previously filters only cleared when pressing Enter key
+  - Filter remained active if text was cleared without pressing Enter
+  - Added `input` event listener to detect empty filter fields
+  - Automatically removes filter, clears button active state, and reloads data
+  - More intuitive and immediate filter clearing behavior
+
+### Technical
+
+- Added `_selectedRow` private property to track selected row element
+- Click handler on row element adds/removes `jp-TabularDataViewer-row-selected` CSS class
+- Used CSS `color-mix()` for sophisticated color blending with transparency
+- Filter input listener checks if value is empty AND filter exists for column
+- Deletes filter and triggers data reload when field emptied
+
 ## [1.3.32] - 2025-11-18
 
 **Tag**: RELEASE_1.3.32
