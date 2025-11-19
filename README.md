@@ -42,6 +42,8 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 - Simple table display showing your data in familiar spreadsheet format
 - Column headers with field names and simplified datatype indicators
 - Interactive column resizing - drag column borders to adjust width independently
+- Frozen index column - row numbers stay fixed when scrolling horizontally through wide datasets
+- Row selection - click anywhere on a row to highlight it with subtle color shading. Click again to deselect, or click another row to switch selection
 - Progressive loading - starts with 500 rows, automatically loads more as you scroll (your patience rewarded)
 - File statistics (column count, row count, file size) at a glance
 - Fixed status bar remains visible during horizontal scrolling (because it got tired of moving)
