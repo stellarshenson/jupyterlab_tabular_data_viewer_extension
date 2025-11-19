@@ -398,6 +398,21 @@ export class TabularDataViewer extends Widget {
         }
       });
 
+      // Auto-clear filter when input is emptied (without requiring Enter)
+      filterInput.addEventListener('input', () => {
+        if (!filterInput.value.trim() && this._filters[col.name]) {
+          // Filter input is empty but filter is still active - clear it
+          delete this._filters[col.name];
+          // Also clear the filter button active state if it's a multi-select filter
+          const filterButton = filterInput.parentElement?.querySelector('.jp-TabularDataViewer-filterButton');
+          if (filterButton) {
+            filterButton.classList.remove('jp-TabularDataViewer-filterButton-active');
+          }
+          // Reload data without the filter
+          this._loadData(true);
+        }
+      });
+
       // Create filter button with SVG icon
       const filterButton = document.createElement('button');
       filterButton.className = 'jp-TabularDataViewer-filterButton';
