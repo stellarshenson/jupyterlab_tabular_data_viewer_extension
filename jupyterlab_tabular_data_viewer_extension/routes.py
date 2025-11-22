@@ -587,6 +587,176 @@ class UniqueValuesHandler(APIHandler):
             }))
 
 
+class DownloadHandler(APIHandler):
+    """Handler for downloading filtered and sorted data in original format"""
+
+    @tornado.web.authenticated
+    def get(self):
+        try:
+            file_path = self.get_argument('path', '')
+            filters_json = self.get_argument('filters', '{}')
+            sort_by = self.get_argument('sortBy', None)
+            sort_order = self.get_argument('sortOrder', 'asc')
+            case_insensitive = self.get_argument('caseInsensitive', 'false') == 'true'
+            use_regex = self.get_argument('useRegex', 'false') == 'true'
+
+            filters = json.loads(filters_json) if filters_json else {}
+
+            if not file_path:
+                self.set_status(400)
+                self.finish('No file path provided')
+                return
+
+            # Get the full path to the file using contents manager
+            contents_manager = self.settings.get('contents_manager')
+            if contents_manager:
+                root_dir = contents_manager.root_dir
+            else:
+                root_dir = os.getcwd()
+
+            full_path = os.path.join(root_dir, file_path.lstrip('/'))
+            abs_path = Path(full_path).resolve()
+
+            if not abs_path.exists():
+                self.set_status(404)
+                self.finish(f'File not found: {file_path}')
+                return
+
+            # Detect file type and read accordingly
+            file_type = get_file_type(str(abs_path))
+            original_filename = abs_path.name
+
+            # Determine output filename
+            name_parts = os.path.splitext(original_filename)
+            output_filename = f"{name_parts[0]}_filtered{name_parts[1]}"
+
+            if file_type == 'parquet':
+                table = pq.read_table(str(abs_path))
+            elif file_type == 'excel':
+                table = read_excel_as_arrow_table(str(abs_path))
+            elif file_type == 'csv':
+                table = read_csv_as_arrow_table(str(abs_path), delimiter=',')
+            elif file_type == 'tsv':
+                table = read_csv_as_arrow_table(str(abs_path), delimiter='\t')
+            else:
+                self.set_status(400)
+                self.finish(f'Unsupported file type: {file_type}')
+                return
+
+            # Apply filters if provided (same logic as ParquetDataHandler)
+            if filters:
+                filter_expressions = []
+                for col_name, filter_spec in filters.items():
+                    if col_name not in table.column_names:
+                        continue
+
+                    filter_type = filter_spec.get('type', 'text')
+                    filter_value = filter_spec.get('value', '')
+
+                    if not filter_value:
+                        continue
+
+                    column = table.column(col_name)
+
+                    if filter_type == 'text':
+                        column_str = pc.cast(column, pa.string())
+                        column_str = pc.fill_null(column_str, '(null)')
+
+                        if use_regex:
+                            try:
+                                filter_expressions.append(
+                                    pc.match_substring_regex(column_str, filter_value, ignore_case=case_insensitive)
+                                )
+                            except Exception:
+                                filter_expressions.append(
+                                    pc.match_substring(column_str, filter_value, ignore_case=case_insensitive)
+                                )
+                        else:
+                            filter_expressions.append(
+                                pc.match_substring(column_str, filter_value, ignore_case=case_insensitive)
+                            )
+                    elif filter_type == 'number':
+                        operator = filter_spec.get('operator', '=')
+                        try:
+                            numeric_value = float(filter_value)
+
+                            if operator == '>':
+                                filter_expressions.append(pc.greater(column, numeric_value))
+                            elif operator == '<':
+                                filter_expressions.append(pc.less(column, numeric_value))
+                            elif operator == '>=':
+                                filter_expressions.append(pc.greater_equal(column, numeric_value))
+                            elif operator == '<=':
+                                filter_expressions.append(pc.less_equal(column, numeric_value))
+                            elif operator == '=':
+                                filter_expressions.append(pc.equal(column, numeric_value))
+                        except ValueError:
+                            pass
+
+                if filter_expressions:
+                    combined_filter = filter_expressions[0]
+                    for expr in filter_expressions[1:]:
+                        combined_filter = pc.and_(combined_filter, expr)
+
+                    table = table.filter(combined_filter)
+
+            # Apply sorting if requested
+            if sort_by and sort_by in table.column_names:
+                indices = pc.sort_indices(table, sort_keys=[(sort_by, "ascending" if sort_order == "asc" else "descending")])
+                table = pc.take(table, indices)
+
+            # Convert table to pandas DataFrame for export
+            df = table.to_pandas()
+
+            # Export based on file type
+            if file_type == 'parquet':
+                # Export as Parquet
+                import io
+                buffer = io.BytesIO()
+                df.to_parquet(buffer, index=False)
+                buffer.seek(0)
+
+                self.set_header('Content-Type', 'application/octet-stream')
+                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.write(buffer.read())
+
+            elif file_type == 'excel':
+                # Export as Excel
+                import io
+                buffer = io.BytesIO()
+                df.to_excel(buffer, index=False, engine='openpyxl')
+                buffer.seek(0)
+
+                self.set_header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.write(buffer.read())
+
+            elif file_type == 'csv':
+                # Export as CSV
+                csv_data = df.to_csv(index=False)
+
+                self.set_header('Content-Type', 'text/csv')
+                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.write(csv_data)
+
+            elif file_type == 'tsv':
+                # Export as TSV
+                tsv_data = df.to_csv(index=False, sep='\t')
+
+                self.set_header('Content-Type', 'text/tab-separated-values')
+                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.write(tsv_data)
+
+            self.finish()
+
+        except Exception as e:
+            import traceback
+            error_traceback = traceback.format_exc()
+            self.log.error(f"Download handler error: {str(e)}\n{error_traceback}")
+            self.set_status(500)
+            self.finish(f'Error downloading file: {str(e)}')
+
+
 def setup_route_handlers(web_app):
     host_pattern = ".*$"
     base_url = web_app.settings["base_url"]
@@ -595,12 +765,14 @@ def setup_route_handlers(web_app):
     data_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "data")
     stats_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "column-stats")
     unique_values_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "unique-values")
+    download_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "download")
 
     handlers = [
         (metadata_pattern, ParquetMetadataHandler),
         (data_pattern, ParquetDataHandler),
         (stats_pattern, ColumnStatsHandler),
-        (unique_values_pattern, UniqueValuesHandler)
+        (unique_values_pattern, UniqueValuesHandler),
+        (download_pattern, DownloadHandler)
     ]
 
     web_app.add_handlers(host_pattern, handlers)

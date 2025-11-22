@@ -1,6 +1,8 @@
 import { Widget } from '@lumino/widgets';
 import { requestAPI, fetchColumnStats, fetchUniqueValues } from './request';
 import { ColumnStatsModal, FilterModal } from './modal';
+import { URLExt } from '@jupyterlab/coreutils';
+import { ServerConnection } from '@jupyterlab/services';
 
 /**
  * Column metadata interface
@@ -160,6 +162,16 @@ export class TabularDataViewer extends Widget {
 
     this._statusRight = document.createElement('div');
     this._statusRight.className = 'jp-TabularDataViewer-statusRight';
+
+    // Create download button
+    const downloadButton = document.createElement('button');
+    downloadButton.className = 'jp-TabularDataViewer-downloadButton';
+    downloadButton.textContent = 'Download Filtered Data';
+    downloadButton.title = 'Download data with current filters and sorting applied';
+    downloadButton.addEventListener('click', () => {
+      this._downloadFilteredData();
+    });
+    this._statusRight.appendChild(downloadButton);
 
     this._statusBar.appendChild(this._statusLeft);
     this._statusBar.appendChild(statusMiddle);
@@ -1092,6 +1104,51 @@ export class TabularDataViewer extends Widget {
     td.textContent = message;
     tr.appendChild(td);
     this._tbody.appendChild(tr);
+  }
+
+  /**
+   * Download filtered and sorted data
+   */
+  private async _downloadFilteredData(): Promise<void> {
+    try {
+      // Build download URL with current filters and sorting
+      const params = new URLSearchParams();
+      params.append('path', this._filePath);
+
+      // Add filters
+      if (Object.keys(this._filters).length > 0) {
+        params.append('filters', JSON.stringify(this._filters));
+      }
+
+      // Add sorting
+      if (this._sortBy) {
+        params.append('sortBy', this._sortBy);
+        params.append('sortOrder', this._sortOrder);
+      }
+
+      // Add filter options
+      params.append('caseInsensitive', String(this._caseInsensitive));
+      params.append('useRegex', String(this._useRegex));
+
+      // Use URLExt to construct proper URL
+      const settings = ServerConnection.makeSettings();
+      const downloadUrl = URLExt.join(
+        settings.baseUrl,
+        'jupyterlab-tabular-data-viewer-extension',
+        'download'
+      ) + '?' + params.toString();
+
+      // Create temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = ''; // Browser will use filename from Content-Disposition header
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Failed to download filtered data:', error);
+      alert(`Failed to download data: ${error}`);
+    }
   }
 
   /**
