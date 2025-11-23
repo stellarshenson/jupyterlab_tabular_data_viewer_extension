@@ -588,12 +588,13 @@ class UniqueValuesHandler(APIHandler):
 
 
 class DownloadHandler(APIHandler):
-    """Handler for downloading filtered and sorted data in original format"""
+    """Handler for downloading filtered and sorted data in specified format"""
 
     @tornado.web.authenticated
     def get(self):
         try:
             file_path = self.get_argument('path', '')
+            download_format = self.get_argument('format', 'original')  # 'original', 'xlsx', or 'csv'
             filters_json = self.get_argument('filters', '{}')
             sort_by = self.get_argument('sortBy', None)
             sort_order = self.get_argument('sortOrder', 'asc')
@@ -622,13 +623,26 @@ class DownloadHandler(APIHandler):
                 self.finish(f'File not found: {file_path}')
                 return
 
-            # Detect file type and read accordingly
+            # Detect source file type and read accordingly
             file_type = get_file_type(str(abs_path))
             original_filename = abs_path.name
-
-            # Determine output filename
             name_parts = os.path.splitext(original_filename)
-            output_filename = f"{name_parts[0]}_filtered{name_parts[1]}"
+            base_filename = name_parts[0]
+
+            # Determine output format and filename
+            if download_format == 'original':
+                output_format = file_type
+                output_filename = f"{base_filename}_filtered{name_parts[1]}"
+            elif download_format == 'xlsx':
+                output_format = 'excel'
+                output_filename = f"{base_filename}_filtered.xlsx"
+            elif download_format == 'csv':
+                output_format = 'csv'
+                output_filename = f"{base_filename}_filtered.csv"
+            else:
+                self.set_status(400)
+                self.finish(f'Invalid format: {download_format}')
+                return
 
             if file_type == 'parquet':
                 table = pq.read_table(str(abs_path))
@@ -708,8 +722,8 @@ class DownloadHandler(APIHandler):
             # Convert table to pandas DataFrame for export
             df = table.to_pandas()
 
-            # Export based on file type
-            if file_type == 'parquet':
+            # Export based on requested output format
+            if output_format == 'parquet':
                 # Export as Parquet
                 import io
                 buffer = io.BytesIO()
@@ -720,7 +734,7 @@ class DownloadHandler(APIHandler):
                 self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
                 self.write(buffer.read())
 
-            elif file_type == 'excel':
+            elif output_format == 'excel':
                 # Export as Excel
                 import io
                 buffer = io.BytesIO()
@@ -731,7 +745,7 @@ class DownloadHandler(APIHandler):
                 self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
                 self.write(buffer.read())
 
-            elif file_type == 'csv':
+            elif output_format == 'csv':
                 # Export as CSV
                 csv_data = df.to_csv(index=False)
 
@@ -739,7 +753,7 @@ class DownloadHandler(APIHandler):
                 self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
                 self.write(csv_data)
 
-            elif file_type == 'tsv':
+            elif output_format == 'tsv':
                 # Export as TSV
                 tsv_data = df.to_csv(index=False, sep='\t')
 

@@ -42,6 +42,24 @@
       "type": "number",
       "default": 100,
       "minimum": 0
+    },
+    "enableDownloadOriginal": {
+      "title": "Enable Download Original Format",
+      "description": "Allow downloading data in original file format (Parquet, Excel, CSV, TSV)",
+      "type": "boolean",
+      "default": true
+    },
+    "enableDownloadExcel": {
+      "title": "Enable Download Excel Format",
+      "description": "Allow downloading data as Excel (.xlsx) file",
+      "type": "boolean",
+      "default": true
+    },
+    "enableDownloadCSV": {
+      "title": "Enable Download CSV Format",
+      "description": "Allow downloading data as CSV (.csv) file",
+      "type": "boolean",
+      "default": true
     }
   },
   "additionalProperties": false
