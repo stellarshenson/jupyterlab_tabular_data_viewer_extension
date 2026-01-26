@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "pyarrow>=10.0.0",
-    "pandas>=1.5.0",
+    "pandas>=2.0.0",
     "openpyxl>=3.0.0"
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
