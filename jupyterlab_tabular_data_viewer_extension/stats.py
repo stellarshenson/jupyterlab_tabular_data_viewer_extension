@@ -22,8 +22,10 @@ def simplify_type(arrow_type: pa.DataType) -> str:
         return 'int'
     elif pa.types.is_floating(arrow_type):
         return 'float'
-    elif pa.types.is_string(arrow_type) or pa.types.is_large_string(arrow_type):
+    elif pa.types.is_string(arrow_type) or pa.types.is_large_string(arrow_type) or type_str in ('string_view', 'large_utf8'):
         return 'string'
+    elif type_str == 'binary_view' or pa.types.is_binary(arrow_type) or pa.types.is_large_binary(arrow_type):
+        return 'binary'
     elif pa.types.is_date(arrow_type):
         return 'date'
     elif pa.types.is_timestamp(arrow_type):
@@ -51,6 +53,15 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
     column = table.column(column_name)
     column_type = column.type
     simplified_type = simplify_type(column_type)
+
+    # Cast view types to their base equivalents for compute compatibility
+    view_type_cast = {
+        'string_view': pa.string(),
+        'binary_view': pa.binary(),
+    }
+    cast_target = view_type_cast.get(str(column_type))
+    if cast_target is not None:
+        column = pc.cast(column, cast_target)
 
     # Basic statistics for all types
     total_count = len(column)

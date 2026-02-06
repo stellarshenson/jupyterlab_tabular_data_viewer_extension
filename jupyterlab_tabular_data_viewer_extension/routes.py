@@ -35,6 +35,22 @@ def convert_to_json_serializable(value):
         return value
 
 
+def normalize_arrow_type(arrow_type_str):
+    """Normalize PyArrow type strings for user-friendly display.
+
+    Maps internal/optimized types like string_view, large_string to their
+    base equivalents (e.g. string, binary).
+    """
+    type_map = {
+        'string_view': 'string',
+        'binary_view': 'binary',
+        'large_string': 'string',
+        'large_binary': 'binary',
+        'large_utf8': 'string',
+    }
+    return type_map.get(arrow_type_str, arrow_type_str)
+
+
 def get_file_type(file_path):
     """Determine file type based on extension"""
     ext = os.path.splitext(file_path)[1].lower()
@@ -132,7 +148,7 @@ class ParquetMetadataHandler(APIHandler):
                     field = schema.field(i)
                     columns.append({
                         'name': field.name,
-                        'type': str(field.type)
+                        'type': normalize_arrow_type(str(field.type))
                     })
 
                 # Get total row count
@@ -149,7 +165,7 @@ class ParquetMetadataHandler(APIHandler):
                     field = schema.field(i)
                     columns.append({
                         'name': field.name,
-                        'type': str(field.type)
+                        'type': normalize_arrow_type(str(field.type))
                     })
 
                 # Get total row count
@@ -166,7 +182,7 @@ class ParquetMetadataHandler(APIHandler):
                     field = schema.field(i)
                     columns.append({
                         'name': field.name,
-                        'type': str(field.type)
+                        'type': normalize_arrow_type(str(field.type))
                     })
 
                 # Get total row count
@@ -183,7 +199,7 @@ class ParquetMetadataHandler(APIHandler):
                     field = schema.field(i)
                     columns.append({
                         'name': field.name,
-                        'type': str(field.type)
+                        'type': normalize_arrow_type(str(field.type))
                     })
 
                 # Get total row count

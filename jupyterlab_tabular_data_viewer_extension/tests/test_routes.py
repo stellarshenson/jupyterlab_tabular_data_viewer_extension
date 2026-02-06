@@ -210,3 +210,125 @@ async def test_first_row_content(jp_fetch, jp_root_dir):
 
     # Verify it's not a maintenance email
     assert first_row["is_maintenance"] == 0
+
+
+async def test_string_view_metadata(jp_fetch, jp_root_dir):
+    """Test that string_view columns are normalized to 'string' in metadata"""
+    source_file = (
+        Path(__file__).parent.parent.parent / "data" / "activity_stats.parquet"
+    )
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(source_file, target_dir / "activity_stats.parquet")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "metadata",
+        method="POST",
+        body=json.dumps({"path": "data/activity_stats.parquet"}),
+    )
+
+    assert response.code == 200
+    metadata = json.loads(response.body)
+
+    # string_view columns should appear as 'string'
+    type_by_name = {c["name"]: c["type"] for c in metadata["columns"]}
+    for col in ("id", "farm_id", "date", "period", "source"):
+        assert type_by_name[col] == "string", f"{col} should be 'string', got '{type_by_name[col]}'"
+
+    # numeric columns should remain double
+    assert type_by_name["animal_count"] == "double"
+
+
+async def test_string_view_column_stats(jp_fetch, jp_root_dir):
+    """Test that column stats work on string_view columns without errors"""
+    source_file = (
+        Path(__file__).parent.parent.parent / "data" / "activity_stats.parquet"
+    )
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(source_file, target_dir / "activity_stats.parquet")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps({"path": "data/activity_stats.parquet", "columnName": "date"}),
+    )
+
+    assert response.code == 200
+    stats = json.loads(response.body)
+
+    assert stats["data_type"] == "string"
+    assert stats["total_rows"] > 0
+    assert "unique_count" in stats
+    assert "min_length" in stats
+    assert "max_length" in stats
+
+
+async def test_string_view_unique_values(jp_fetch, jp_root_dir):
+    """Test that unique values work on string_view columns"""
+    source_file = (
+        Path(__file__).parent.parent.parent / "data" / "activity_stats.parquet"
+    )
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(source_file, target_dir / "activity_stats.parquet")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "unique-values",
+        method="POST",
+        body=json.dumps({"path": "data/activity_stats.parquet", "columnName": "date"}),
+    )
+
+    assert response.code == 200
+    result = json.loads(response.body)
+
+    assert "values" in result
+    assert "counts" in result
+    assert result["total_count"] > 0
+
+
+async def test_column_stats_all_types(jp_fetch, jp_root_dir):
+    """Test column stats for string_view and double columns in activity_stats"""
+    source_file = (
+        Path(__file__).parent.parent.parent / "data" / "activity_stats.parquet"
+    )
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(source_file, target_dir / "activity_stats.parquet")
+    test_file = "data/activity_stats.parquet"
+
+    # Test string_view columns
+    for col_name in ("id", "farm_id", "date", "period", "source"):
+        response = await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            "column-stats",
+            method="POST",
+            body=json.dumps({"path": test_file, "columnName": col_name}),
+        )
+        assert response.code == 200, f"Stats failed for string_view column '{col_name}'"
+        stats = json.loads(response.body)
+        assert stats["data_type"] == "string", f"{col_name} type should be 'string'"
+        assert stats["total_rows"] > 0
+        assert "min_length" in stats, f"{col_name} missing min_length"
+        assert "max_length" in stats, f"{col_name} missing max_length"
+        assert "avg_length" in stats, f"{col_name} missing avg_length"
+
+    # Test double columns
+    for col_name in ("animal_count", "total_activity_mean", "alarm_rate"):
+        response = await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            "column-stats",
+            method="POST",
+            body=json.dumps({"path": test_file, "columnName": col_name}),
+        )
+        assert response.code == 200, f"Stats failed for double column '{col_name}'"
+        stats = json.loads(response.body)
+        assert stats["data_type"] == "float", f"{col_name} type should be 'float'"
+        assert "min_value" in stats, f"{col_name} missing min_value"
+        assert "max_value" in stats, f"{col_name} missing max_value"
+        assert "mean" in stats, f"{col_name} missing mean"
+        assert "median" in stats, f"{col_name} missing median"
+        assert "std_dev" in stats, f"{col_name} missing std_dev"
