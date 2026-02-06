@@ -574,7 +574,10 @@ export class DownloadModal extends Widget {
   /**
    * Create a format button
    */
-  private _createFormatButton(label: string, format: string): HTMLButtonElement {
+  private _createFormatButton(
+    label: string,
+    format: string
+  ): HTMLButtonElement {
     const btn = document.createElement('button');
     btn.className = 'jp-FilterModal-button';
     btn.textContent = label;

@@ -275,8 +275,8 @@ export class TabularDataViewer extends Widget {
    * Show download modal dialog
    */
   public showDownloadModal(): void {
-    const modal = new DownloadModal(
-      (format: string) => this.downloadFilteredData(format)
+    const modal = new DownloadModal((format: string) =>
+      this.downloadFilteredData(format)
     );
     modal.show();
   }
@@ -416,9 +416,13 @@ export class TabularDataViewer extends Widget {
           // Filter input is empty but filter is still active - clear it
           delete this._filters[col.name];
           // Also clear the filter button active state if it's a multi-select filter
-          const filterButton = filterInput.parentElement?.querySelector('.jp-TabularDataViewer-filterButton');
+          const filterButton = filterInput.parentElement?.querySelector(
+            '.jp-TabularDataViewer-filterButton'
+          );
           if (filterButton) {
-            filterButton.classList.remove('jp-TabularDataViewer-filterButton-active');
+            filterButton.classList.remove(
+              'jp-TabularDataViewer-filterButton-active'
+            );
           }
           // Reload data without the filter
           this._loadData(true);
@@ -593,7 +597,7 @@ export class TabularDataViewer extends Widget {
       });
 
       // Add click handler for row selection/highlighting (anywhere on row)
-      tr.addEventListener('click', (e) => {
+      tr.addEventListener('click', e => {
         e.stopPropagation();
 
         // If clicking the already selected row, deselect it
@@ -603,7 +607,9 @@ export class TabularDataViewer extends Widget {
         } else {
           // Remove highlight from previously selected row
           if (this._selectedRow) {
-            this._selectedRow.classList.remove('jp-TabularDataViewer-row-selected');
+            this._selectedRow.classList.remove(
+              'jp-TabularDataViewer-row-selected'
+            );
           }
 
           // Highlight the new row
@@ -1110,7 +1116,9 @@ export class TabularDataViewer extends Widget {
    * Download filtered and sorted data
    * @param format - Download format: 'original', 'xlsx', or 'csv'
    */
-  public async downloadFilteredData(format: string = 'original'): Promise<void> {
+  public async downloadFilteredData(
+    format: string = 'original'
+  ): Promise<void> {
     try {
       // Build download URL with current filters and sorting
       const params = new URLSearchParams();
@@ -1134,11 +1142,14 @@ export class TabularDataViewer extends Widget {
 
       // Use URLExt to construct proper URL
       const settings = ServerConnection.makeSettings();
-      const downloadUrl = URLExt.join(
-        settings.baseUrl,
-        'jupyterlab-tabular-data-viewer-extension',
-        'download'
-      ) + '?' + params.toString();
+      const downloadUrl =
+        URLExt.join(
+          settings.baseUrl,
+          'jupyterlab-tabular-data-viewer-extension',
+          'download'
+        ) +
+        '?' +
+        params.toString();
 
       // Create temporary link and trigger download
       const link = document.createElement('a');

@@ -5,22 +5,20 @@ except ImportError:
     # in editable mode with pip. It is highly recommended to install
     # the package from a stable release or in editable mode: https://pip.pypa.io/en/stable/topics/local-project-installs/#editable-installs
     import warnings
-    warnings.warn("Importing 'jupyterlab_tabular_data_viewer_extension' outside a proper installation.")
+
+    warnings.warn(
+        "Importing 'jupyterlab_tabular_data_viewer_extension' outside a proper installation."
+    )
     __version__ = "dev"
 from .routes import setup_route_handlers
 
 
 def _jupyter_labextension_paths():
-    return [{
-        "src": "labextension",
-        "dest": "jupyterlab_tabular_data_viewer_extension"
-    }]
+    return [{"src": "labextension", "dest": "jupyterlab_tabular_data_viewer_extension"}]
 
 
 def _jupyter_server_extension_points():
-    return [{
-        "module": "jupyterlab_tabular_data_viewer_extension"
-    }]
+    return [{"module": "jupyterlab_tabular_data_viewer_extension"}]
 
 
 def _load_jupyter_server_extension(server_app):

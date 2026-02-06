@@ -24,7 +24,7 @@ def convert_to_json_serializable(value):
     elif isinstance(value, Decimal):
         return float(value)
     elif isinstance(value, bytes):
-        return value.decode('utf-8', errors='replace')
+        return value.decode("utf-8", errors="replace")
     elif isinstance(value, (list, tuple)):
         # Convert list/tuple to JSON string for display
         return json.dumps(value)
@@ -42,11 +42,11 @@ def normalize_arrow_type(arrow_type_str):
     base equivalents (e.g. string, binary).
     """
     type_map = {
-        'string_view': 'string',
-        'binary_view': 'binary',
-        'large_string': 'string',
-        'large_binary': 'binary',
-        'large_utf8': 'string',
+        "string_view": "string",
+        "binary_view": "binary",
+        "large_string": "string",
+        "large_binary": "binary",
+        "large_utf8": "string",
     }
     return type_map.get(arrow_type_str, arrow_type_str)
 
@@ -54,48 +54,52 @@ def normalize_arrow_type(arrow_type_str):
 def get_file_type(file_path):
     """Determine file type based on extension"""
     ext = os.path.splitext(file_path)[1].lower()
-    if ext == '.parquet':
-        return 'parquet'
-    elif ext in ['.xlsx', '.xls']:
-        return 'excel'
-    elif ext == '.csv':
-        return 'csv'
-    elif ext == '.tsv':
-        return 'tsv'
+    if ext == ".parquet":
+        return "parquet"
+    elif ext in [".xlsx", ".xls"]:
+        return "excel"
+    elif ext == ".csv":
+        return "csv"
+    elif ext == ".tsv":
+        return "tsv"
     else:
-        return 'unknown'
+        return "unknown"
 
 
 def read_excel_as_arrow_table(file_path):
     """Read Excel file (first worksheet only) and convert to PyArrow Table"""
     try:
         # Read only the first worksheet
-        df = pd.read_excel(file_path, sheet_name=0, engine='openpyxl')
+        df = pd.read_excel(file_path, sheet_name=0, engine="openpyxl")
 
         # Convert pandas DataFrame to PyArrow Table
         table = pa.Table.from_pandas(df)
 
         return table
     except Exception as e:
-        raise Exception(f"Failed to read Excel file: {str(e)}. Ensure the file is a valid Excel file and openpyxl is installed.")
+        raise Exception(
+            f"Failed to read Excel file: {str(e)}. Ensure the file is a valid Excel file and openpyxl is installed."
+        )
 
 
-def read_csv_as_arrow_table(file_path, delimiter=','):
+def read_csv_as_arrow_table(file_path, delimiter=","):
     """Read CSV/TSV file and convert to PyArrow Table"""
     try:
         # Read CSV with pandas, handling various encodings
         # Try UTF-8 first, fall back to latin1 if that fails
         try:
-            df = pd.read_csv(file_path, delimiter=delimiter, encoding='utf-8')
+            df = pd.read_csv(file_path, delimiter=delimiter, encoding="utf-8")
         except UnicodeDecodeError:
-            df = pd.read_csv(file_path, delimiter=delimiter, encoding='latin1')
+            df = pd.read_csv(file_path, delimiter=delimiter, encoding="latin1")
 
         # Convert pandas DataFrame to PyArrow Table
         table = pa.Table.from_pandas(df)
 
         return table
     except Exception as e:
-        raise Exception(f"Failed to read CSV file: {str(e)}. Ensure the file is a valid CSV file.")
+        raise Exception(
+            f"Failed to read CSV file: {str(e)}. Ensure the file is a valid CSV file."
+        )
 
 
 class ParquetMetadataHandler(APIHandler):
@@ -105,15 +109,15 @@ class ParquetMetadataHandler(APIHandler):
     def post(self):
         try:
             input_data = self.get_json_body()
-            file_path = input_data.get('path', '')
+            file_path = input_data.get("path", "")
 
             if not file_path:
                 self.set_status(400)
-                self.finish(json.dumps({'error': 'No file path provided'}))
+                self.finish(json.dumps({"error": "No file path provided"}))
                 return
 
             # Get the full path to the file using contents manager
-            contents_manager = self.settings.get('contents_manager')
+            contents_manager = self.settings.get("contents_manager")
             if contents_manager:
                 root_dir = contents_manager.root_dir
             else:
@@ -122,7 +126,7 @@ class ParquetMetadataHandler(APIHandler):
             self.log.info(f"Processing request for: {file_path}")
             self.log.debug(f"Root dir: {root_dir}")
 
-            full_path = os.path.join(root_dir, file_path.lstrip('/'))
+            full_path = os.path.join(root_dir, file_path.lstrip("/"))
             abs_path = Path(full_path).resolve()
 
             self.log.debug(f"Full path: {full_path}")
@@ -131,13 +135,19 @@ class ParquetMetadataHandler(APIHandler):
 
             if not abs_path.exists():
                 self.set_status(404)
-                self.finish(json.dumps({'error': f'File not found: {file_path} (resolved to {abs_path})'}))
+                self.finish(
+                    json.dumps(
+                        {
+                            "error": f"File not found: {file_path} (resolved to {abs_path})"
+                        }
+                    )
+                )
                 return
 
             # Detect file type
             file_type = get_file_type(str(abs_path))
 
-            if file_type == 'parquet':
+            if file_type == "parquet":
                 # Read Parquet file metadata
                 parquet_file = pq.ParquetFile(str(abs_path))
                 schema = parquet_file.schema_arrow
@@ -146,15 +156,17 @@ class ParquetMetadataHandler(APIHandler):
                 columns = []
                 for i in range(len(schema)):
                     field = schema.field(i)
-                    columns.append({
-                        'name': field.name,
-                        'type': normalize_arrow_type(str(field.type))
-                    })
+                    columns.append(
+                        {
+                            "name": field.name,
+                            "type": normalize_arrow_type(str(field.type)),
+                        }
+                    )
 
                 # Get total row count
                 total_rows = parquet_file.metadata.num_rows
 
-            elif file_type == 'excel':
+            elif file_type == "excel":
                 # Read Excel file metadata
                 table = read_excel_as_arrow_table(str(abs_path))
                 schema = table.schema
@@ -163,72 +175,85 @@ class ParquetMetadataHandler(APIHandler):
                 columns = []
                 for i in range(len(schema)):
                     field = schema.field(i)
-                    columns.append({
-                        'name': field.name,
-                        'type': normalize_arrow_type(str(field.type))
-                    })
+                    columns.append(
+                        {
+                            "name": field.name,
+                            "type": normalize_arrow_type(str(field.type)),
+                        }
+                    )
 
                 # Get total row count
                 total_rows = len(table)
 
-            elif file_type == 'csv':
+            elif file_type == "csv":
                 # Read CSV file metadata
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=',')
+                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
                 schema = table.schema
 
                 # Extract column information
                 columns = []
                 for i in range(len(schema)):
                     field = schema.field(i)
-                    columns.append({
-                        'name': field.name,
-                        'type': normalize_arrow_type(str(field.type))
-                    })
+                    columns.append(
+                        {
+                            "name": field.name,
+                            "type": normalize_arrow_type(str(field.type)),
+                        }
+                    )
 
                 # Get total row count
                 total_rows = len(table)
 
-            elif file_type == 'tsv':
+            elif file_type == "tsv":
                 # Read TSV file metadata
-                table = read_csv_as_arrow_table(str(abs_path), delimiter='\t')
+                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
                 schema = table.schema
 
                 # Extract column information
                 columns = []
                 for i in range(len(schema)):
                     field = schema.field(i)
-                    columns.append({
-                        'name': field.name,
-                        'type': normalize_arrow_type(str(field.type))
-                    })
+                    columns.append(
+                        {
+                            "name": field.name,
+                            "type": normalize_arrow_type(str(field.type)),
+                        }
+                    )
 
                 # Get total row count
                 total_rows = len(table)
 
             else:
                 self.set_status(400)
-                self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
+                self.finish(
+                    json.dumps({"error": f"Unsupported file type: {file_type}"})
+                )
                 return
 
             # Get file size
             file_size = abs_path.stat().st_size
 
-            self.finish(json.dumps({
-                'columns': columns,
-                'totalRows': total_rows,
-                'fileSize': file_size
-            }))
+            self.finish(
+                json.dumps(
+                    {"columns": columns, "totalRows": total_rows, "fileSize": file_size}
+                )
+            )
 
         except Exception as e:
             import traceback
+
             error_traceback = traceback.format_exc()
             self.log.error(f"Handler error: {str(e)}\n{error_traceback}")
             self.set_status(500)
-            self.finish(json.dumps({
-                'error': str(e),
-                'error_type': type(e).__name__,
-                'traceback': error_traceback
-            }))
+            self.finish(
+                json.dumps(
+                    {
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        "traceback": error_traceback,
+                    }
+                )
+            )
 
 
 class ParquetDataHandler(APIHandler):
@@ -238,31 +263,33 @@ class ParquetDataHandler(APIHandler):
     def post(self):
         try:
             input_data = self.get_json_body()
-            file_path = input_data.get('path', '')
-            offset = input_data.get('offset', 0)
-            limit = input_data.get('limit', 500)
-            filters = input_data.get('filters', {})
-            sort_by = input_data.get('sortBy', None)
-            sort_order = input_data.get('sortOrder', 'asc')
-            case_insensitive = input_data.get('caseInsensitive', False)
-            use_regex = input_data.get('useRegex', False)
+            file_path = input_data.get("path", "")
+            offset = input_data.get("offset", 0)
+            limit = input_data.get("limit", 500)
+            filters = input_data.get("filters", {})
+            sort_by = input_data.get("sortBy", None)
+            sort_order = input_data.get("sortOrder", "asc")
+            case_insensitive = input_data.get("caseInsensitive", False)
+            use_regex = input_data.get("useRegex", False)
 
             if not file_path:
                 self.set_status(400)
-                self.finish(json.dumps({'error': 'No file path provided'}))
+                self.finish(json.dumps({"error": "No file path provided"}))
                 return
 
             # Get the full path to the file using contents manager
-            contents_manager = self.settings.get('contents_manager')
+            contents_manager = self.settings.get("contents_manager")
             if contents_manager:
                 root_dir = contents_manager.root_dir
             else:
                 root_dir = os.getcwd()
 
-            self.log.info(f"Data request for: {file_path} (offset={offset}, limit={limit})")
+            self.log.info(
+                f"Data request for: {file_path} (offset={offset}, limit={limit})"
+            )
             self.log.debug(f"Root dir: {root_dir}")
 
-            full_path = os.path.join(root_dir, file_path.lstrip('/'))
+            full_path = os.path.join(root_dir, file_path.lstrip("/"))
             abs_path = Path(full_path).resolve()
 
             self.log.debug(f"Full path: {full_path}")
@@ -271,32 +298,40 @@ class ParquetDataHandler(APIHandler):
 
             if not abs_path.exists():
                 self.set_status(404)
-                self.finish(json.dumps({'error': f'File not found: {file_path} (resolved to {abs_path})'}))
+                self.finish(
+                    json.dumps(
+                        {
+                            "error": f"File not found: {file_path} (resolved to {abs_path})"
+                        }
+                    )
+                )
                 return
 
             # Detect file type and read accordingly
             file_type = get_file_type(str(abs_path))
 
-            if file_type == 'parquet':
+            if file_type == "parquet":
                 self.log.debug(f"Reading parquet file: {abs_path}")
                 table = pq.read_table(str(abs_path))
-            elif file_type == 'excel':
+            elif file_type == "excel":
                 self.log.debug(f"Reading excel file: {abs_path}")
                 table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == 'csv':
+            elif file_type == "csv":
                 self.log.debug(f"Reading CSV file: {abs_path}")
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=',')
-            elif file_type == 'tsv':
+                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
+            elif file_type == "tsv":
                 self.log.debug(f"Reading TSV file: {abs_path}")
-                table = read_csv_as_arrow_table(str(abs_path), delimiter='\t')
+                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
             else:
                 self.set_status(400)
-                self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
+                self.finish(
+                    json.dumps({"error": f"Unsupported file type: {file_type}"})
+                )
                 return
 
             # Add original row index column (1-indexed for display)
             original_indices = pa.array(range(1, len(table) + 1))
-            table = table.append_column('__original_row_index__', original_indices)
+            table = table.append_column("__original_row_index__", original_indices)
 
             # Apply filters if provided
             if filters:
@@ -305,53 +340,75 @@ class ParquetDataHandler(APIHandler):
                     if col_name not in table.column_names:
                         continue
 
-                    filter_type = filter_spec.get('type', 'text')
-                    filter_value = filter_spec.get('value', '')
+                    filter_type = filter_spec.get("type", "text")
+                    filter_value = filter_spec.get("value", "")
 
                     if not filter_value:
                         continue
 
                     column = table.column(col_name)
 
-                    if filter_type == 'text':
+                    if filter_type == "text":
                         # Cast column to string for text filtering (handles both string and numeric columns)
                         column_str = pc.cast(column, pa.string())
 
                         # Replace null values with "(null)" for consistent filtering
-                        column_str = pc.fill_null(column_str, '(null)')
+                        column_str = pc.fill_null(column_str, "(null)")
 
                         if use_regex:
                             # Use regex matching when enabled
                             try:
                                 filter_expressions.append(
-                                    pc.match_substring_regex(column_str, filter_value, ignore_case=case_insensitive)
+                                    pc.match_substring_regex(
+                                        column_str,
+                                        filter_value,
+                                        ignore_case=case_insensitive,
+                                    )
                                 )
                             except Exception:
                                 # Fall back to simple substring matching if regex is invalid
                                 filter_expressions.append(
-                                    pc.match_substring(column_str, filter_value, ignore_case=case_insensitive)
+                                    pc.match_substring(
+                                        column_str,
+                                        filter_value,
+                                        ignore_case=case_insensitive,
+                                    )
                                 )
                         else:
                             # Use simple substring matching by default
                             filter_expressions.append(
-                                pc.match_substring(column_str, filter_value, ignore_case=case_insensitive)
+                                pc.match_substring(
+                                    column_str,
+                                    filter_value,
+                                    ignore_case=case_insensitive,
+                                )
                             )
-                    elif filter_type == 'number':
+                    elif filter_type == "number":
                         # Numerical comparison
-                        operator = filter_spec.get('operator', '=')
+                        operator = filter_spec.get("operator", "=")
                         try:
                             numeric_value = float(filter_value)
 
-                            if operator == '>':
-                                filter_expressions.append(pc.greater(column, numeric_value))
-                            elif operator == '<':
-                                filter_expressions.append(pc.less(column, numeric_value))
-                            elif operator == '>=':
-                                filter_expressions.append(pc.greater_equal(column, numeric_value))
-                            elif operator == '<=':
-                                filter_expressions.append(pc.less_equal(column, numeric_value))
-                            elif operator == '=':
-                                filter_expressions.append(pc.equal(column, numeric_value))
+                            if operator == ">":
+                                filter_expressions.append(
+                                    pc.greater(column, numeric_value)
+                                )
+                            elif operator == "<":
+                                filter_expressions.append(
+                                    pc.less(column, numeric_value)
+                                )
+                            elif operator == ">=":
+                                filter_expressions.append(
+                                    pc.greater_equal(column, numeric_value)
+                                )
+                            elif operator == "<=":
+                                filter_expressions.append(
+                                    pc.less_equal(column, numeric_value)
+                                )
+                            elif operator == "=":
+                                filter_expressions.append(
+                                    pc.equal(column, numeric_value)
+                                )
                         except ValueError:
                             pass  # Skip invalid numeric values
 
@@ -366,7 +423,12 @@ class ParquetDataHandler(APIHandler):
             # Apply sorting if requested
             if sort_by and sort_by in table.column_names:
                 # Create sort indices
-                indices = pc.sort_indices(table, sort_keys=[(sort_by, "ascending" if sort_order == "asc" else "descending")])
+                indices = pc.sort_indices(
+                    table,
+                    sort_keys=[
+                        (sort_by, "ascending" if sort_order == "asc" else "descending")
+                    ],
+                )
                 # Apply sort
                 table = pc.take(table, indices)
 
@@ -385,32 +447,41 @@ class ParquetDataHandler(APIHandler):
                 for col_name in table_slice.column_names:
                     value = table_slice.column(col_name)[i].as_py()
                     # Store original row index separately, don't include it in row data
-                    if col_name == '__original_row_index__':
+                    if col_name == "__original_row_index__":
                         original_row_idx = value
                     else:
                         row[col_name] = convert_to_json_serializable(value)
                 # Add original row index as metadata
-                row['__row_index__'] = original_row_idx
+                row["__row_index__"] = original_row_idx
                 data.append(row)
 
-            self.finish(json.dumps({
-                'data': data,
-                'offset': offset,
-                'limit': limit,
-                'totalRows': total_filtered_rows,
-                'hasMore': end < total_filtered_rows
-            }))
+            self.finish(
+                json.dumps(
+                    {
+                        "data": data,
+                        "offset": offset,
+                        "limit": limit,
+                        "totalRows": total_filtered_rows,
+                        "hasMore": end < total_filtered_rows,
+                    }
+                )
+            )
 
         except Exception as e:
             import traceback
+
             error_traceback = traceback.format_exc()
             self.log.error(f"Handler error: {str(e)}\n{error_traceback}")
             self.set_status(500)
-            self.finish(json.dumps({
-                'error': str(e),
-                'error_type': type(e).__name__,
-                'traceback': error_traceback
-            }))
+            self.finish(
+                json.dumps(
+                    {
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        "traceback": error_traceback,
+                    }
+                )
+            )
 
 
 class ColumnStatsHandler(APIHandler):
@@ -420,50 +491,54 @@ class ColumnStatsHandler(APIHandler):
     def post(self):
         try:
             input_data = self.get_json_body()
-            file_path = input_data.get('path', '')
-            column_name = input_data.get('columnName', '')
+            file_path = input_data.get("path", "")
+            column_name = input_data.get("columnName", "")
 
             if not file_path:
                 self.set_status(400)
-                self.finish(json.dumps({'error': 'No file path provided'}))
+                self.finish(json.dumps({"error": "No file path provided"}))
                 return
 
             if not column_name:
                 self.set_status(400)
-                self.finish(json.dumps({'error': 'No column name provided'}))
+                self.finish(json.dumps({"error": "No column name provided"}))
                 return
 
             # Get the full path to the file using contents manager
-            contents_manager = self.settings.get('contents_manager')
+            contents_manager = self.settings.get("contents_manager")
             if contents_manager:
                 root_dir = contents_manager.root_dir
             else:
                 root_dir = os.getcwd()
 
-            self.log.info(f"Stats request for column '{column_name}' in file: {file_path}")
+            self.log.info(
+                f"Stats request for column '{column_name}' in file: {file_path}"
+            )
 
-            full_path = os.path.join(root_dir, file_path.lstrip('/'))
+            full_path = os.path.join(root_dir, file_path.lstrip("/"))
             abs_path = Path(full_path).resolve()
 
             if not abs_path.exists():
                 self.set_status(404)
-                self.finish(json.dumps({'error': f'File not found: {file_path}'}))
+                self.finish(json.dumps({"error": f"File not found: {file_path}"}))
                 return
 
             # Detect file type and read accordingly
             file_type = get_file_type(str(abs_path))
 
-            if file_type == 'parquet':
+            if file_type == "parquet":
                 table = pq.read_table(str(abs_path))
-            elif file_type == 'excel':
+            elif file_type == "excel":
                 table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == 'csv':
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=',')
-            elif file_type == 'tsv':
-                table = read_csv_as_arrow_table(str(abs_path), delimiter='\t')
+            elif file_type == "csv":
+                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
+            elif file_type == "tsv":
+                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
             else:
                 self.set_status(400)
-                self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
+                self.finish(
+                    json.dumps({"error": f"Unsupported file type: {file_type}"})
+                )
                 return
 
             # Calculate statistics
@@ -474,16 +549,14 @@ class ColumnStatsHandler(APIHandler):
         except ValueError as e:
             # Column not found or other validation error
             self.set_status(400)
-            self.finish(json.dumps({'error': str(e)}))
+            self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
             import traceback
+
             error_traceback = traceback.format_exc()
             self.log.error(f"Stats handler error: {str(e)}\n{error_traceback}")
             self.set_status(500)
-            self.finish(json.dumps({
-                'error': str(e),
-                'error_type': type(e).__name__
-            }))
+            self.finish(json.dumps({"error": str(e), "error_type": type(e).__name__}))
 
 
 class UniqueValuesHandler(APIHandler):
@@ -493,56 +566,62 @@ class UniqueValuesHandler(APIHandler):
     def post(self):
         try:
             input_data = self.get_json_body()
-            file_path = input_data.get('path', '')
-            column_name = input_data.get('columnName', '')
+            file_path = input_data.get("path", "")
+            column_name = input_data.get("columnName", "")
 
             if not file_path:
                 self.set_status(400)
-                self.finish(json.dumps({'error': 'No file path provided'}))
+                self.finish(json.dumps({"error": "No file path provided"}))
                 return
 
             if not column_name:
                 self.set_status(400)
-                self.finish(json.dumps({'error': 'No column name provided'}))
+                self.finish(json.dumps({"error": "No column name provided"}))
                 return
 
             # Get the full path to the file using contents manager
-            contents_manager = self.settings.get('contents_manager')
+            contents_manager = self.settings.get("contents_manager")
             if contents_manager:
                 root_dir = contents_manager.root_dir
             else:
                 root_dir = os.getcwd()
 
-            self.log.info(f"Unique values request for column '{column_name}' in file: {file_path}")
+            self.log.info(
+                f"Unique values request for column '{column_name}' in file: {file_path}"
+            )
 
-            full_path = os.path.join(root_dir, file_path.lstrip('/'))
+            full_path = os.path.join(root_dir, file_path.lstrip("/"))
             abs_path = Path(full_path).resolve()
 
             if not abs_path.exists():
                 self.set_status(404)
-                self.finish(json.dumps({'error': f'File not found: {file_path}'}))
+                self.finish(json.dumps({"error": f"File not found: {file_path}"}))
                 return
 
             # Detect file type and read accordingly
             file_type = get_file_type(str(abs_path))
 
-            if file_type == 'parquet':
+            if file_type == "parquet":
                 table = pq.read_table(str(abs_path))
-            elif file_type == 'excel':
+            elif file_type == "excel":
                 table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == 'csv':
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=',')
-            elif file_type == 'tsv':
-                table = read_csv_as_arrow_table(str(abs_path), delimiter='\t')
+            elif file_type == "csv":
+                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
+            elif file_type == "tsv":
+                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
             else:
                 self.set_status(400)
-                self.finish(json.dumps({'error': f'Unsupported file type: {file_type}'}))
+                self.finish(
+                    json.dumps({"error": f"Unsupported file type: {file_type}"})
+                )
                 return
 
             # Check if column exists
             if column_name not in table.column_names:
                 self.set_status(400)
-                self.finish(json.dumps({'error': f'Column "{column_name}" not found in file'}))
+                self.finish(
+                    json.dumps({"error": f'Column "{column_name}" not found in file'})
+                )
                 return
 
             # Get column
@@ -552,20 +631,22 @@ class UniqueValuesHandler(APIHandler):
             column_str = pc.cast(column, pa.string())
 
             # Replace null values with the string "(null)" for consistent handling
-            column_str = pc.fill_null(column_str, '(null)')
+            column_str = pc.fill_null(column_str, "(null)")
 
             # Get limit from request (default to 100 if not provided)
-            limit = input_data.get('limit', 100)
+            limit = input_data.get("limit", 100)
 
             # Get value counts
             value_counts = pc.value_counts(column_str)
 
             # value_counts returns a StructArray with 'values' and 'counts' fields
-            values_array = value_counts.field('values')
-            counts_array = value_counts.field('counts')
+            values_array = value_counts.field("values")
+            counts_array = value_counts.field("counts")
 
             # Combine into list of tuples
-            value_count_pairs = list(zip(values_array.to_pylist(), counts_array.to_pylist()))
+            value_count_pairs = list(
+                zip(values_array.to_pylist(), counts_array.to_pylist())
+            )
 
             # Sort by count (frequency) descending - most frequent first
             value_count_pairs.sort(key=lambda x: x[1], reverse=True)
@@ -580,10 +661,10 @@ class UniqueValuesHandler(APIHandler):
             counts_list = [c for v, c in value_count_pairs]
 
             result = {
-                'values': values_list,
-                'counts': counts_list,
-                'limit': limit,
-                'total_count': total_unique
+                "values": values_list,
+                "counts": counts_list,
+                "limit": limit,
+                "total_count": total_unique,
             }
 
             self.finish(json.dumps(result))
@@ -591,16 +672,14 @@ class UniqueValuesHandler(APIHandler):
         except ValueError as e:
             # Column not found or other validation error
             self.set_status(400)
-            self.finish(json.dumps({'error': str(e)}))
+            self.finish(json.dumps({"error": str(e)}))
         except Exception as e:
             import traceback
+
             error_traceback = traceback.format_exc()
             self.log.error(f"Unique values handler error: {str(e)}\n{error_traceback}")
             self.set_status(500)
-            self.finish(json.dumps({
-                'error': str(e),
-                'error_type': type(e).__name__
-            }))
+            self.finish(json.dumps({"error": str(e), "error_type": type(e).__name__}))
 
 
 class DownloadHandler(APIHandler):
@@ -609,34 +688,36 @@ class DownloadHandler(APIHandler):
     @tornado.web.authenticated
     def get(self):
         try:
-            file_path = self.get_argument('path', '')
-            download_format = self.get_argument('format', 'original')  # 'original', 'xlsx', or 'csv'
-            filters_json = self.get_argument('filters', '{}')
-            sort_by = self.get_argument('sortBy', None)
-            sort_order = self.get_argument('sortOrder', 'asc')
-            case_insensitive = self.get_argument('caseInsensitive', 'false') == 'true'
-            use_regex = self.get_argument('useRegex', 'false') == 'true'
+            file_path = self.get_argument("path", "")
+            download_format = self.get_argument(
+                "format", "original"
+            )  # 'original', 'xlsx', or 'csv'
+            filters_json = self.get_argument("filters", "{}")
+            sort_by = self.get_argument("sortBy", None)
+            sort_order = self.get_argument("sortOrder", "asc")
+            case_insensitive = self.get_argument("caseInsensitive", "false") == "true"
+            use_regex = self.get_argument("useRegex", "false") == "true"
 
             filters = json.loads(filters_json) if filters_json else {}
 
             if not file_path:
                 self.set_status(400)
-                self.finish('No file path provided')
+                self.finish("No file path provided")
                 return
 
             # Get the full path to the file using contents manager
-            contents_manager = self.settings.get('contents_manager')
+            contents_manager = self.settings.get("contents_manager")
             if contents_manager:
                 root_dir = contents_manager.root_dir
             else:
                 root_dir = os.getcwd()
 
-            full_path = os.path.join(root_dir, file_path.lstrip('/'))
+            full_path = os.path.join(root_dir, file_path.lstrip("/"))
             abs_path = Path(full_path).resolve()
 
             if not abs_path.exists():
                 self.set_status(404)
-                self.finish(f'File not found: {file_path}')
+                self.finish(f"File not found: {file_path}")
                 return
 
             # Detect source file type and read accordingly
@@ -646,31 +727,31 @@ class DownloadHandler(APIHandler):
             base_filename = name_parts[0]
 
             # Determine output format and filename
-            if download_format == 'original':
+            if download_format == "original":
                 output_format = file_type
                 output_filename = f"{base_filename}_filtered{name_parts[1]}"
-            elif download_format == 'xlsx':
-                output_format = 'excel'
+            elif download_format == "xlsx":
+                output_format = "excel"
                 output_filename = f"{base_filename}_filtered.xlsx"
-            elif download_format == 'csv':
-                output_format = 'csv'
+            elif download_format == "csv":
+                output_format = "csv"
                 output_filename = f"{base_filename}_filtered.csv"
             else:
                 self.set_status(400)
-                self.finish(f'Invalid format: {download_format}')
+                self.finish(f"Invalid format: {download_format}")
                 return
 
-            if file_type == 'parquet':
+            if file_type == "parquet":
                 table = pq.read_table(str(abs_path))
-            elif file_type == 'excel':
+            elif file_type == "excel":
                 table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == 'csv':
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=',')
-            elif file_type == 'tsv':
-                table = read_csv_as_arrow_table(str(abs_path), delimiter='\t')
+            elif file_type == "csv":
+                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
+            elif file_type == "tsv":
+                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
             else:
                 self.set_status(400)
-                self.finish(f'Unsupported file type: {file_type}')
+                self.finish(f"Unsupported file type: {file_type}")
                 return
 
             # Apply filters if provided (same logic as ParquetDataHandler)
@@ -680,46 +761,68 @@ class DownloadHandler(APIHandler):
                     if col_name not in table.column_names:
                         continue
 
-                    filter_type = filter_spec.get('type', 'text')
-                    filter_value = filter_spec.get('value', '')
+                    filter_type = filter_spec.get("type", "text")
+                    filter_value = filter_spec.get("value", "")
 
                     if not filter_value:
                         continue
 
                     column = table.column(col_name)
 
-                    if filter_type == 'text':
+                    if filter_type == "text":
                         column_str = pc.cast(column, pa.string())
-                        column_str = pc.fill_null(column_str, '(null)')
+                        column_str = pc.fill_null(column_str, "(null)")
 
                         if use_regex:
                             try:
                                 filter_expressions.append(
-                                    pc.match_substring_regex(column_str, filter_value, ignore_case=case_insensitive)
+                                    pc.match_substring_regex(
+                                        column_str,
+                                        filter_value,
+                                        ignore_case=case_insensitive,
+                                    )
                                 )
                             except Exception:
                                 filter_expressions.append(
-                                    pc.match_substring(column_str, filter_value, ignore_case=case_insensitive)
+                                    pc.match_substring(
+                                        column_str,
+                                        filter_value,
+                                        ignore_case=case_insensitive,
+                                    )
                                 )
                         else:
                             filter_expressions.append(
-                                pc.match_substring(column_str, filter_value, ignore_case=case_insensitive)
+                                pc.match_substring(
+                                    column_str,
+                                    filter_value,
+                                    ignore_case=case_insensitive,
+                                )
                             )
-                    elif filter_type == 'number':
-                        operator = filter_spec.get('operator', '=')
+                    elif filter_type == "number":
+                        operator = filter_spec.get("operator", "=")
                         try:
                             numeric_value = float(filter_value)
 
-                            if operator == '>':
-                                filter_expressions.append(pc.greater(column, numeric_value))
-                            elif operator == '<':
-                                filter_expressions.append(pc.less(column, numeric_value))
-                            elif operator == '>=':
-                                filter_expressions.append(pc.greater_equal(column, numeric_value))
-                            elif operator == '<=':
-                                filter_expressions.append(pc.less_equal(column, numeric_value))
-                            elif operator == '=':
-                                filter_expressions.append(pc.equal(column, numeric_value))
+                            if operator == ">":
+                                filter_expressions.append(
+                                    pc.greater(column, numeric_value)
+                                )
+                            elif operator == "<":
+                                filter_expressions.append(
+                                    pc.less(column, numeric_value)
+                                )
+                            elif operator == ">=":
+                                filter_expressions.append(
+                                    pc.greater_equal(column, numeric_value)
+                                )
+                            elif operator == "<=":
+                                filter_expressions.append(
+                                    pc.less_equal(column, numeric_value)
+                                )
+                            elif operator == "=":
+                                filter_expressions.append(
+                                    pc.equal(column, numeric_value)
+                                )
                         except ValueError:
                             pass
 
@@ -732,77 +835,106 @@ class DownloadHandler(APIHandler):
 
             # Apply sorting if requested
             if sort_by and sort_by in table.column_names:
-                indices = pc.sort_indices(table, sort_keys=[(sort_by, "ascending" if sort_order == "asc" else "descending")])
+                indices = pc.sort_indices(
+                    table,
+                    sort_keys=[
+                        (sort_by, "ascending" if sort_order == "asc" else "descending")
+                    ],
+                )
                 table = pc.take(table, indices)
 
             # Convert table to pandas DataFrame for export
             df = table.to_pandas()
 
             # Export based on requested output format
-            if output_format == 'parquet':
+            if output_format == "parquet":
                 # Export as Parquet
                 import io
+
                 buffer = io.BytesIO()
                 df.to_parquet(buffer, index=False)
                 buffer.seek(0)
 
-                self.set_header('Content-Type', 'application/octet-stream')
-                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.set_header("Content-Type", "application/octet-stream")
+                self.set_header(
+                    "Content-Disposition", f'attachment; filename="{output_filename}"'
+                )
                 self.write(buffer.read())
 
-            elif output_format == 'excel':
+            elif output_format == "excel":
                 # Export as Excel
                 import io
+
                 buffer = io.BytesIO()
-                df.to_excel(buffer, index=False, engine='openpyxl')
+                df.to_excel(buffer, index=False, engine="openpyxl")
                 buffer.seek(0)
 
-                self.set_header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.set_header(
+                    "Content-Type",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+                self.set_header(
+                    "Content-Disposition", f'attachment; filename="{output_filename}"'
+                )
                 self.write(buffer.read())
 
-            elif output_format == 'csv':
+            elif output_format == "csv":
                 # Export as CSV
                 csv_data = df.to_csv(index=False)
 
-                self.set_header('Content-Type', 'text/csv')
-                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.set_header("Content-Type", "text/csv")
+                self.set_header(
+                    "Content-Disposition", f'attachment; filename="{output_filename}"'
+                )
                 self.write(csv_data)
 
-            elif output_format == 'tsv':
+            elif output_format == "tsv":
                 # Export as TSV
-                tsv_data = df.to_csv(index=False, sep='\t')
+                tsv_data = df.to_csv(index=False, sep="\t")
 
-                self.set_header('Content-Type', 'text/tab-separated-values')
-                self.set_header('Content-Disposition', f'attachment; filename="{output_filename}"')
+                self.set_header("Content-Type", "text/tab-separated-values")
+                self.set_header(
+                    "Content-Disposition", f'attachment; filename="{output_filename}"'
+                )
                 self.write(tsv_data)
 
             self.finish()
 
         except Exception as e:
             import traceback
+
             error_traceback = traceback.format_exc()
             self.log.error(f"Download handler error: {str(e)}\n{error_traceback}")
             self.set_status(500)
-            self.finish(f'Error downloading file: {str(e)}')
+            self.finish(f"Error downloading file: {str(e)}")
 
 
 def setup_route_handlers(web_app):
     host_pattern = ".*$"
     base_url = web_app.settings["base_url"]
 
-    metadata_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "metadata")
-    data_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "data")
-    stats_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "column-stats")
-    unique_values_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "unique-values")
-    download_pattern = url_path_join(base_url, "jupyterlab-tabular-data-viewer-extension", "download")
+    metadata_pattern = url_path_join(
+        base_url, "jupyterlab-tabular-data-viewer-extension", "metadata"
+    )
+    data_pattern = url_path_join(
+        base_url, "jupyterlab-tabular-data-viewer-extension", "data"
+    )
+    stats_pattern = url_path_join(
+        base_url, "jupyterlab-tabular-data-viewer-extension", "column-stats"
+    )
+    unique_values_pattern = url_path_join(
+        base_url, "jupyterlab-tabular-data-viewer-extension", "unique-values"
+    )
+    download_pattern = url_path_join(
+        base_url, "jupyterlab-tabular-data-viewer-extension", "download"
+    )
 
     handlers = [
         (metadata_pattern, ParquetMetadataHandler),
         (data_pattern, ParquetDataHandler),
         (stats_pattern, ColumnStatsHandler),
         (unique_values_pattern, UniqueValuesHandler),
-        (download_pattern, DownloadHandler)
+        (download_pattern, DownloadHandler),
     ]
 
     web_app.add_handlers(host_pattern, handlers)

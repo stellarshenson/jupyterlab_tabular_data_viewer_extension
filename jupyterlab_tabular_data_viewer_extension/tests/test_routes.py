@@ -1,5 +1,4 @@
 import json
-import os
 import shutil
 from pathlib import Path
 
@@ -234,7 +233,9 @@ async def test_string_view_metadata(jp_fetch, jp_root_dir):
     # string_view columns should appear as 'string'
     type_by_name = {c["name"]: c["type"] for c in metadata["columns"]}
     for col in ("id", "farm_id", "date", "period", "source"):
-        assert type_by_name[col] == "string", f"{col} should be 'string', got '{type_by_name[col]}'"
+        assert type_by_name[col] == "string", (
+            f"{col} should be 'string', got '{type_by_name[col]}'"
+        )
 
     # numeric columns should remain double
     assert type_by_name["animal_count"] == "double"

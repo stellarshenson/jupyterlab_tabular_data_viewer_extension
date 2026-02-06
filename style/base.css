@@ -163,7 +163,7 @@
 
 .jp-TabularDataViewer-columnName {
   color: var(--jp-ui-font-color1);
-  font-size: calc(var(--jp-ui-font-size1) * 1.10);
+  font-size: calc(var(--jp-ui-font-size1) * 1.1);
   margin-bottom: 2px;
   word-break: break-word;
 }
@@ -267,15 +267,27 @@
 
 /* Selected row highlighting */
 .jp-TabularDataViewer-row-selected {
-  background-color: color-mix(in srgb, var(--jp-brand-color1) 10%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--jp-brand-color1) 10%,
+    transparent
+  ) !important;
 }
 
 .jp-TabularDataViewer-row-selected .jp-TabularDataViewer-cell {
-  background-color: color-mix(in srgb, var(--jp-brand-color1) 10%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--jp-brand-color1) 10%,
+    transparent
+  ) !important;
 }
 
 .jp-TabularDataViewer-row-selected .jp-TabularDataViewer-rowNumberCell {
-  background-color: color-mix(in srgb, var(--jp-brand-color1) 20%, var(--jp-layout-color2)) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--jp-brand-color1) 20%,
+    var(--jp-layout-color2)
+  ) !important;
 }
 
 .jp-TabularDataViewer-cell:last-child {
@@ -755,7 +767,6 @@
   background-color: var(--jp-layout-color3);
   border-color: var(--jp-border-color1);
 }
-
 
 /* Download Modal - Format Buttons */
 .jp-FilterModal-buttons {
