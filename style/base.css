@@ -34,7 +34,7 @@
   top: 0;
   z-index: 10;
   background-color: var(--jp-layout-color2);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
 }
 
 /* Filter Row */
@@ -242,7 +242,7 @@
   position: sticky;
   left: 0;
   z-index: 5;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 4px rgb(0 0 0 / 10%);
 }
 
 /* Row number cells in header (thead) need higher z-index to appear above sticky header */
@@ -256,6 +256,7 @@
 }
 
 /* Clickable rows */
+/* stylelint-disable-next-line no-descending-specificity */
 .jp-TabularDataViewer-tbody .jp-TabularDataViewer-row {
   cursor: pointer;
 }
@@ -282,6 +283,7 @@
   ) !important;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .jp-TabularDataViewer-row-selected .jp-TabularDataViewer-rowNumberCell {
   background-color: color-mix(
     in srgb,
@@ -292,6 +294,39 @@
 
 .jp-TabularDataViewer-cell:last-child {
   border-right: none;
+}
+
+/* Sheet Bar (multi-sheet Excel only) */
+.jp-TabularDataViewer-sheetBar {
+  flex-shrink: 0;
+  display: flex;
+  overflow-x: auto;
+  border-top: 1px solid var(--jp-border-color2);
+  background-color: var(--jp-layout-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-TabularDataViewer-sheetTab {
+  padding: 2px 12px;
+  border: none;
+  border-right: 1px solid var(--jp-border-color2);
+  background: transparent;
+  cursor: pointer;
+  color: var(--jp-ui-font-color1);
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.jp-TabularDataViewer-sheetTab:hover {
+  background-color: var(--jp-layout-color2);
+}
+
+.jp-TabularDataViewer-sheetTab.jp-mod-active {
+  background-color: var(--jp-layout-color2);
+  font-weight: 600;
+  border-bottom: 2px solid var(--jp-brand-color1);
 }
 
 /* Status Bar */
@@ -357,6 +392,19 @@
   text-decoration: underline !important;
 }
 
+.jp-TabularDataViewer-exportLink {
+  color: var(--jp-brand-color1) !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+.jp-TabularDataViewer-exportLink:hover {
+  color: var(--jp-brand-color1) !important;
+  text-decoration: underline !important;
+}
+
 /* Error Message */
 .jp-TabularDataViewer-error {
   padding: 16px;
@@ -410,6 +458,7 @@
   opacity: 1;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .jp-TabularDataViewer-infoIcon:hover {
   color: var(--jp-brand-color1) !important;
   opacity: 1;
@@ -422,7 +471,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -432,7 +481,7 @@
 .jp-ColumnStatsModal-content {
   background-color: var(--jp-layout-color1);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
   max-width: 500px;
   max-height: 80vh;
   overflow-y: auto;
@@ -516,7 +565,7 @@
 }
 
 .jp-ColumnStatsModal-section h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
   font-size: 15px;
   font-weight: 600;
   color: var(--jp-ui-font-color1);
@@ -576,7 +625,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -586,7 +635,7 @@
 .jp-FilterModal-content {
   background-color: var(--jp-layout-color1);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
   max-width: 500px;
   width: 90%;
   max-height: 80vh;
@@ -600,7 +649,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 20px 12px 20px;
+  padding: 20px 20px 12px;
   border-bottom: 2px solid var(--jp-border-color1);
 }
 
@@ -609,6 +658,15 @@
   font-size: 18px;
   font-weight: 600;
   color: var(--jp-ui-font-color1);
+}
+
+.jp-FilterModal-notice {
+  padding: 10px 20px;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color2);
+  background-color: var(--jp-layout-color2);
+  border-bottom: 1px solid var(--jp-border-color2);
+  font-style: italic;
 }
 
 .jp-FilterModal-close {

@@ -4,3 +4,4 @@ node_modules
 **/package.json
 !/package.json
 jupyterlab_basic_parquet_viewer_extension
+.claude

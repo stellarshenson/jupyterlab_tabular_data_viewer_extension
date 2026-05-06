@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.6.10] - 2026-05-06
+
+### Added
+
+- **Multi-sheet Excel support**: workbooks with multiple worksheets now expose all sheets via a minimal sheet bar at the bottom of the viewer (above the status bar, Excel-style). Each sheet is treated as a separate file - switching sheets resets all filters, sort, selection, scroll position, and column widths, then reloads metadata + data fresh. Bar is hidden for single-sheet Excel files and all non-Excel formats
+- **Parquet (.parquet) download format** in the Export modal
+- **JSONL (.jsonl) download format** in the Export modal - one JSON object per row via `df.to_json(orient='records', lines=True)` with `Content-Type: application/x-ndjson`
+- **Export link in the status bar** for quick access; opens the same format picker as the right-click context menu
+- **Filter notice in the Export popup** - when filters are active, the popup shows a one-line note that the export will include only filtered rows
+- 18 new pytest tests covering `slugify`, `list_excel_sheets`, `read_as_arrow_table` with sheet, the v1.6.0 cascade through a multi-sheet file, metadata sheets field, sheet param flow through `/data`, full download filename matrix (sheet/no-sheet × filters/no-filters), JSONL + Parquet output formats and Content-Type headers
+
+### Changed
+
+- "Download Filtered Data" command and modal title renamed to "Export"
+- Download filenames now reflect the active sheet: `<base>_<slug>.<ext>` for sheet-active downloads, `<base>_<slug>_filtered.<ext>` when filters are applied
+- The `_filtered` suffix in download filenames is now conditional on active filters. Previously it was always appended regardless of filter state. Sort order alone does not trigger the suffix
+
+### Fixed
+
+- Download responses now serve the correct `Content-Type` header. `APIHandler.finish()` was overriding all download Content-Types to `application/json` unless `set_content_type=` is passed; parquet/excel/csv/tsv all silently returned `application/json` regardless of the headers set in the handler. `DownloadHandler` now computes body + content type per format branch and passes `set_content_type=` to `finish()` once
+
+### Technical
+
+- New `list_excel_sheets(path)` helper in `readers.py` returns workbook sheet names via `pd.ExcelFile.sheet_names`; empty list for non-Excel
+- `_read_excel(path, sheet=None)` and `read_as_arrow_table(path, sheet=None)` accept optional sheet name; default `None` reads first sheet (preserves prior behaviour)
+- New `slugify()` helper in `routes.py`: lowercase, non-alphanumerics collapse to `_`, fallback to `"sheet"` for empty/whitespace input
+- `ParquetMetadataHandler` response gains `sheets: list[str]` field (empty for non-Excel)
+- All four POST handlers accept optional `sheet` field in request body; `DownloadHandler` reads `sheet` from query string
+- `fetchColumnStats` and `fetchUniqueValues` in `request.ts` accept optional `sheet` argument
+- `TabularDataViewer` widget gains `_sheets`, `_activeSheet`, `_sheetBar` state plus `_renderSheetBar()`, `_switchSheet()`, `_resetState()` methods. Sheet bar inserted between table container and status bar in widget DOM
+- `DownloadModal` constructor accepts `hasFilters` boolean; renders a `jp-FilterModal-notice` block when true
+- New test fixture `data/multi_sheet.xlsx` (3 sheets: Sheet1 / MixedTypes / Sales 2024) covers the multi-sheet code paths and the v1.6.0 cascade
+
 ## [1.6.0] - 2026-05-06
 
 ### Fixed
@@ -71,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "Download Filtered Data" button added to status bar right section
   - Downloads data with current filters and sorting applied
   - Exports in original format (Parquet, Excel, CSV, or TSV)
-  - Downloaded filename includes "_filtered" suffix (e.g., "data_filtered.parquet")
+  - Downloaded filename includes "\_filtered" suffix (e.g., "data_filtered.parquet")
   - Supports all filter types: text/regex matching with case sensitivity, numeric comparisons
   - Preserves current sort order (ascending/descending by column)
   - Backend converts filtered PyArrow table to pandas DataFrame for export

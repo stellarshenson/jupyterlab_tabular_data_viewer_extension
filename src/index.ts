@@ -161,8 +161,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Download command
     const downloadCommand = 'tabular-data-viewer:download';
     commands.addCommand(downloadCommand, {
-      label: 'Download Filtered Data',
-      caption: 'Download filtered and sorted data in various formats',
+      label: 'Export',
+      caption: 'Export the current view in various formats',
       isEnabled: () => {
         return activeWidget !== null;
       },

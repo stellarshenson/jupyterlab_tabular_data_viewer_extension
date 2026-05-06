@@ -85,18 +85,24 @@ export interface IColumnStats {
  *
  * @param filePath Path to the data file
  * @param columnName Name of column to analyze
+ * @param sheet Active sheet name (optional, multi-sheet Excel only)
  * @returns Column statistics
  */
 export async function fetchColumnStats(
   filePath: string,
-  columnName: string
+  columnName: string,
+  sheet?: string | null
 ): Promise<IColumnStats> {
+  const body: Record<string, unknown> = {
+    path: filePath,
+    columnName: columnName
+  };
+  if (sheet) {
+    body.sheet = sheet;
+  }
   return requestAPI<IColumnStats>('column-stats', {
     method: 'POST',
-    body: JSON.stringify({
-      path: filePath,
-      columnName: columnName
-    })
+    body: JSON.stringify(body)
   });
 }
 
@@ -115,19 +121,26 @@ export interface IUniqueValues {
  *
  * @param filePath Path to the data file
  * @param columnName Name of column to get unique values for
+ * @param limit Maximum number of unique values to return
+ * @param sheet Active sheet name (optional, multi-sheet Excel only)
  * @returns Unique values
  */
 export async function fetchUniqueValues(
   filePath: string,
   columnName: string,
-  limit: number = 100
+  limit: number = 100,
+  sheet?: string | null
 ): Promise<IUniqueValues> {
+  const body: Record<string, unknown> = {
+    path: filePath,
+    columnName: columnName,
+    limit: limit
+  };
+  if (sheet) {
+    body.sheet = sheet;
+  }
   return requestAPI<IUniqueValues>('unique-values', {
     method: 'POST',
-    body: JSON.stringify({
-      path: filePath,
-      columnName: columnName,
-      limit: limit
-    })
+    body: JSON.stringify(body)
   });
 }

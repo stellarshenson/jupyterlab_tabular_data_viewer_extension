@@ -17,7 +17,7 @@ Access download functionality via right-click context menu with an intuitive mod
 - **Consistent UI** - modal uses filter modal styling for familiar appearance
 - **Format conversion** - download Parquet as Excel, CSV as Excel, or any supported conversion
 - **Filtered data preservation** - downloads preserve all active filters, sort order, and transformations
-- **Smart filename** - output filename includes appropriate extension based on selected format with "_filtered" suffix
+- **Smart filename** - output filename includes appropriate extension based on selected format with "\_filtered" suffix
 
 **Modal Interface:**
 
@@ -47,7 +47,7 @@ Access download functionality via right-click context menu with an intuitive mod
 2. Right-click anywhere on the viewer
 3. Select "Download Filtered Data" from context menu
 4. Choose export format from modal (Original, Excel, or CSV)
-5. Browser downloads file with "_filtered" suffix in selected format
+5. Browser downloads file with "\_filtered" suffix in selected format
 
 ## What's New in Version 1.5.0
 
@@ -62,7 +62,7 @@ Export your filtered and sorted data with a single click, preserving all current
 - **Download button** - "Download Filtered Data" button in status bar right section
 - **Current state export** - downloads data with all active filters and sorting applied
 - **Original format** - exports in same format as source file (Parquet, Excel, CSV, or TSV)
-- **Clear filename** - appends "_filtered" suffix to original filename (e.g., "data_filtered.parquet")
+- **Clear filename** - appends "\_filtered" suffix to original filename (e.g., "data_filtered.parquet")
 - **All filter types** - supports text/regex matching (with case sensitivity option) and numeric comparisons
 - **Sort preservation** - maintains current sort order (ascending/descending by column)
 - **Format-specific export** - optimized export for each file type with proper headers
@@ -88,7 +88,7 @@ Export your filtered and sorted data with a single click, preserving all current
 
 1. Apply desired filters and sorting to your data
 2. Click "Download Filtered Data" button in status bar
-3. Browser downloads file with "_filtered" suffix in original format
+3. Browser downloads file with "\_filtered" suffix in original format
 
 ## What's New in Version 1.4.4
 

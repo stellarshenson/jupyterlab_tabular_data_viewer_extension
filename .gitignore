@@ -21,6 +21,7 @@ ui-tests/playwright-report/
 ### Python ###
 # Virtual environments
 .venv
+uv.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

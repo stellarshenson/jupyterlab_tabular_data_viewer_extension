@@ -56,10 +56,22 @@ def _df_to_arrow(df):
     return pa.Table.from_arrays(arrays, names=list(df.columns))
 
 
-def _read_excel(file_path):
-    """Read first worksheet of an Excel file into a PyArrow Table"""
-    df = pd.read_excel(file_path, sheet_name=0, engine="openpyxl")
+def _read_excel(file_path, sheet=None):
+    """Read a worksheet of an Excel file into a PyArrow Table.
+
+    `sheet` accepts a sheet name (string) or `None` for the first sheet.
+    """
+    sheet_name = sheet if sheet else 0
+    df = pd.read_excel(file_path, sheet_name=sheet_name, engine="openpyxl")
     return _df_to_arrow(df)
+
+
+def list_excel_sheets(file_path):
+    """Return sheet names in workbook order. Empty list for non-Excel files."""
+    if get_file_type(file_path) != "excel":
+        return []
+    with pd.ExcelFile(file_path, engine="openpyxl") as xl:
+        return list(xl.sheet_names)
 
 
 def _read_delimited(file_path, delimiter):
@@ -74,17 +86,18 @@ def _read_delimited(file_path, delimiter):
     return _df_to_arrow(df)
 
 
-def read_as_arrow_table(file_path):
+def read_as_arrow_table(file_path, sheet=None):
     """Read a tabular file (parquet/excel/csv/tsv) into a PyArrow Table.
 
-    Raises ValueError for unsupported file types so callers can map the error
+    `sheet` is honoured only for Excel files; ignored otherwise. Raises
+    ValueError for unsupported file types so callers can map the error
     to an HTTP 400 response.
     """
     ft = get_file_type(file_path)
     if ft == "parquet":
         return pq.read_table(file_path)
     if ft == "excel":
-        return _read_excel(file_path)
+        return _read_excel(file_path, sheet)
     if ft == "csv":
         return _read_delimited(file_path, ",")
     if ft == "tsv":

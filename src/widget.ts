@@ -66,6 +66,9 @@ export class TabularDataViewer extends Widget {
   private _maxCellCharacters: number = 100;
   private _maxUniqueValues: number = 100;
   private _selectedRow: HTMLTableRowElement | null = null;
+  private _sheets: string[] = [];
+  private _activeSheet: string | null = null;
+  private _sheetBar: HTMLDivElement;
 
   constructor(
     filePath: string,
@@ -167,8 +170,14 @@ export class TabularDataViewer extends Widget {
     this._statusBar.appendChild(statusMiddle);
     this._statusBar.appendChild(this._statusRight);
 
-    // Append table container and status bar directly to widget node
+    // Sheet bar (only shown when multi-sheet Excel; sits above status bar)
+    this._sheetBar = document.createElement('div');
+    this._sheetBar.className = 'jp-TabularDataViewer-sheetBar';
+    this._sheetBar.style.display = 'none';
+
+    // Append table container, sheet bar, status bar directly to widget node
     this.node.appendChild(this._tableContainer);
+    this.node.appendChild(this._sheetBar);
     this.node.appendChild(this._statusBar);
 
     // Set up scroll listener for progressive loading
@@ -275,8 +284,10 @@ export class TabularDataViewer extends Widget {
    * Show download modal dialog
    */
   public showDownloadModal(): void {
-    const modal = new DownloadModal((format: string) =>
-      this.downloadFilteredData(format)
+    const hasFilters = Object.keys(this._filters).length > 0;
+    const modal = new DownloadModal(
+      (format: string) => this.downloadFilteredData(format),
+      hasFilters
     );
     modal.show();
   }
@@ -294,19 +305,96 @@ export class TabularDataViewer extends Widget {
   }
 
   /**
-   * Load file metadata (columns, types, row count)
+   * Render the sheet bar. Visible only when the file has more than one sheet.
+   * Each sheet is a button; the active one carries `jp-mod-active`.
+   */
+  private _renderSheetBar(): void {
+    this._sheetBar.innerHTML = '';
+
+    if (this._sheets.length <= 1) {
+      this._sheetBar.style.display = 'none';
+      return;
+    }
+
+    this._sheetBar.style.display = '';
+
+    for (const name of this._sheets) {
+      const tab = document.createElement('button');
+      tab.className = 'jp-TabularDataViewer-sheetTab';
+      if (name === this._activeSheet) {
+        tab.classList.add('jp-mod-active');
+      }
+      tab.textContent = name;
+      tab.title = name;
+      tab.addEventListener('click', () => this._switchSheet(name));
+      this._sheetBar.appendChild(tab);
+    }
+  }
+
+  /**
+   * Switch to a different sheet. Resets all user state and reloads metadata
+   * + data so the experience matches "opening a new file".
+   */
+  private _switchSheet(name: string): void {
+    if (name === this._activeSheet) {
+      return;
+    }
+    this._activeSheet = name;
+    this._resetState();
+    this._renderSheetBar();
+    this._initialize();
+  }
+
+  /**
+   * Reset all user-applied state (filters, sort, selection, scroll position,
+   * column widths, paging cursor). Used when switching sheets.
+   */
+  private _resetState(): void {
+    this._filters = {};
+    this._sortBy = null;
+    this._sortOrder = 'asc';
+    this._caseInsensitive = false;
+    this._useRegex = false;
+    this._caseInsensitiveCheckbox.checked = false;
+    this._regexCheckbox.checked = false;
+    this._selectedRow = null;
+    this._currentOffset = 0;
+    this._data = [];
+    this._hasMore = true;
+    this._totalRows = 0;
+    this._unfilteredTotalRows = 0;
+    this._columnWidths.clear();
+    this._tbody.innerHTML = '';
+    this._tableContainer.scrollTop = 0;
+    this._tableContainer.scrollLeft = 0;
+  }
+
+  /**
+   * Load file metadata (columns, types, row count, sheets)
    */
   private async _loadMetadata(): Promise<void> {
+    const body: Record<string, unknown> = { path: this._filePath };
+    if (this._activeSheet) {
+      body.sheet = this._activeSheet;
+    }
+
     const response = await requestAPI<any>('metadata', {
       method: 'POST',
-      body: JSON.stringify({ path: this._filePath })
+      body: JSON.stringify(body)
     });
 
     this._columns = response.columns;
     this._totalRows = response.totalRows;
     this._unfilteredTotalRows = response.totalRows;
     this._fileSize = response.fileSize || 0;
+    this._sheets = response.sheets || [];
 
+    // First load: pick the first sheet (if any) as active
+    if (this._activeSheet === null && this._sheets.length > 0) {
+      this._activeSheet = this._sheets[0];
+    }
+
+    this._renderSheetBar();
     this._renderHeaders();
     this._updateStatusBar();
   }
@@ -330,18 +418,22 @@ export class TabularDataViewer extends Widget {
         this._selectedRow = null; // Clear row selection on reset
       }
 
+      const dataBody: Record<string, unknown> = {
+        path: this._filePath,
+        offset: this._currentOffset,
+        limit: this._limit,
+        filters: this._filters,
+        sortBy: this._sortBy,
+        sortOrder: this._sortOrder,
+        caseInsensitive: this._caseInsensitive,
+        useRegex: this._useRegex
+      };
+      if (this._activeSheet) {
+        dataBody.sheet = this._activeSheet;
+      }
       const response = await requestAPI<any>('data', {
         method: 'POST',
-        body: JSON.stringify({
-          path: this._filePath,
-          offset: this._currentOffset,
-          limit: this._limit,
-          filters: this._filters,
-          sortBy: this._sortBy,
-          sortOrder: this._sortOrder,
-          caseInsensitive: this._caseInsensitive,
-          useRegex: this._useRegex
-        })
+        body: JSON.stringify(dataBody)
       });
 
       this._data = this._data.concat(response.data);
@@ -783,7 +875,8 @@ export class TabularDataViewer extends Widget {
       const uniqueValues = await fetchUniqueValues(
         this._filePath,
         columnName,
-        this._maxUniqueValues
+        this._maxUniqueValues,
+        this._activeSheet
       );
 
       // Get current filter values if any
@@ -992,12 +1085,17 @@ export class TabularDataViewer extends Widget {
   private async _showColumnStats(columnName: string): Promise<void> {
     try {
       // Show loading indicator (we could add a spinner here)
-      const stats = await fetchColumnStats(this._filePath, columnName);
+      const stats = await fetchColumnStats(
+        this._filePath,
+        columnName,
+        this._activeSheet
+      );
       // Fetch unique values with the limit from settings
       const uniqueValues = await fetchUniqueValues(
         this._filePath,
         columnName,
-        this._maxUniqueValues
+        this._maxUniqueValues,
+        this._activeSheet
       );
       const modal = new ColumnStatsModal(stats, uniqueValues);
       modal.show();
@@ -1051,7 +1149,9 @@ export class TabularDataViewer extends Widget {
    * Format file size to human-readable string
    */
   private _formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) {
+      return '0 B';
+    }
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -1080,6 +1180,19 @@ export class TabularDataViewer extends Widget {
       }
 
       this._statusRight.innerHTML = rightText;
+
+      // Export link (always available; opens export popup)
+      const exportLink = document.createElement('a');
+      exportLink.href = '#';
+      exportLink.className = 'jp-TabularDataViewer-exportLink';
+      exportLink.textContent = 'Export';
+      exportLink.title = 'Export the current view';
+      exportLink.addEventListener('click', e => {
+        e.preventDefault();
+        this.showDownloadModal();
+      });
+      this._statusRight.appendChild(document.createTextNode(' • '));
+      this._statusRight.appendChild(exportLink);
 
       if (filterCount > 0) {
         const clearLink = document.createElement('a');
@@ -1124,6 +1237,11 @@ export class TabularDataViewer extends Widget {
       const params = new URLSearchParams();
       params.append('path', this._filePath);
       params.append('format', format);
+
+      // Active sheet (multi-sheet Excel only)
+      if (this._activeSheet) {
+        params.append('sheet', this._activeSheet);
+      }
 
       // Add filters
       if (Object.keys(this._filters).length > 0) {

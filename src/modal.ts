@@ -508,10 +508,12 @@ export class FilterModal extends Widget {
  */
 export class DownloadModal extends Widget {
   private _onDownload: (format: string) => void;
+  private _hasFilters: boolean;
 
-  constructor(onDownload: (format: string) => void) {
+  constructor(onDownload: (format: string) => void, hasFilters = false) {
     super();
     this._onDownload = onDownload;
+    this._hasFilters = hasFilters;
     this.addClass('jp-FilterModal');
     this._render();
     this._setupEventListeners();
@@ -528,7 +530,7 @@ export class DownloadModal extends Widget {
     const header = document.createElement('div');
     header.className = 'jp-FilterModal-header';
     const title = document.createElement('h3');
-    title.textContent = 'Download Filtered Data';
+    title.textContent = 'Export';
     const closeBtn = document.createElement('button');
     closeBtn.className = 'jp-FilterModal-close';
     closeBtn.textContent = '×';
@@ -536,6 +538,15 @@ export class DownloadModal extends Widget {
     header.appendChild(title);
     header.appendChild(closeBtn);
     content.appendChild(header);
+
+    // Filter notice (only when filters are active)
+    if (this._hasFilters) {
+      const notice = document.createElement('div');
+      notice.className = 'jp-FilterModal-notice';
+      notice.textContent =
+        'Filters are active - export will include only the filtered rows.';
+      content.appendChild(notice);
+    }
 
     // Format buttons
     const buttonsDiv = document.createElement('div');
@@ -555,6 +566,18 @@ export class DownloadModal extends Widget {
 
     const csvBtn = this._createFormatButton('Download as CSV', 'csv');
     buttonsDiv.appendChild(csvBtn);
+
+    const parquetBtn = this._createFormatButton(
+      'Download as Parquet (.parquet)',
+      'parquet'
+    );
+    buttonsDiv.appendChild(parquetBtn);
+
+    const jsonlBtn = this._createFormatButton(
+      'Download as JSONL (.jsonl)',
+      'jsonl'
+    );
+    buttonsDiv.appendChild(jsonlBtn);
 
     content.appendChild(buttonsDiv);
 

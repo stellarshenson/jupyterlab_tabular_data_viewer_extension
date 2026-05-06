@@ -31,7 +31,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 
 ![Copy Row as JSON](.resources/screenshot-copy-json.png)
 
-**Download filtered data:** Right-click on the viewer to download filtered and sorted data in your choice of format - original, Excel, or CSV.
+**Export:** Click the **Export** link in the status bar (or right-click on the viewer) to export the current view in your choice of format - original, Excel (.xlsx), CSV, Parquet (.parquet), or JSONL (.jsonl). When filters are active, the export popup notes that only filtered rows will be exported.
 
 ![Download Filtered Data](.resources/screenshot-download-filtered.png)
 
@@ -40,7 +40,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 **Supported File Formats:**
 
 - **Parquet files** (.parquet) - Full support with efficient columnar data reading
-- **Excel files** (.xlsx) - Reads first worksheet only (the other sheets are just jealous). Excel files must be simple tabular data without merged cells, complex formulas, or advanced formatting. Files with these features may not display correctly or fail to load
+- **Excel files** (.xlsx) - Multi-sheet support: a sheet bar appears at the bottom for workbooks with more than one sheet, and switching sheets resets all filters/sort/selection (each sheet behaves like a separate file). Mixed-type columns (e.g. integers and strings in the same column) are handled via per-column cascading type inference rather than failing to open. Excel files must still be simple tabular data without merged cells, complex formulas, or advanced formatting
 - **CSV files** (.csv) - Comma-separated values with UTF-8 encoding (fallback to latin1)
 - **TSV files** (.tsv) - Tab-separated values with UTF-8 encoding (fallback to latin1)
 
@@ -69,7 +69,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 **Additional features:**
 
 - Column statistics modal - View comprehensive statistics including data type, row counts, null values, unique counts, and type-specific metrics (numeric: min/max/mean/median/std dev/outliers; string: most common value/length stats; date: earliest/latest dates). Includes scrollable list of unique values sorted by frequency with counts and percentages. Copy statistics as JSON with one click
-- Download filtered data - Right-click on viewer to download data with current filters and sorting applied. Choose between original format, Excel (.xlsx), or CSV. Downloads preserve all active filters, sort order, and selected rows
+- Export - **Export** link in the status bar (or right-click on the viewer) opens a format picker: original, Excel (.xlsx), CSV, Parquet (.parquet), or JSONL (.jsonl). Exports preserve active filters and sort order. Filename includes the slugified sheet name for multi-sheet Excel and a `_filtered` suffix when filters are applied
 - Right-click context menu on rows to copy data as JSON
 - Refresh view - Right-click on viewer and select "Refresh View" to reload data from file while preserving scroll position, filters, and sorting
 - Cell text truncation - Configurable maximum character limit for cell display (default: 100 characters). Text longer than limit shows "..." ellipsis. Set to 0 for unlimited display
@@ -107,4 +107,3 @@ Configure extension behavior through JupyterLab Settings:
    - **Maximum Unique Values** - Default: 100. Maximum number of unique values to display in filter dialog and column statistics. Set to 0 for no limit
 
 When a file type is disabled, files open with JupyterLab's default handler instead.
-

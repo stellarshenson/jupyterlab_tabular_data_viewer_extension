@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 from datetime import date, datetime
 from decimal import Decimal
@@ -11,8 +12,16 @@ import pyarrow.parquet as pq
 import pyarrow.compute as pc
 import pyarrow as pa
 
-from .readers import get_file_type, read_as_arrow_table
+from .readers import get_file_type, list_excel_sheets, read_as_arrow_table
 from .stats import calculate_column_stats
+
+
+def slugify(s):
+    """Lowercase, collapse non-alphanumerics to underscore, strip edges.
+
+    Used to embed sheet names in download filenames safely.
+    """
+    return re.sub(r"[^a-z0-9]+", "_", (s or "").lower()).strip("_") or "sheet"
 
 
 def convert_to_json_serializable(value):
@@ -59,6 +68,7 @@ class ParquetMetadataHandler(APIHandler):
         try:
             input_data = self.get_json_body()
             file_path = input_data.get("path", "")
+            sheet = input_data.get("sheet")
 
             if not file_path:
                 self.set_status(400)
@@ -95,6 +105,7 @@ class ParquetMetadataHandler(APIHandler):
 
             # Detect file type
             file_type = get_file_type(str(abs_path))
+            sheets = list_excel_sheets(str(abs_path)) if file_type == "excel" else []
 
             if file_type == "parquet":
                 # Parquet has a metadata-only fast path - no need to read data
@@ -103,7 +114,7 @@ class ParquetMetadataHandler(APIHandler):
                 total_rows = parquet_file.metadata.num_rows
             else:
                 try:
-                    table = read_as_arrow_table(str(abs_path))
+                    table = read_as_arrow_table(str(abs_path), sheet)
                 except ValueError as e:
                     self.set_status(400)
                     self.finish(json.dumps({"error": str(e)}))
@@ -127,7 +138,12 @@ class ParquetMetadataHandler(APIHandler):
 
             self.finish(
                 json.dumps(
-                    {"columns": columns, "totalRows": total_rows, "fileSize": file_size}
+                    {
+                        "columns": columns,
+                        "totalRows": total_rows,
+                        "fileSize": file_size,
+                        "sheets": sheets,
+                    }
                 )
             )
 
@@ -163,6 +179,7 @@ class ParquetDataHandler(APIHandler):
             sort_order = input_data.get("sortOrder", "asc")
             case_insensitive = input_data.get("caseInsensitive", False)
             use_regex = input_data.get("useRegex", False)
+            sheet = input_data.get("sheet")
 
             if not file_path:
                 self.set_status(400)
@@ -203,7 +220,7 @@ class ParquetDataHandler(APIHandler):
             file_type = get_file_type(str(abs_path))
             self.log.debug(f"Reading {file_type} file: {abs_path}")
             try:
-                table = read_as_arrow_table(str(abs_path))
+                table = read_as_arrow_table(str(abs_path), sheet)
             except ValueError as e:
                 self.set_status(400)
                 self.finish(json.dumps({"error": str(e)}))
@@ -373,6 +390,7 @@ class ColumnStatsHandler(APIHandler):
             input_data = self.get_json_body()
             file_path = input_data.get("path", "")
             column_name = input_data.get("columnName", "")
+            sheet = input_data.get("sheet")
 
             if not file_path:
                 self.set_status(400)
@@ -405,7 +423,7 @@ class ColumnStatsHandler(APIHandler):
 
             # Detect file type and read accordingly
             try:
-                table = read_as_arrow_table(str(abs_path))
+                table = read_as_arrow_table(str(abs_path), sheet)
             except ValueError as e:
                 self.set_status(400)
                 self.finish(json.dumps({"error": str(e)}))
@@ -438,6 +456,7 @@ class UniqueValuesHandler(APIHandler):
             input_data = self.get_json_body()
             file_path = input_data.get("path", "")
             column_name = input_data.get("columnName", "")
+            sheet = input_data.get("sheet")
 
             if not file_path:
                 self.set_status(400)
@@ -470,7 +489,7 @@ class UniqueValuesHandler(APIHandler):
 
             # Detect file type and read accordingly
             try:
-                table = read_as_arrow_table(str(abs_path))
+                table = read_as_arrow_table(str(abs_path), sheet)
             except ValueError as e:
                 self.set_status(400)
                 self.finish(json.dumps({"error": str(e)}))
@@ -551,12 +570,13 @@ class DownloadHandler(APIHandler):
             file_path = self.get_argument("path", "")
             download_format = self.get_argument(
                 "format", "original"
-            )  # 'original', 'xlsx', or 'csv'
+            )  # 'original', 'xlsx', 'csv', 'parquet', 'jsonl'
             filters_json = self.get_argument("filters", "{}")
             sort_by = self.get_argument("sortBy", None)
             sort_order = self.get_argument("sortOrder", "asc")
             case_insensitive = self.get_argument("caseInsensitive", "false") == "true"
             use_regex = self.get_argument("useRegex", "false") == "true"
+            sheet = self.get_argument("sheet", None) or None
 
             filters = json.loads(filters_json) if filters_json else {}
 
@@ -585,24 +605,35 @@ class DownloadHandler(APIHandler):
             original_filename = abs_path.name
             name_parts = os.path.splitext(original_filename)
             base_filename = name_parts[0]
+            source_ext = name_parts[1]
 
-            # Determine output format and filename
-            if download_format == "original":
-                output_format = file_type
-                output_filename = f"{base_filename}_filtered{name_parts[1]}"
-            elif download_format == "xlsx":
-                output_format = "excel"
-                output_filename = f"{base_filename}_filtered.xlsx"
-            elif download_format == "csv":
-                output_format = "csv"
-                output_filename = f"{base_filename}_filtered.csv"
-            else:
+            # Map requested download format to internal output format + extension
+            format_map = {
+                "original": (file_type, source_ext),
+                "xlsx": ("excel", ".xlsx"),
+                "csv": ("csv", ".csv"),
+                "parquet": ("parquet", ".parquet"),
+                "jsonl": ("jsonl", ".jsonl"),
+            }
+            if download_format not in format_map:
                 self.set_status(400)
                 self.finish(f"Invalid format: {download_format}")
                 return
+            output_format, output_ext = format_map[download_format]
+
+            # Build filename: <base>[_<slug>][_filtered].<ext>
+            # Slug is appended only when a sheet is active (multi-sheet Excel).
+            # `_filtered` is appended only when filters are non-empty; sort
+            # order alone does not trigger it.
+            parts = [base_filename]
+            if sheet:
+                parts.append(slugify(sheet))
+            if filters:
+                parts.append("filtered")
+            output_filename = "_".join(parts) + output_ext
 
             try:
-                table = read_as_arrow_table(str(abs_path))
+                table = read_as_arrow_table(str(abs_path), sheet)
             except ValueError as e:
                 self.set_status(400)
                 self.finish(str(e))
@@ -700,59 +731,50 @@ class DownloadHandler(APIHandler):
             # Convert table to pandas DataFrame for export
             df = table.to_pandas()
 
-            # Export based on requested output format
-            if output_format == "parquet":
-                # Export as Parquet
-                import io
+            # Export based on requested output format.
+            # NB: APIHandler.finish() overrides Content-Type to application/json
+            # unless the caller passes `set_content_type=`. We compute the
+            # body + content_type per branch then call finish() once.
+            import io
 
+            if output_format == "parquet":
                 buffer = io.BytesIO()
                 df.to_parquet(buffer, index=False)
                 buffer.seek(0)
-
-                self.set_header("Content-Type", "application/octet-stream")
-                self.set_header(
-                    "Content-Disposition", f'attachment; filename="{output_filename}"'
-                )
-                self.write(buffer.read())
-
+                body: bytes = buffer.read()
+                content_type = "application/octet-stream"
             elif output_format == "excel":
-                # Export as Excel
-                import io
-
                 buffer = io.BytesIO()
                 df.to_excel(buffer, index=False, engine="openpyxl")
                 buffer.seek(0)
-
-                self.set_header(
-                    "Content-Type",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                body = buffer.read()
+                content_type = (
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
                 )
-                self.set_header(
-                    "Content-Disposition", f'attachment; filename="{output_filename}"'
-                )
-                self.write(buffer.read())
-
             elif output_format == "csv":
-                # Export as CSV
-                csv_data = df.to_csv(index=False)
-
-                self.set_header("Content-Type", "text/csv")
-                self.set_header(
-                    "Content-Disposition", f'attachment; filename="{output_filename}"'
-                )
-                self.write(csv_data)
-
+                body = df.to_csv(index=False).encode("utf-8")
+                content_type = "text/csv"
             elif output_format == "tsv":
-                # Export as TSV
-                tsv_data = df.to_csv(index=False, sep="\t")
-
-                self.set_header("Content-Type", "text/tab-separated-values")
-                self.set_header(
-                    "Content-Disposition", f'attachment; filename="{output_filename}"'
+                body = df.to_csv(index=False, sep="\t").encode("utf-8")
+                content_type = "text/tab-separated-values"
+            elif output_format == "jsonl":
+                jsonl_data = df.to_json(
+                    orient="records", lines=True, date_format="iso", force_ascii=False
                 )
-                self.write(tsv_data)
+                body = jsonl_data.encode("utf-8")
+                content_type = "application/x-ndjson"
+            else:
+                self.set_status(400)
+                self.finish(f"Unhandled output format: {output_format}")
+                return
 
-            self.finish()
+            self.set_header(
+                "Content-Disposition", f'attachment; filename="{output_filename}"'
+            )
+            self.write(body)
+            self.finish(set_content_type=content_type)
+            return
 
         except Exception as e:
             import traceback
