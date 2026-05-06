@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.6.12] - 2026-05-06
+
+### Added
+
+- **Loading spinner overlay**: a brand-coloured spinning ring appears over the table area during data loads (initial open, filter/sort changes, sheet switches). Quick scroll-triggered paginations don't flash the spinner thanks to a 150ms debounce
+
+### Technical
+
+- New `_loadingOverlay` and `_loadingTimer` state on `TabularDataViewer`; `_showLoadingOverlay()` / `_hideLoadingOverlay()` helpers wired into `_loadData` start + `finally`
+- `pointer-events: none` on the overlay so clicks pass through during long loads
+- Backdrop uses `color-mix(in srgb, var(--jp-layout-color1) 60%, transparent)` for theme-aware translucency
+- New `.jp-TabularDataViewer-loadingOverlay`, `.jp-TabularDataViewer-spinner` rules and `@keyframes jp-TabularDataViewer-spin`
+
 ## [1.6.10] - 2026-05-06
 
 ### Added

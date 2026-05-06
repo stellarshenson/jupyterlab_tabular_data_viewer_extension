@@ -69,6 +69,8 @@ export class TabularDataViewer extends Widget {
   private _sheets: string[] = [];
   private _activeSheet: string | null = null;
   private _sheetBar: HTMLDivElement;
+  private _loadingOverlay: HTMLDivElement;
+  private _loadingTimer: number | null = null;
 
   constructor(
     filePath: string,
@@ -174,6 +176,16 @@ export class TabularDataViewer extends Widget {
     this._sheetBar = document.createElement('div');
     this._sheetBar.className = 'jp-TabularDataViewer-sheetBar';
     this._sheetBar.style.display = 'none';
+
+    // Loading overlay (absolute-positioned over the table container).
+    // Shown after a 150ms debounce so quick paginations don't flash.
+    this._loadingOverlay = document.createElement('div');
+    this._loadingOverlay.className = 'jp-TabularDataViewer-loadingOverlay';
+    this._loadingOverlay.style.display = 'none';
+    const spinner = document.createElement('div');
+    spinner.className = 'jp-TabularDataViewer-spinner';
+    this._loadingOverlay.appendChild(spinner);
+    this._tableContainer.appendChild(this._loadingOverlay);
 
     // Append table container, sheet bar, status bar directly to widget node
     this.node.appendChild(this._tableContainer);
@@ -409,6 +421,7 @@ export class TabularDataViewer extends Widget {
 
     this._loading = true;
     this._updateStatusBar('Loading...');
+    this._showLoadingOverlay();
 
     try {
       if (reset) {
@@ -450,7 +463,33 @@ export class TabularDataViewer extends Widget {
       this._showError(`Failed to load data: ${error}`);
     } finally {
       this._loading = false;
+      this._hideLoadingOverlay();
     }
+  }
+
+  /**
+   * Show the loading overlay after a 150ms debounce. Quick paginations that
+   * resolve before the timer fires don't flash the spinner.
+   */
+  private _showLoadingOverlay(): void {
+    if (this._loadingTimer !== null) {
+      return;
+    }
+    this._loadingTimer = window.setTimeout(() => {
+      this._loadingOverlay.style.display = 'flex';
+      this._loadingTimer = null;
+    }, 150);
+  }
+
+  /**
+   * Hide the loading overlay and cancel any pending show timer.
+   */
+  private _hideLoadingOverlay(): void {
+    if (this._loadingTimer !== null) {
+      window.clearTimeout(this._loadingTimer);
+      this._loadingTimer = null;
+    }
+    this._loadingOverlay.style.display = 'none';
   }
 
   /**

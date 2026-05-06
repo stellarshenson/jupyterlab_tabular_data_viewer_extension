@@ -296,6 +296,41 @@
   border-right: none;
 }
 
+/* Loading Overlay (shown over table container during data loads) */
+.jp-TabularDataViewer-loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(
+    in srgb,
+    var(--jp-layout-color1) 60%,
+    transparent
+  );
+  z-index: 50;
+  pointer-events: none;
+}
+
+.jp-TabularDataViewer-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--jp-border-color2);
+  border-top-color: var(--jp-brand-color1);
+  border-radius: 50%;
+  animation: jp-tabular-data-viewer-spin 0.8s linear infinite;
+}
+
+@keyframes jp-tabular-data-viewer-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Sheet Bar (multi-sheet Excel only) */
 .jp-TabularDataViewer-sheetBar {
   flex-shrink: 0;
