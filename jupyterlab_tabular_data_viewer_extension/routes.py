@@ -10,8 +10,8 @@ import tornado
 import pyarrow.parquet as pq
 import pyarrow.compute as pc
 import pyarrow as pa
-import pandas as pd
 
+from .readers import get_file_type, read_as_arrow_table
 from .stats import calculate_column_stats
 
 
@@ -49,57 +49,6 @@ def normalize_arrow_type(arrow_type_str):
         "large_utf8": "string",
     }
     return type_map.get(arrow_type_str, arrow_type_str)
-
-
-def get_file_type(file_path):
-    """Determine file type based on extension"""
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == ".parquet":
-        return "parquet"
-    elif ext in [".xlsx", ".xls"]:
-        return "excel"
-    elif ext == ".csv":
-        return "csv"
-    elif ext == ".tsv":
-        return "tsv"
-    else:
-        return "unknown"
-
-
-def read_excel_as_arrow_table(file_path):
-    """Read Excel file (first worksheet only) and convert to PyArrow Table"""
-    try:
-        # Read only the first worksheet
-        df = pd.read_excel(file_path, sheet_name=0, engine="openpyxl")
-
-        # Convert pandas DataFrame to PyArrow Table
-        table = pa.Table.from_pandas(df)
-
-        return table
-    except Exception as e:
-        raise Exception(
-            f"Failed to read Excel file: {str(e)}. Ensure the file is a valid Excel file and openpyxl is installed."
-        )
-
-
-def read_csv_as_arrow_table(file_path, delimiter=","):
-    """Read CSV/TSV file and convert to PyArrow Table"""
-    try:
-        # Read CSV with pandas, handling various encodings
-        # Try UTF-8 first, fall back to latin1 if that fails
-        try:
-            df = pd.read_csv(file_path, delimiter=delimiter, encoding="utf-8")
-        except UnicodeDecodeError:
-            df = pd.read_csv(file_path, delimiter=delimiter, encoding="latin1")
-
-        # Convert pandas DataFrame to PyArrow Table
-        table = pa.Table.from_pandas(df)
-
-        return table
-    except Exception as e:
-        raise Exception(
-            f"Failed to read CSV file: {str(e)}. Ensure the file is a valid CSV file."
-        )
 
 
 class ParquetMetadataHandler(APIHandler):
@@ -148,87 +97,30 @@ class ParquetMetadataHandler(APIHandler):
             file_type = get_file_type(str(abs_path))
 
             if file_type == "parquet":
-                # Read Parquet file metadata
+                # Parquet has a metadata-only fast path - no need to read data
                 parquet_file = pq.ParquetFile(str(abs_path))
                 schema = parquet_file.schema_arrow
-
-                # Extract column information
-                columns = []
-                for i in range(len(schema)):
-                    field = schema.field(i)
-                    columns.append(
-                        {
-                            "name": field.name,
-                            "type": normalize_arrow_type(str(field.type)),
-                        }
-                    )
-
-                # Get total row count
                 total_rows = parquet_file.metadata.num_rows
-
-            elif file_type == "excel":
-                # Read Excel file metadata
-                table = read_excel_as_arrow_table(str(abs_path))
-                schema = table.schema
-
-                # Extract column information
-                columns = []
-                for i in range(len(schema)):
-                    field = schema.field(i)
-                    columns.append(
-                        {
-                            "name": field.name,
-                            "type": normalize_arrow_type(str(field.type)),
-                        }
-                    )
-
-                # Get total row count
-                total_rows = len(table)
-
-            elif file_type == "csv":
-                # Read CSV file metadata
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
-                schema = table.schema
-
-                # Extract column information
-                columns = []
-                for i in range(len(schema)):
-                    field = schema.field(i)
-                    columns.append(
-                        {
-                            "name": field.name,
-                            "type": normalize_arrow_type(str(field.type)),
-                        }
-                    )
-
-                # Get total row count
-                total_rows = len(table)
-
-            elif file_type == "tsv":
-                # Read TSV file metadata
-                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
-                schema = table.schema
-
-                # Extract column information
-                columns = []
-                for i in range(len(schema)):
-                    field = schema.field(i)
-                    columns.append(
-                        {
-                            "name": field.name,
-                            "type": normalize_arrow_type(str(field.type)),
-                        }
-                    )
-
-                # Get total row count
-                total_rows = len(table)
-
             else:
-                self.set_status(400)
-                self.finish(
-                    json.dumps({"error": f"Unsupported file type: {file_type}"})
+                try:
+                    table = read_as_arrow_table(str(abs_path))
+                except ValueError as e:
+                    self.set_status(400)
+                    self.finish(json.dumps({"error": str(e)}))
+                    return
+                schema = table.schema
+                total_rows = len(table)
+
+            # Extract column information
+            columns = []
+            for i in range(len(schema)):
+                field = schema.field(i)
+                columns.append(
+                    {
+                        "name": field.name,
+                        "type": normalize_arrow_type(str(field.type)),
+                    }
                 )
-                return
 
             # Get file size
             file_size = abs_path.stat().st_size
@@ -309,24 +201,12 @@ class ParquetDataHandler(APIHandler):
 
             # Detect file type and read accordingly
             file_type = get_file_type(str(abs_path))
-
-            if file_type == "parquet":
-                self.log.debug(f"Reading parquet file: {abs_path}")
-                table = pq.read_table(str(abs_path))
-            elif file_type == "excel":
-                self.log.debug(f"Reading excel file: {abs_path}")
-                table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == "csv":
-                self.log.debug(f"Reading CSV file: {abs_path}")
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
-            elif file_type == "tsv":
-                self.log.debug(f"Reading TSV file: {abs_path}")
-                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
-            else:
+            self.log.debug(f"Reading {file_type} file: {abs_path}")
+            try:
+                table = read_as_arrow_table(str(abs_path))
+            except ValueError as e:
                 self.set_status(400)
-                self.finish(
-                    json.dumps({"error": f"Unsupported file type: {file_type}"})
-                )
+                self.finish(json.dumps({"error": str(e)}))
                 return
 
             # Add original row index column (1-indexed for display)
@@ -524,21 +404,11 @@ class ColumnStatsHandler(APIHandler):
                 return
 
             # Detect file type and read accordingly
-            file_type = get_file_type(str(abs_path))
-
-            if file_type == "parquet":
-                table = pq.read_table(str(abs_path))
-            elif file_type == "excel":
-                table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == "csv":
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
-            elif file_type == "tsv":
-                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
-            else:
+            try:
+                table = read_as_arrow_table(str(abs_path))
+            except ValueError as e:
                 self.set_status(400)
-                self.finish(
-                    json.dumps({"error": f"Unsupported file type: {file_type}"})
-                )
+                self.finish(json.dumps({"error": str(e)}))
                 return
 
             # Calculate statistics
@@ -599,21 +469,11 @@ class UniqueValuesHandler(APIHandler):
                 return
 
             # Detect file type and read accordingly
-            file_type = get_file_type(str(abs_path))
-
-            if file_type == "parquet":
-                table = pq.read_table(str(abs_path))
-            elif file_type == "excel":
-                table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == "csv":
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
-            elif file_type == "tsv":
-                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
-            else:
+            try:
+                table = read_as_arrow_table(str(abs_path))
+            except ValueError as e:
                 self.set_status(400)
-                self.finish(
-                    json.dumps({"error": f"Unsupported file type: {file_type}"})
-                )
+                self.finish(json.dumps({"error": str(e)}))
                 return
 
             # Check if column exists
@@ -741,17 +601,11 @@ class DownloadHandler(APIHandler):
                 self.finish(f"Invalid format: {download_format}")
                 return
 
-            if file_type == "parquet":
-                table = pq.read_table(str(abs_path))
-            elif file_type == "excel":
-                table = read_excel_as_arrow_table(str(abs_path))
-            elif file_type == "csv":
-                table = read_csv_as_arrow_table(str(abs_path), delimiter=",")
-            elif file_type == "tsv":
-                table = read_csv_as_arrow_table(str(abs_path), delimiter="\t")
-            else:
+            try:
+                table = read_as_arrow_table(str(abs_path))
+            except ValueError as e:
                 self.set_status(400)
-                self.finish(f"Unsupported file type: {file_type}")
+                self.finish(str(e))
                 return
 
             # Apply filters if provided (same logic as ParquetDataHandler)

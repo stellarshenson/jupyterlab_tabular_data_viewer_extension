@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.6.0] - 2026-05-06
+
+### Fixed
+
+- Excel/CSV/TSV files with mixed-type columns now open correctly. Previously columns containing values of more than one type (e.g. a column with both `42` and `'ACCFS-108'`, or `True`/`False` mixed with `'true (either)'`) failed at the PyArrow conversion step with `ArrowInvalid` and surfaced as a generic open failure
+
+### Changed
+
+- Reader logic extracted from `routes.py` into a dedicated `readers.py` module
+- Per-handler dispatch ladders (parquet/excel/csv/tsv if-elif chains) collapsed into a single `read_as_arrow_table()` call
+
+### Technical
+
+- New `_series_to_arrow_array` helper implements two-step cascading type inference: native PyArrow inference first, fallback to string on `ArrowInvalid` / `ArrowTypeError` / `ArrowNotImplementedError`. Applied per column so a single problematic column does not block the whole table
+- Numeric coercion is intentionally excluded from the cascade. Excel stores dates as floats internally, so a numeric fallback could silently strip date semantics from columns with stray non-date values
+- New `read_as_arrow_table(path)` dispatcher centralises file-type routing for parquet/excel/csv/tsv. Raises `ValueError` for unsupported types so callers can map cleanly to HTTP 400
+- `ParquetMetadataHandler` preserves the parquet metadata-only fast path (`ParquetFile.metadata.num_rows`)
+
 ## [1.5.8] - 2025-11-23
 
 **Tag**: RELEASE_1.5.8
