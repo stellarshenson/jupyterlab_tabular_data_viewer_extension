@@ -12,7 +12,12 @@ import pyarrow.parquet as pq
 import pyarrow.compute as pc
 import pyarrow as pa
 
-from .readers import get_file_type, list_excel_sheets, read_as_arrow_table
+from .readers import (
+    get_file_type,
+    list_excel_sheets,
+    list_sqlite_tables,
+    read_as_arrow_table,
+)
 from .stats import calculate_column_stats
 
 
@@ -103,24 +108,36 @@ class ParquetMetadataHandler(APIHandler):
                 )
                 return
 
-            # Detect file type
+            # Detect file type. Tabbed formats populate `sheets`: Excel with
+            # its worksheet names, SQLite with its user table names.
+            #
+            # Listing and reading share one 400 boundary: an unreadable file
+            # (corrupt database, locked by a writer, unsupported type) raises
+            # ValueError from whichever call reaches it first, and pyarrow's
+            # ArrowInvalid is itself a ValueError, so a damaged parquet lands
+            # here too instead of escaping as a 500 with a traceback.
             file_type = get_file_type(str(abs_path))
-            sheets = list_excel_sheets(str(abs_path)) if file_type == "excel" else []
+            try:
+                if file_type == "excel":
+                    sheets = list_excel_sheets(str(abs_path))
+                elif file_type == "sqlite":
+                    sheets = list_sqlite_tables(str(abs_path))
+                else:
+                    sheets = []
 
-            if file_type == "parquet":
-                # Parquet has a metadata-only fast path - no need to read data
-                parquet_file = pq.ParquetFile(str(abs_path))
-                schema = parquet_file.schema_arrow
-                total_rows = parquet_file.metadata.num_rows
-            else:
-                try:
+                if file_type == "parquet":
+                    # Parquet has a metadata-only fast path - no need to read data
+                    parquet_file = pq.ParquetFile(str(abs_path))
+                    schema = parquet_file.schema_arrow
+                    total_rows = parquet_file.metadata.num_rows
+                else:
                     table = read_as_arrow_table(str(abs_path), sheet)
-                except ValueError as e:
-                    self.set_status(400)
-                    self.finish(json.dumps({"error": str(e)}))
-                    return
-                schema = table.schema
-                total_rows = len(table)
+                    schema = table.schema
+                    total_rows = len(table)
+            except ValueError as e:
+                self.set_status(400)
+                self.finish(json.dumps({"error": str(e)}))
+                return
 
             # Extract column information
             columns = []
@@ -143,6 +160,7 @@ class ParquetMetadataHandler(APIHandler):
                         "totalRows": total_rows,
                         "fileSize": file_size,
                         "sheets": sheets,
+                        "sourceType": file_type,
                     }
                 )
             )
@@ -622,7 +640,8 @@ class DownloadHandler(APIHandler):
             output_format, output_ext = format_map[download_format]
 
             # Build filename: <base>[_<slug>][_filtered].<ext>
-            # Slug is appended only when a sheet is active (multi-sheet Excel).
+            # Slug is appended only when a sheet is active (a multi-sheet
+            # Excel worksheet, or a SQLite table).
             # `_filtered` is appended only when filters are non-empty; sort
             # order alone does not trigger it.
             parts = [base_filename]

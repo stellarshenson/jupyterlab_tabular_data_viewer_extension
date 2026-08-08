@@ -9,6 +9,10 @@
   width: 100%;
   overflow: hidden;
   background-color: var(--jp-layout-color1);
+
+  /* Containing block for the loading overlay, which must not scroll with
+     the table content. */
+  position: relative;
 }
 
 .jp-TabularDataViewer-container {
@@ -296,7 +300,8 @@
   border-right: none;
 }
 
-/* Loading Overlay (shown over table container during data loads) */
+/* Loading Overlay (spans the widget during data loads; the sheet bar and
+   status bar sit above it at z-index 60 so they stay readable) */
 .jp-TabularDataViewer-loadingOverlay {
   position: absolute;
   inset: 0;
@@ -321,6 +326,13 @@
   animation: jp-tabular-data-viewer-spin 0.8s linear infinite;
 }
 
+/* Keep the busy signal, slow it well below the flicker threshold. */
+@media (prefers-reduced-motion: reduce) {
+  .jp-TabularDataViewer-spinner {
+    animation-duration: 2.4s;
+  }
+}
+
 @keyframes jp-tabular-data-viewer-spin {
   from {
     transform: rotate(0deg);
@@ -336,6 +348,9 @@
   flex-shrink: 0;
   display: flex;
   overflow-x: auto;
+
+  /* Above the loading overlay (50), same reasoning as the status bar. */
+  z-index: 60;
   border-top: 1px solid var(--jp-border-color2);
   background-color: var(--jp-layout-color1);
   font-family: var(--jp-ui-font-family);
@@ -373,7 +388,11 @@
   color: var(--jp-ui-font-color2);
   font-size: var(--jp-ui-font-size1);
   font-family: var(--jp-ui-font-family);
-  z-index: 10;
+
+  /* Above the loading overlay (50): the status bar keeps its own opaque
+     background, so the scrim stays confined to the grid rather than dimming
+     the metrics and the Export link to roughly 1.6:1 contrast. */
+  z-index: 60;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -382,6 +401,11 @@
 .jp-TabularDataViewer-statusLeft {
   flex-shrink: 0;
   color: var(--jp-ui-font-color2);
+}
+
+.jp-TabularDataViewer-sourceType {
+  color: var(--jp-ui-font-color1);
+  font-weight: 600;
 }
 
 .jp-TabularDataViewer-statusMiddle {

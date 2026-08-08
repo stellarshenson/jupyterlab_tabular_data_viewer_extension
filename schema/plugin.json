@@ -1,6 +1,6 @@
 {
   "title": "Tabular Data Viewer Extension",
-  "description": "Settings for the Tabular Data Viewer Extension. Supports Parquet, Excel, CSV, and TSV files.",
+  "description": "Settings for the Tabular Data Viewer Extension. Supports Parquet, Excel, CSV, TSV, and SQLite files.",
   "jupyter.lab.setting-icon": "ui-components:spreadsheet",
   "jupyter.lab.setting-icon-class": "jp-SpreadsheetIcon",
   "type": "object",
@@ -26,6 +26,12 @@
     "enableTSV": {
       "title": "Enable TSV files",
       "description": "Use this extension to view .tsv files",
+      "type": "boolean",
+      "default": true
+    },
+    "enableSQLite": {
+      "title": "Enable SQLite files",
+      "description": "Use this extension to view .db, .sqlite, .sqlite3 and .db3 files",
       "type": "boolean",
       "default": true
     },

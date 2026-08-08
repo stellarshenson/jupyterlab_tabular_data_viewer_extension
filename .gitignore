@@ -15,12 +15,16 @@ jupyterlab_tabular_data_viewer_extension/_version.py
 ui-tests/test-results/
 ui-tests/playwright-report/
 
+# Test reporter output
+junit.xml
+
 # Created by https://www.gitignore.io/api/python
 # Edit at https://www.gitignore.io/?templates=python
 
 ### Python ###
 # Virtual environments
 .venv
+.nodeenv
 uv.lock
 
 # Byte-compiled / optimized / DLL files

@@ -11,7 +11,7 @@ import {
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
-import { TabularDataViewer } from './widget';
+import { TabularDataViewer, SQLITE_EXTENSIONS } from './widget';
 import { TabularDataDocument } from './document';
 
 /**
@@ -76,6 +76,7 @@ interface ISettings {
   enableExcel: boolean;
   enableCSV: boolean;
   enableTSV: boolean;
+  enableSQLite: boolean;
   maxCellCharacters: number;
   maxUniqueValues: number;
 }
@@ -86,7 +87,7 @@ interface ISettings {
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupyterlab_tabular_data_viewer_extension:plugin',
   description:
-    'Jupyterlab extension to allow simple browsing of tabular data files (Parquet, Excel) with filtering and sorting capabilities',
+    'Jupyterlab extension to allow simple browsing of tabular data files (Parquet, Excel, CSV, TSV, SQLite) with filtering and sorting capabilities',
   autoStart: true,
   requires: [ISettingRegistry],
   activate: async (app: JupyterFrontEnd, settingRegistry: ISettingRegistry) => {
@@ -106,6 +107,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       enableExcel: true,
       enableCSV: true,
       enableTSV: true,
+      enableSQLite: true,
       maxCellCharacters: 100,
       maxUniqueValues: 100
     };
@@ -286,7 +288,30 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     }
 
-    // Create binary factory for Parquet and Excel files
+    // Register the SQLite file type if enabled. IFileType.extensions is a
+    // list, so one registration covers all four extensions.
+    if (settings.enableSQLite) {
+      const typeName = 'sqlite-tabular-viewer';
+      try {
+        docRegistry.addFileType({
+          name: typeName,
+          displayName: 'SQLite (Tabular Viewer)',
+          extensions: SQLITE_EXTENSIONS,
+          mimeTypes: ['application/vnd.sqlite3'],
+          iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
+          contentType: 'file',
+          fileFormat: 'base64'
+        });
+        binaryFileTypes.push(typeName);
+      } catch (e) {
+        console.warn(
+          `[Tabular Data Viewer] SQLite file type already registered: ${typeName}`,
+          e
+        );
+      }
+    }
+
+    // Create binary factory for Parquet, Excel and SQLite files
     if (binaryFileTypes.length > 0) {
       const binaryFactory = new TabularDataWidgetFactory(
         {

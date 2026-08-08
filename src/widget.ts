@@ -5,6 +5,24 @@ import { URLExt } from '@jupyterlab/coreutils';
 import { ServerConnection } from '@jupyterlab/services';
 
 /**
+ * Extensions claimed for SQLite. Single source of truth: `index.ts` registers
+ * the file type from this list and the export guard tests against it, so
+ * adding one here cannot leave the two disagreeing.
+ */
+export const SQLITE_EXTENSIONS = ['.db', '.sqlite', '.sqlite3', '.db3'];
+
+/**
+ * Display labels for the datasource type reported by the backend
+ */
+const SOURCE_LABELS: { [key: string]: string } = {
+  sqlite: 'SQLite',
+  parquet: 'Parquet',
+  excel: 'Excel',
+  csv: 'CSV',
+  tsv: 'TSV'
+};
+
+/**
  * Column metadata interface
  */
 interface IColumnMetadata {
@@ -68,6 +86,7 @@ export class TabularDataViewer extends Widget {
   private _selectedRow: HTMLTableRowElement | null = null;
   private _sheets: string[] = [];
   private _activeSheet: string | null = null;
+  private _sourceType = '';
   private _sheetBar: HTMLDivElement;
   private _loadingOverlay: HTMLDivElement;
   private _loadingTimer: number | null = null;
@@ -167,6 +186,9 @@ export class TabularDataViewer extends Widget {
 
     this._statusRight = document.createElement('div');
     this._statusRight.className = 'jp-TabularDataViewer-statusRight';
+    // The live region lives here, not on the spinner overlay: this is the
+    // element that actually gains text ("Loading...") when a fetch starts.
+    this._statusRight.setAttribute('role', 'status');
 
     this._statusBar.appendChild(this._statusLeft);
     this._statusBar.appendChild(statusMiddle);
@@ -177,18 +199,26 @@ export class TabularDataViewer extends Widget {
     this._sheetBar.className = 'jp-TabularDataViewer-sheetBar';
     this._sheetBar.style.display = 'none';
 
-    // Loading overlay (absolute-positioned over the table container).
-    // Shown after a 150ms debounce so quick paginations don't flash.
+    // Loading overlay, absolute-positioned over the widget (see the append
+    // below). Shown after a 150ms debounce so quick paginations don't flash.
+    // Purely decorative: the busy state is announced through the status bar's
+    // live region, so this is hidden from assistive tech rather than being a
+    // live region with no text of its own.
     this._loadingOverlay = document.createElement('div');
     this._loadingOverlay.className = 'jp-TabularDataViewer-loadingOverlay';
     this._loadingOverlay.style.display = 'none';
+    this._loadingOverlay.setAttribute('aria-hidden', 'true');
     const spinner = document.createElement('div');
     spinner.className = 'jp-TabularDataViewer-spinner';
     this._loadingOverlay.appendChild(spinner);
-    this._tableContainer.appendChild(this._loadingOverlay);
 
     // Append table container, sheet bar, status bar directly to widget node
     this.node.appendChild(this._tableContainer);
+    // The overlay belongs to the widget, not the scroll container: an
+    // absolutely positioned child of an `overflow: auto` box scrolls with the
+    // content, so anchored there it sat above the viewport once the user had
+    // scrolled and was invisible exactly when a fetch was most likely.
+    this.node.appendChild(this._loadingOverlay);
     this.node.appendChild(this._sheetBar);
     this.node.appendChild(this._statusBar);
 
@@ -299,9 +329,27 @@ export class TabularDataViewer extends Widget {
     const hasFilters = Object.keys(this._filters).length > 0;
     const modal = new DownloadModal(
       (format: string) => this.downloadFilteredData(format),
-      hasFilters
+      hasFilters,
+      this._canExportOriginal()
     );
     modal.show();
+  }
+
+  /**
+   * Whether "original format" can be served for this source. SQLite cannot:
+   * the backend has no way to write a database back out.
+   *
+   * Falls back to the extension when `_sourceType` is unset, because the
+   * export command is reachable from the context menu even after a failed
+   * metadata load - and an empty `_sourceType` would otherwise read as
+   * "not sqlite" and offer a button that always fails.
+   */
+  private _canExportOriginal(): boolean {
+    if (this._sourceType) {
+      return this._sourceType !== 'sqlite';
+    }
+    const lower = this._filePath.toLowerCase();
+    return !SQLITE_EXTENSIONS.some(ext => lower.endsWith(ext));
   }
 
   /**
@@ -330,17 +378,35 @@ export class TabularDataViewer extends Widget {
 
     this._sheetBar.style.display = '';
 
+    // SQLite databases expose tables here; every other source exposes sheets.
+    // The distinction is carried by the bar's accessible name rather than a
+    // per-tab tooltip, which would only have restated the visible label.
+    // Deliberately a labelled group of buttons rather than role="tablist".
+    // A tablist promises arrow-key navigation with a roving tabindex; native
+    // buttons are already focusable and Enter/Space-activatable, so claiming
+    // the tab pattern without implementing it would mislead assistive tech.
+    const kind = this._sourceType === 'sqlite' ? 'Tables' : 'Sheets';
+    this._sheetBar.setAttribute('role', 'group');
+    this._sheetBar.setAttribute('aria-label', kind);
+
+    let activeTab: HTMLButtonElement | null = null;
     for (const name of this._sheets) {
       const tab = document.createElement('button');
       tab.className = 'jp-TabularDataViewer-sheetTab';
       if (name === this._activeSheet) {
+        tab.setAttribute('aria-current', 'true');
         tab.classList.add('jp-mod-active');
+        activeTab = tab;
       }
       tab.textContent = name;
-      tab.title = name;
       tab.addEventListener('click', () => this._switchSheet(name));
       this._sheetBar.appendChild(tab);
     }
+
+    // Rebuilding the bar resets its scrollLeft, so on a database with more
+    // tables than fit (the bar is overflow-x: auto) the tab just clicked
+    // would otherwise vanish off-screen.
+    activeTab?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
   /**
@@ -400,6 +466,7 @@ export class TabularDataViewer extends Widget {
     this._unfilteredTotalRows = response.totalRows;
     this._fileSize = response.fileSize || 0;
     this._sheets = response.sheets || [];
+    this._sourceType = response.sourceType || '';
 
     // First load: pick the first sheet (if any) as active
     if (this._activeSheet === null && this._sheets.length > 0) {
@@ -460,6 +527,10 @@ export class TabularDataViewer extends Widget {
       this._renderData(response.data);
       this._updateStatusBar();
     } catch (error) {
+      // Repaint the bar first: otherwise the right group stays on "Loading..."
+      // indefinitely next to a healthy-looking left group, and the Export link
+      // never comes back.
+      this._updateStatusBar();
       this._showError(`Failed to load data: ${error}`);
     } finally {
       this._loading = false;
@@ -1202,13 +1273,26 @@ export class TabularDataViewer extends Widget {
    */
   private _updateStatusBar(message?: string): void {
     if (message) {
-      this._statusLeft.textContent = '';
+      // Leave the left group alone: it holds the datasource type and file
+      // stats, which do not change while loading. Clearing it made the whole
+      // bar strobe on every paginated fetch during a scroll.
       this._statusRight.textContent = message;
     } else {
-      // Left side: file stats (always show unfiltered total)
+      // Left side: datasource type prefix + file stats (always show unfiltered total)
       const numColumns = this._columns.length;
       const fileSize = this._formatFileSize(this._fileSize);
-      this._statusLeft.textContent = `${numColumns} columns • ${this._unfilteredTotalRows} rows • ${fileSize}`;
+      const stats = `${numColumns} columns • ${this._unfilteredTotalRows} rows • ${fileSize}`;
+
+      this._statusLeft.textContent = '';
+      const label = SOURCE_LABELS[this._sourceType];
+      if (label) {
+        const typeSpan = document.createElement('span');
+        typeSpan.className = 'jp-TabularDataViewer-sourceType';
+        typeSpan.textContent = label;
+        this._statusLeft.appendChild(typeSpan);
+        this._statusLeft.appendChild(document.createTextNode(' • '));
+      }
+      this._statusLeft.appendChild(document.createTextNode(stats));
 
       // Right side: showing info and clear filters link
       const filterCount = Object.keys(this._filters).length;

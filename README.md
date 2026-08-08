@@ -11,7 +11,7 @@
 > [!TIP]
 > This extension is part of the [stellars_jupyterlab_extensions](https://github.com/stellarshenson/stellars_jupyterlab_extensions) metapackage. Install all Stellars extensions at once: `pip install stellars_jupyterlab_extensions`
 
-View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Double-click any .parquet, .xlsx, .csv, or .tsv file to open it in a simple, spreadsheet-like table view - no code required (yes, really). Navigate through your data, inspect values, and explore the structure of your tabular data files with interactive column resizing and advanced filtering capabilities.
+View and browse Parquet, Excel, CSV, TSV, and SQLite files directly in JupyterLab. Double-click any .parquet, .xlsx, .csv, .tsv, or .db file to open it in a simple, spreadsheet-like table view - no code required (yes, really). Navigate through your data, inspect values, and explore the structure of your tabular data files with interactive column resizing and advanced filtering capabilities.
 
 **Full disclosure:** This is a shameless ripoff of your typical tabular data browsing tools. Zero ingenuity, zero creativity - just unabashed borrowing of ideas that worked elsewhere. If it looks familiar, that's the point.
 
@@ -43,6 +43,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 - **Excel files** (.xlsx) - Multi-sheet support: a sheet bar appears at the bottom for workbooks with more than one sheet, and switching sheets resets all filters/sort/selection (each sheet behaves like a separate file). Mixed-type columns (e.g. integers and strings in the same column) are handled via per-column cascading type inference rather than failing to open. Excel files must still be simple tabular data without merged cells, complex formulas, or advanced formatting
 - **CSV files** (.csv) - Comma-separated values with UTF-8 encoding (fallback to latin1)
 - **TSV files** (.tsv) - Tab-separated values with UTF-8 encoding (fallback to latin1)
+- **SQLite databases** (.db, .sqlite, .sqlite3, .db3) - User tables appear as tabs in the same bar Excel uses for sheets, and system tables (`sqlite_sequence` and friends) stay hidden. BLOB columns show a size placeholder such as `<BLOB 42.1 KB>` instead of dumping binary into the grid. Databases are identified by their magic header rather than trusting the extension, so a `.db` file that is not SQLite is reported rather than misread. Connections are read-only: the viewer never writes to your database
 
 **Core viewing and navigation:**
 
@@ -52,6 +53,7 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 - Frozen index column - row numbers stay fixed when scrolling horizontally through wide datasets
 - Row selection - click anywhere on a row to highlight it with subtle color shading. Click again to deselect, or click another row to switch selection
 - Progressive loading - starts with 500 rows, automatically loads more as you scroll (your patience rewarded)
+- Datasource type indicator in the status bar - `SQLite`, `Parquet`, `Excel`, `CSV` or `TSV` prefixes the file statistics, so the format actually being read is never a guess
 - File statistics (column count, row count, file size) at a glance
 - Fixed status bar remains visible during horizontal scrolling (because it got tired of moving)
 - Handles large files efficiently with server-side processing
@@ -69,13 +71,13 @@ View and browse Parquet, Excel, CSV, and TSV files directly in JupyterLab. Doubl
 **Additional features:**
 
 - Column statistics modal - View comprehensive statistics including data type, row counts, null values, unique counts, and type-specific metrics (numeric: min/max/mean/median/std dev/outliers; string: most common value/length stats; date: earliest/latest dates). Includes scrollable list of unique values sorted by frequency with counts and percentages. Copy statistics as JSON with one click
-- Export - **Export** link in the status bar (or right-click on the viewer) opens a format picker: original, Excel (.xlsx), CSV, Parquet (.parquet), or JSONL (.jsonl). Exports preserve active filters and sort order. Filename includes the slugified sheet name for multi-sheet Excel and a `_filtered` suffix when filters are applied
+- Export - **Export** link in the status bar (or right-click on the viewer) opens a format picker: original, Excel (.xlsx), CSV, Parquet (.parquet), or JSONL (.jsonl). Original is omitted for SQLite sources - a database cannot be written back out. Exports preserve active filters and sort order. Filename includes the slugified sheet name for multi-sheet Excel, the table name for SQLite, and a `_filtered` suffix when filters are applied
 - Right-click context menu on rows to copy data as JSON
 - Refresh view - Right-click on viewer and select "Refresh View" to reload data from file while preserving scroll position, filters, and sorting
 - Cell text truncation - Configurable maximum character limit for cell display (default: 100 characters). Text longer than limit shows "..." ellipsis. Set to 0 for unlimited display
 - Complex data types display - List/tuple and dict values display as JSON strings for easy inspection of nested/structured data
 - Absolute row indices - Row numbers always show original file position, even with active filters or sorting
-- Configurable file type support via Settings - Enable/disable Parquet, Excel, or CSV/TSV handling
+- Configurable file type support via Settings - Enable/disable Parquet, Excel, CSV/TSV, or SQLite handling
 - All features work seamlessly across all supported file formats
 
 ## Installation
@@ -103,6 +105,7 @@ Configure extension behavior through JupyterLab Settings:
    - **Enable Excel files** - Default: enabled
    - **Enable CSV files** - Default: enabled
    - **Enable TSV files** - Default: enabled
+   - **Enable SQLite files** - Default: enabled
    - **Maximum Cell Characters** - Default: 100. Maximum characters to display in a cell before truncating with "...". Set to 0 for unlimited display
    - **Maximum Unique Values** - Default: 100. Maximum number of unique values to display in filter dialog and column statistics. Set to 0 for no limit
 

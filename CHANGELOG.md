@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.7.5] - 2026-08-08
+
+### Added
+
+- **SQLite browser**: `.db`, `.sqlite`, `.sqlite3` and `.db3` databases open in the viewer with each user table rendered as a tab in the existing sheet bar. Switching tables resets filters, sort, selection, scroll position and column widths, exactly as switching an Excel sheet does. Single-table databases show no tab bar. System tables (`sqlite_sequence` and any other `sqlite_*`) are filtered out of the list
+- **Datasource type indicator** in the status bar - the left group is prefixed with `SQLite`, `Parquet`, `Excel`, `CSV` or `TSV`, so the format actually being read is visible rather than inferred from the filename
+- **BLOB placeholders**: binary cells render as `<BLOB 42.1 KB>` (B/KB/MB, trailing zeros dropped, matching the existing file-size convention) in the grid and in every export format, so binary never reaches the table or the exported file
+- **Read-only connection guarantee**: SQLite is opened through a `file:...?mode=ro` URI, so the viewer cannot mutate the database it is browsing
+- New `enableSQLite` setting (default enabled) to disable SQLite handling and fall back to JupyterLab's default handler
+- New synthetic fixture `data/sample_database.db`, regenerated deterministically by `scripts/make_sample_database.py`. Four tables chosen to cover each branch: `customers` (12 rows, plain types), `orders` (30 rows, `AUTOINCREMENT`, which is what creates `sqlite_sequence`), `attachments` (4 rows, BLOB column), `mixed_types` (6 rows, int and string in one column)
+- 24 new pytest tests covering magic-byte sniffing, a SQLite database named `.txt`, a non-SQLite `.db`, `list_sqlite_tables` excluding `sqlite_sequence`, unknown-table `ValueError`, BLOB placeholder output, the v1.6.0 cascade over `mixed_types`, `sourceType` and `sheets` in metadata for every format, `/data` with a table name, the `sample_database_orders.csv` download filename, the rejected `original` export format, and an mtime/size check proving the read-only connection does not touch the file
+- 8 new galata tests driving the real UI: database opens with rows rendered, tab bar lists exactly the four user tables with `sqlite_sequence` absent, clicking a tab re-renders the grid, filter state resets across a table switch and back, status bar reads `SQLite` for the database and `Parquet` for the parquet fixture, BLOB cells show the placeholder, the export popup omits `Original` for SQLite, and still offers it for parquet
+
+### Changed
+
+- **SQLite is identified by content, not extension**: `get_file_type` checks for the 16-byte `SQLite format 3\0` header first and falls back to the existing extension switch otherwise. This is the signal `file(1)` keys on, read in-process rather than as a subprocess, so it also works where `file` is absent. Extension-only detection was untenable for SQLite specifically: `.db` is claimed by several unrelated formats, and a database may carry any extension at all. Parquet, Excel, CSV and TSV continue to resolve by extension exactly as before - only SQLite is sniffed, because only SQLite needed it
+- Download filenames slugify the active SQLite table the same way they already slugified the active Excel sheet - `chats.db` with table `feed_scan` exports as `chats_feed_scan.csv`, with no filename-code change needed
+- Project `Makefile` refreshed verbatim from the canonical version, 1.31 to 1.36: node and npm resolve exclusively from the project-local nodeenv, `build` formats the lockfiles with the pinned prettier, `check_dependencies` treats an empty `node_modules` as missing, and `test` now runs the Python suite alongside `jlpm test`. `.gitignore` gains `.nodeenv`
+
+### Fixed
+
+- Backend errors no longer render as `Error: [object Object]`. The metadata, data, column-stats and unique-values routes report failures as `{"error": "..."}`, but the request helper read `data.message` first, so the object itself became the message and every distinguishable cause collapsed into one unreadable line
+- A CSV or TSV whose first column is named `PAR1` is no longer misread as Parquet. Only SQLite is sniffed now; the four printable bytes of the Parquet signature were matching ordinary text files and returning HTTP 500
+- A zip archive named `.db` no longer returns HTTP 500 with a traceback. It was matching the xlsx signature and failing with a `KeyError`, which is not a `ValueError` and so escaped the handlers' 400 path
+- A corrupt database, one locked by another writer, or a WAL database on a read-only mount now returns HTTP 400 with a readable message instead of HTTP 500 with a server-side traceback. `sqlite3.Error` is mapped to `ValueError` at the connection boundary, and table listing shares the same handled block as the read
+- A table that is listed but cannot be read - a virtual table needing a module this SQLite build lacks, or a clobbered data page behind an intact header - also returns HTTP 400 rather than 500. `pandas` re-raises driver errors as `pandas.errors.DatabaseError`, which subclasses `OSError` rather than `sqlite3.Error`, so it needed its own arm at the connection boundary. When such a table sorts first alphabetically, the whole database was unopenable
+- The loading spinner no longer scrolls out of view. It was absolutely positioned inside the `overflow: auto` table container, so once the user had scrolled it sat above the viewport - invisible in exactly the case it exists for
+- The table bar no longer jumps back to the far left on every switch. Rebuilding the bar reset its `scrollLeft`, so on a database with more tables than fit, the tab just clicked scrolled off-screen
+- The datasource label and file stats no longer blank out on every fetch, which made the status bar strobe during scroll-driven pagination
+- A named pipe in the notebook tree can no longer block a request handler: detection now refuses anything that is not a regular file
+- The loading overlay no longer dims the sheet bar and status bar. Both now sit above it, so the metrics and the Export link stay readable during a load instead of rendering greyed-out while remaining clickable
+- The status bar no longer stays on `Loading...` after a failed fetch, which left a stale busy message beside otherwise healthy-looking file statistics and hid the Export link
+- `Original` is no longer offered for a database whose metadata failed to load: the check falls back to the file extension when the datasource type is not yet known
+
+### Technical
+
+- New `sniff_file_type(file_path)` in `readers.py` reads the first 16 bytes and matches against a `_MAGIC` table holding the single SQLite signature; returns `None` when unrecognised so `get_file_type` falls through to the extension switch. It refuses anything that is not a regular file, so a FIFO in the notebook tree cannot block the handler
+- New `list_sqlite_tables(file_path)` returns user tables in name order via `sqlite_master`. The query uses `NOT LIKE 'sqlite\_%' ESCAPE '\'` - without the escape, `_` is a single-character wildcard and would also hide a user table named `sqliteX...`
+- New `_read_sqlite(file_path, table=None)` resolves `table` against `list_sqlite_tables` and raises `ValueError` when absent. Whitelist validation, not quoting, is what makes this safe: table names cannot be parameterised in SQL. The identifier is additionally double-quoted with `"` doubled. `None` selects the first table; a database with no user tables raises `ValueError` and surfaces as HTTP 400
+- Full-table `SELECT *` into a DataFrame, then the existing `_df_to_arrow` path - one code path, so all existing filter, sort, pagination, stats and export logic applies to SQLite unchanged
+- New `_sqlite_uri(file_path)` builds the read-only URI, percent-escaping `?` and `#` in the path
+- `read_as_arrow_table(path, sheet=None)` gains a `sqlite` branch; `sheet` carries the table name, so no new plumbing through the four handlers
+- `ParquetMetadataHandler` response gains `sourceType` (the raw `get_file_type` value) and populates `sheets` from `list_sqlite_tables` for SQLite files
+- `TabularDataViewer` gains `_sourceType` state and a `SOURCE_LABELS` map; `_updateStatusBar` emits a `.jp-TabularDataViewer-sourceType` span, and the tab bar is a labelled `group` whose accessible name is "Tables" for SQLite and "Sheets" otherwise, with `aria-current` on the active tab. Deliberately not `role="tablist"`: that pattern promises arrow-key navigation with a roving tabindex, and native buttons already carry the keyboard behaviour
+- `index.ts` registers a single `sqlite-tabular-viewer` file type covering all four extensions (`base64` format, `jp-SpreadsheetIcon`, `application/vnd.sqlite3`) behind the `enableSQLite` setting
+
 ## [1.6.12] - 2026-05-06
 
 ### Added

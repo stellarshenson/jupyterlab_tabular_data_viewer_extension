@@ -509,11 +509,17 @@ export class FilterModal extends Widget {
 export class DownloadModal extends Widget {
   private _onDownload: (format: string) => void;
   private _hasFilters: boolean;
+  private _canExportOriginal: boolean;
 
-  constructor(onDownload: (format: string) => void, hasFilters = false) {
+  constructor(
+    onDownload: (format: string) => void,
+    hasFilters = false,
+    canExportOriginal = true
+  ) {
     super();
     this._onDownload = onDownload;
     this._hasFilters = hasFilters;
+    this._canExportOriginal = canExportOriginal;
     this.addClass('jp-FilterModal');
     this._render();
     this._setupEventListeners();
@@ -552,11 +558,14 @@ export class DownloadModal extends Widget {
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'jp-FilterModal-buttons';
 
-    const originalBtn = this._createFormatButton(
-      'Download as Original Format',
-      'original'
-    );
-    buttonsDiv.appendChild(originalBtn);
+    // Omitted for sources the backend cannot write back out (e.g. SQLite)
+    if (this._canExportOriginal) {
+      const originalBtn = this._createFormatButton(
+        'Download as Original Format',
+        'original'
+      );
+      buttonsDiv.appendChild(originalBtn);
+    }
 
     const excelBtn = this._createFormatButton(
       'Download as Excel (.xlsx)',

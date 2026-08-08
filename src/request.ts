@@ -39,7 +39,12 @@ export async function requestAPI<T>(
   }
 
   if (!response.ok) {
-    throw new ServerConnection.ResponseError(response, data.message || data);
+    // The backend reports failures as {"error": "..."}; without picking that
+    // up first, every 400 stringified to "[object Object]" in the UI.
+    throw new ServerConnection.ResponseError(
+      response,
+      data?.error || data?.message || data
+    );
   }
 
   return data;
