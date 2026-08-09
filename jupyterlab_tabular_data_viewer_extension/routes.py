@@ -131,7 +131,14 @@ class ParquetMetadataHandler(APIHandler):
                     schema = parquet_file.schema_arrow
                     total_rows = parquet_file.metadata.num_rows
                 else:
-                    table = read_as_arrow_table(str(abs_path), sheet)
+                    # Resolve the default sheet here rather than letting the
+                    # reader do it. The frontend omits `sheet` on this first
+                    # call and sends the resolved name on every later one, so
+                    # leaving it None caches the same table under two keys -
+                    # on a tabbed source that is the first table held twice.
+                    table = read_as_arrow_table(
+                        str(abs_path), sheet or (sheets[0] if sheets else None)
+                    )
                     schema = table.schema
                     total_rows = len(table)
             except ValueError as e:
@@ -237,6 +244,17 @@ class ParquetDataHandler(APIHandler):
             # Detect file type and read accordingly
             file_type = get_file_type(str(abs_path))
             self.log.debug(f"Reading {file_type} file: {abs_path}")
+
+            # The whole table is read even though only a page is returned.
+            # Serving the page from a SQL LIMIT/OFFSET window was tried and
+            # reverted: pandas infers a column's dtype from the rows it is
+            # given, so a window disagrees with the full table whenever a
+            # column mixes storage classes or is merely nullable - a nullable
+            # integer column reads back as int64 from a window and float64 from
+            # the full table, rendering 0 on one page and 0.0 on another. Every
+            # table in the database that prompted this has nullable columns, so
+            # gating the pushdown on type stability would never fire. See
+            # DEF-3 in docs/defects.md.
             try:
                 table = read_as_arrow_table(str(abs_path), sheet)
             except ValueError as e:

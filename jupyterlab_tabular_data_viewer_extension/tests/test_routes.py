@@ -1348,3 +1348,591 @@ async def test_download_sqlite_original_format_is_400(jp_fetch, jp_root_dir):
         )
     assert excinfo.value.code == 400
     assert b"Unhandled output format: sqlite" in excinfo.value.response.body
+
+
+# ---------------------------------------------------------------------------
+# Progressive load: BLOB placeholders built in SQL, row windows pushed down.
+# ---------------------------------------------------------------------------
+
+
+def _blob_db(path, sizes):
+    """A one-table database whose `payload` column holds BLOBs of `sizes`."""
+    import sqlite3
+
+    conn = sqlite3.connect(str(path))
+    try:
+        conn.execute("CREATE TABLE payloads (id INTEGER, payload BLOB)")
+        conn.executemany(
+            "INSERT INTO payloads VALUES (?, ?)",
+            [(i, b"\x00" * n) for i, n in enumerate(sizes)],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_blob_bytes_are_never_materialised(tmp_path):
+    """Reading a BLOB table allocates placeholder text, not the BLOB payload.
+
+    The placeholder used to be produced by mapping over the pandas column,
+    which meant every byte was read and then thrown away - 410 MB per request
+    on the database that prompted this. Building it in SQL keeps the payload
+    inside SQLite, so peak allocation must stay far below the BLOB total.
+    """
+    import tracemalloc
+
+    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
+
+    target = tmp_path / "blobs.db"
+    blob_total = 24 * 1024 * 1024
+    _blob_db(target, [1024 * 1024] * 24)
+
+    tracemalloc.start()
+    try:
+        table = _read_sqlite(str(target))
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+
+    assert len(table) == 24
+    assert all(v == "<BLOB 1 MB>" for v in table.column("payload").to_pylist())
+    # Generous bound: a tenth of the payload. The pandas-side implementation
+    # allocated more than the payload itself.
+    assert peak < blob_total // 10, (
+        f"peak allocation {peak:,} B suggests the {blob_total:,} B of BLOB "
+        "payload was materialised"
+    )
+
+
+@pytest.mark.parametrize(
+    "size,expected",
+    [
+        (0, "0 B"),
+        (1, "1 B"),
+        (512, "512 B"),
+        (1023, "1023 B"),
+        (1024, "1 KB"),
+        (1025, "1 KB"),
+        (1280, "1.3 KB"),          # 1.25 exactly - rounds half away from zero
+        (1536, "1.5 KB"),
+        (10 * 1024, "10 KB"),
+        (1023 * 1024, "1023 KB"),
+        (1048575, "1024 KB"),      # just under a megabyte
+        (1048576, "1 MB"),
+        (1310720, "1.3 MB"),       # 1.25 MB exactly
+        (3 * 1024 * 1024, "3 MB"),
+    ],
+)
+def test_blob_placeholder_size_rendering(tmp_path, size, expected):
+    """The rendered placeholder is pinned to literal expected strings.
+
+    Deliberately not compared against a Python reimplementation of the format:
+    the previous version of this test did exactly that and was green while the
+    two implementations disagreed on 5,118 sizes, because none of its sampled
+    sizes was a half-way value. It would also have passed with the SQL fix
+    reverted, since the Python formatter would then have been on both sides of
+    the comparison. Literal expectations cannot do either.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
+
+    target = tmp_path / f"blob_{size}.db"
+    _blob_db(target, [size])
+
+    value = _read_sqlite(str(target)).column("payload").to_pylist()[0]
+    assert value == f"<BLOB {expected}>"
+
+
+def test_blob_column_null_and_mixed_affinity(tmp_path):
+    """NULL stays NULL, text stays verbatim, only real BLOBs get a placeholder"""
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
+
+    target = tmp_path / "mixed_blob.db"
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.execute("CREATE TABLE items (label TEXT, payload BLOB)")
+        conn.executemany(
+            "INSERT INTO items VALUES (?, ?)",
+            [
+                ("null row", None),
+                ("empty blob", b""),
+                ("real blob", b"\x00" * 2048),
+                ("text in blob column", "not binary"),
+                ("number in blob column", 42),
+            ],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    payload = _read_sqlite(str(target)).column("payload").to_pylist()
+    assert payload[0] is None, "NULL must not become a placeholder"
+    assert payload[1] == "<BLOB 0 B>"
+    assert payload[2] == "<BLOB 2 KB>"
+    assert payload[3] == "not binary", "text in a BLOB column passes through"
+    assert payload[4] == "42", "a number in a mixed column casts, not placeholders"
+
+
+def test_sqlite_column_name_requiring_quoting(tmp_path):
+    """Awkward column names survive the generated select list"""
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
+
+    target = tmp_path / "awkward.db"
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.execute(
+            'CREATE TABLE weird ("with space" TEXT, "quote""inside" TEXT, '
+            '"select" TEXT, "payload" BLOB)'
+        )
+        conn.execute("INSERT INTO weird VALUES ('a', 'b', 'c', ?)", (b"\x00" * 512,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    table = _read_sqlite(str(target))
+    assert table.column_names == [
+        "with space",
+        'quote"inside',
+        "select",
+        "payload",
+    ]
+    assert table.column("with space").to_pylist() == ["a"]
+    assert table.column('quote"inside').to_pylist() == ["b"]
+    assert table.column("select").to_pylist() == ["c"]
+    assert table.column("payload").to_pylist() == ["<BLOB 512 B>"]
+
+
+
+
+
+async def _sqlite_page(jp_fetch, **body):
+    """POST /data against the sample database, returning the parsed payload."""
+    payload = {
+        "path": "data/sample_database.db",
+        "sheet": "orders",
+        "offset": 0,
+        "limit": 10,
+        "filters": {},
+    }
+    payload.update(body)
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(payload),
+    )
+    assert response.code == 200
+    return json.loads(response.body)
+
+
+async def test_data_endpoint_row_indices_continue_across_pages(jp_fetch, jp_root_dir):
+    """Pushed-down pages keep numbering rows from their offset, not from 1.
+
+    The row index is computed after the read, so a windowed read that restarted
+    the numbering would label every page 1..n and silently mislabel every row
+    past the first page.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "sample_database.db", target_dir / "sample_database.db")
+
+    first = await _sqlite_page(jp_fetch, offset=0, limit=10)
+    second = await _sqlite_page(jp_fetch, offset=10, limit=10)
+    third = await _sqlite_page(jp_fetch, offset=25, limit=10)
+
+    assert first["totalRows"] == 30
+    assert second["totalRows"] == 30
+    assert [row["__row_index__"] for row in first["data"]] == list(range(1, 11))
+    assert [row["__row_index__"] for row in second["data"]] == list(range(11, 21))
+    assert [row["__row_index__"] for row in third["data"]] == list(range(26, 31))
+    assert first["hasMore"] is True
+    assert third["hasMore"] is False
+
+    # The window is the page, so order_id tracks the offset
+    assert [row["order_id"] for row in second["data"]] == list(range(11, 21))
+
+
+async def test_data_endpoint_sort_is_global_not_page_local(jp_fetch, jp_root_dir):
+    """Sorting orders the whole table before the page is cut.
+
+    Asserted against the true global ordering rather than against the first
+    page's maximum: the fixture's largest unit_price also happens to sit in the
+    first ten rows, so a page-local sort would have passed that check.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "sample_database.db", target_dir / "sample_database.db")
+
+    every_row = await _sqlite_page(jp_fetch, offset=0, limit=1000)
+    expected = sorted(
+        (row["unit_price"] for row in every_row["data"]), reverse=True
+    )[:10]
+
+    sorted_page = await _sqlite_page(
+        jp_fetch, offset=0, limit=10, sortBy="unit_price", sortOrder="desc"
+    )
+    assert sorted_page["totalRows"] == 30
+    assert [row["unit_price"] for row in sorted_page["data"]] == expected
+
+    # The second sorted page continues the global ordering rather than
+    # restarting within its own window
+    second = await _sqlite_page(
+        jp_fetch, offset=10, limit=10, sortBy="unit_price", sortOrder="desc"
+    )
+    all_desc = sorted((r["unit_price"] for r in every_row["data"]), reverse=True)
+    assert [row["unit_price"] for row in second["data"]] == all_desc[10:20]
+
+
+async def test_data_endpoint_filter_is_global_not_page_local(jp_fetch, jp_root_dir):
+    """Filtering matches across the whole table, not just the first window"""
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "sample_database.db", target_dir / "sample_database.db")
+
+    filtered = await _sqlite_page(
+        jp_fetch,
+        offset=0,
+        limit=10,
+        filters={"product": {"type": "text", "value": "Monitor"}},
+    )
+
+    assert filtered["totalRows"] > 0
+    assert all(row["product"] == "Monitor" for row in filtered["data"])
+    # Matches exist beyond the first unfiltered window, so a page-local filter
+    # would have found fewer of them
+    all_rows = await _sqlite_page(jp_fetch, offset=0, limit=1000)
+    expected = sum(1 for row in all_rows["data"] if row["product"] == "Monitor")
+    assert filtered["totalRows"] == expected
+    assert any(
+        row["__row_index__"] > 10 for row in all_rows["data"]
+        if row["product"] == "Monitor"
+    ), "fixture no longer exercises matches past the first page"
+
+
+def test_nullable_column_type_is_stable_across_any_row_window(tmp_path):
+    """A column's arrow type must not depend on which rows were read.
+
+    This pins the invariant that killed the LIMIT/OFFSET pushdown (DEF-3) by
+    demonstrating the mismatch itself, not merely the full read: pandas types a
+    nullable INTEGER column int64 from a window whose rows happen to be
+    non-null, and float64 from the whole table, so the same cell renders 0 on
+    one page and 0.0 on another. Any future attempt to serve a page from a SQL
+    window has to make these two agree.
+    """
+    import sqlite3
+
+    import pandas as pd
+
+    from jupyterlab_tabular_data_viewer_extension.readers import (
+        _df_to_arrow,
+        _read_sqlite,
+    )
+
+    target = tmp_path / "nullable.db"
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.execute("CREATE TABLE readings (v INTEGER)")
+        # Ten non-null rows, then a null - a first page sees only the integers
+        conn.executemany(
+            "INSERT INTO readings VALUES (?)", [(i,) for i in range(10)] + [(None,)]
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    full = _read_sqlite(str(target))
+    assert len(full) == 11
+    assert str(full.schema.field("v").type) == "double"
+    assert full.column("v").to_pylist()[:3] == [0.0, 1.0, 2.0]
+    assert full.column("v").to_pylist()[-1] is None
+
+    # The window the pushdown would have served, read the same way the reader
+    # reads: it disagrees, which is exactly why the pushdown was reverted
+    conn = sqlite3.connect(str(target))
+    try:
+        windowed = _df_to_arrow(
+            pd.read_sql_query("SELECT v FROM readings LIMIT 10", conn)
+        )
+    finally:
+        conn.close()
+
+    assert str(windowed.schema.field("v").type) == "int64"
+    assert windowed.column("v").to_pylist()[:3] == [0, 1, 2]
+    assert str(windowed.schema.field("v").type) != str(full.schema.field("v").type), (
+        "the window and the full read now agree - if that is a deliberate "
+        "improvement, DEF-3 can be reopened and the pushdown reconsidered"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Read cache
+# ---------------------------------------------------------------------------
+
+
+def test_cache_serves_repeat_reads_from_memory(tmp_path):
+    """A second read of an unchanged file returns the identical table object.
+
+    Identity is the proof: every reader builds a fresh arrow table, so the same
+    object coming back twice can only have come from the cache. It also matters
+    on its own - the handlers slice and filter this object, and arrow tables are
+    immutable, so sharing one instance across requests is safe.
+    """
+    from jupyterlab_tabular_data_viewer_extension import readers
+
+    readers._cache_clear()
+    target = tmp_path / "sample_database.db"
+    shutil.copy(DATA_DIR / "sample_database.db", target)
+
+    first = readers.read_as_arrow_table(str(target), "customers")
+    second = readers.read_as_arrow_table(str(target), "customers")
+
+    assert second is first, "second read did not come from the cache"
+    assert len(second) == 12
+
+    # A cleared cache must rebuild rather than keep serving the old object
+    readers._cache_clear()
+    third = readers.read_as_arrow_table(str(target), "customers")
+    assert third is not first
+    assert third.to_pylist() == first.to_pylist()
+
+
+def test_cache_key_separates_tables_of_one_database(tmp_path):
+    """Two tables of the same file are cached independently"""
+    from jupyterlab_tabular_data_viewer_extension import readers
+
+    readers._cache_clear()
+    target = tmp_path / "sample_database.db"
+    shutil.copy(DATA_DIR / "sample_database.db", target)
+
+    customers = readers.read_as_arrow_table(str(target), "customers")
+    orders = readers.read_as_arrow_table(str(target), "orders")
+
+    assert len(customers) == 12
+    assert len(orders) == 30
+    assert readers.read_as_arrow_table(str(target), "customers") is customers
+    assert readers.read_as_arrow_table(str(target), "orders") is orders
+
+
+def test_cache_invalidates_on_modification(tmp_path):
+    """An edited file is re-read, and its stale entry does not linger"""
+    import sqlite3
+    import time
+
+    from jupyterlab_tabular_data_viewer_extension import readers
+
+    readers._cache_clear()
+    target = tmp_path / "edited.db"
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.execute("CREATE TABLE t (v INTEGER)")
+        conn.executemany("INSERT INTO t VALUES (?)", [(i,) for i in range(5)])
+        conn.commit()
+    finally:
+        conn.close()
+
+    before = readers.read_as_arrow_table(str(target), "t")
+    assert len(before) == 5
+
+    # mtime_ns has nanosecond resolution but a coarse filesystem clock could
+    # still land on the same tick; the row count changes the size too
+    time.sleep(0.01)
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.executemany("INSERT INTO t VALUES (?)", [(i,) for i in range(5, 40)])
+        conn.commit()
+    finally:
+        conn.close()
+
+    after = readers.read_as_arrow_table(str(target), "t")
+    assert len(after) == 40, "edited file served a stale cached table"
+    assert after is not before
+
+    # The superseded entry was dropped rather than left resident
+    assert len([k for k in readers._CACHE if k[0] == os.path.abspath(str(target))]) == 1
+
+
+
+def test_cache_skips_a_table_larger_than_the_whole_budget(tmp_path, monkeypatch):
+    """An oversized table is served but not cached, rather than thrashing"""
+    from jupyterlab_tabular_data_viewer_extension import readers
+
+    readers._cache_clear()
+    monkeypatch.setattr(readers, "_CACHE_MAX_BYTES", 16)
+
+    target = tmp_path / "sample_database.db"
+    shutil.copy(DATA_DIR / "sample_database.db", target)
+
+    table = readers.read_as_arrow_table(str(target), "customers")
+    assert len(table) == 12
+    assert len(readers._CACHE) == 0, "oversized table should not be cached"
+
+    # And it is still served correctly on the next call
+    assert len(readers.read_as_arrow_table(str(target), "customers")) == 12
+
+
+def test_empty_and_single_row_tables(tmp_path):
+    """A zero-row table keeps its columns; a one-row table reads back one row"""
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
+
+    target = tmp_path / "edges.db"
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.execute("CREATE TABLE aempty (id INTEGER, label TEXT, payload BLOB)")
+        conn.execute("CREATE TABLE bsingle (id INTEGER, label TEXT)")
+        conn.execute("INSERT INTO bsingle VALUES (1, 'only')")
+        conn.commit()
+    finally:
+        conn.close()
+
+    empty = _read_sqlite(str(target), "aempty")
+    assert len(empty) == 0
+    assert empty.column_names == ["id", "label", "payload"], (
+        "an empty table must still report its columns, or the grid renders headerless"
+    )
+
+    single = _read_sqlite(str(target), "bsingle")
+    assert len(single) == 1
+    assert single.to_pylist() == [{"id": 1, "label": "only"}]
+
+
+async def test_download_carries_blob_placeholders_not_binary(jp_fetch, jp_root_dir):
+    """Exports contain the placeholder string, never raw BLOB bytes"""
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "sample_database.db", target_dir / "sample_database.db")
+
+    for fmt, needle in (("csv", b"<BLOB 256 B>"), ("jsonl", b"<BLOB 256 B>")):
+        response, _filename, _qs = await _download(
+            jp_fetch,
+            path="data/sample_database.db",
+            format=fmt,
+            sheet="attachments",
+        )
+        assert response.code == 200
+        body = response.body
+        assert needle in body, f"{fmt} export lost the BLOB placeholder"
+        # The fixture's BLOBs are runs of a repeating byte pattern; none of that
+        # may reach the exported file
+        assert b"\x00\x00\x00\x00" not in body, f"{fmt} export leaked raw BLOB bytes"
+
+
+def test_generated_columns_are_not_dropped(tmp_path):
+    """Generated columns must appear, exactly as `SELECT *` returns them.
+
+    Building the select list from `PRAGMA table_info` silently omitted STORED
+    and VIRTUAL generated columns - the column vanished from the grid with no
+    error and no log line. `table_xinfo` with `hidden != 1` reproduces `*`.
+    """
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
+
+    target = tmp_path / "generated.db"
+    conn = sqlite3.connect(str(target))
+    try:
+        conn.execute(
+            "CREATE TABLE t ("
+            " a INTEGER, b INTEGER,"
+            " stored_total INTEGER GENERATED ALWAYS AS (a + b) STORED,"
+            " virtual_product INTEGER GENERATED ALWAYS AS (a * b) VIRTUAL)"
+        )
+        conn.execute("INSERT INTO t (a, b) VALUES (2, 3)")
+        conn.commit()
+        star = [d[0] for d in conn.execute("SELECT * FROM t").description]
+    finally:
+        conn.close()
+
+    table = _read_sqlite(str(target), "t")
+    assert table.column_names == star, "reader disagrees with SELECT *"
+    assert table.column_names == ["a", "b", "stored_total", "virtual_product"]
+    assert table.column("stored_total").to_pylist() == [5]
+    assert table.column("virtual_product").to_pylist() == [6]
+
+
+def test_cache_sees_a_wal_commit_from_an_open_writer(tmp_path):
+    """A WAL commit invalidates the cache even with the main file untouched.
+
+    A writer holding its connection open commits into the -wal sidecar without
+    checkpointing, so the main file's mtime and size are unchanged. Keyed on
+    those alone the cache served superseded rows, and re-reading could not cure
+    it because a reopen produced the same key.
+    """
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension import readers
+
+    readers._cache_clear()
+    target = tmp_path / "wal.db"
+    setup = sqlite3.connect(str(target))
+    try:
+        setup.execute("PRAGMA journal_mode=WAL")
+        setup.execute("CREATE TABLE t (v INTEGER)")
+        setup.execute("INSERT INTO t VALUES (1)")
+        setup.commit()
+    finally:
+        setup.close()
+
+    assert len(readers.read_as_arrow_table(str(target), "t")) == 1
+    before = os.stat(str(target))
+
+    writer = sqlite3.connect(str(target))
+    try:
+        writer.execute("INSERT INTO t VALUES (2)")
+        writer.commit()
+        after = os.stat(str(target))
+        # The premise of the test: the main file really is untouched
+        assert before.st_mtime_ns == after.st_mtime_ns
+        assert before.st_size == after.st_size
+
+        assert len(readers.read_as_arrow_table(str(target), "t")) == 2, (
+            "cache served rows superseded by an un-checkpointed WAL commit"
+        )
+    finally:
+        writer.close()
+
+
+def test_cache_byte_counter_tracks_contents_and_recency_is_lru(tmp_path):
+    """_CACHE_BYTES matches the resident tables, and eviction is LRU not FIFO"""
+    from jupyterlab_tabular_data_viewer_extension import readers
+
+    readers._cache_clear()
+    target = tmp_path / "sample_database.db"
+    shutil.copy(DATA_DIR / "sample_database.db", target)
+
+    readers.read_as_arrow_table(str(target), "attachments")
+    readers.read_as_arrow_table(str(target), "customers")
+    assert readers._CACHE_BYTES == sum(t.nbytes for t in readers._CACHE.values())
+
+    # Size the budget so that exactly attachments + orders fit. Measured, not
+    # guessed: an under-sized budget would make `orders` skip caching entirely
+    # (the oversized path) and evict nothing, which would pass for the wrong
+    # reason.
+    sizes = {
+        name: readers.read_as_arrow_table(str(target), name).nbytes
+        for name in ("attachments", "customers", "orders")
+    }
+    readers._cache_clear()
+    readers.read_as_arrow_table(str(target), "attachments")
+    readers.read_as_arrow_table(str(target), "customers")
+    # Touch the oldest so it becomes the most recently used
+    readers.read_as_arrow_table(str(target), "attachments")
+
+    saved = readers._CACHE_MAX_BYTES
+    readers._CACHE_MAX_BYTES = sizes["attachments"] + sizes["orders"]
+    try:
+        readers.read_as_arrow_table(str(target), "orders")
+    finally:
+        readers._CACHE_MAX_BYTES = saved
+
+    resident = {k[1] for k in readers._CACHE}
+    assert "orders" in resident, "the new table was not cached at all"
+    assert "attachments" in resident, (
+        "the re-read entry was evicted, so eviction is FIFO rather than LRU"
+    )
+    assert "customers" not in resident
+    assert readers._CACHE_BYTES == sum(t.nbytes for t in readers._CACHE.values())

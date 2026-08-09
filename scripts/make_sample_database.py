@@ -175,7 +175,66 @@ def verify(path):
         conn.close()
 
 
+def build_blob_database(path, megabytes):
+    """Write a BLOB-heavy synthetic database of roughly `megabytes` MB.
+
+    Generated at test time rather than committed - the point is a file far
+    larger than anything worth keeping in git, so the viewer can be exercised
+    against a database whose contents must never be pulled through
+    /api/contents. Content is deterministic (a repeating byte pattern), so the
+    same arguments always produce the same file.
+    """
+    if os.path.exists(path):
+        # A CI retry runs in the same node process, so the galata test hands
+        # back the same path; without this the rerun dies on "table payloads
+        # already exists" and hides whatever actually failed
+        os.remove(path)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute("PRAGMA journal_mode=OFF")
+        conn.execute(
+            "CREATE TABLE payloads (id INTEGER PRIMARY KEY, label TEXT, blob_data BLOB)"
+        )
+        one_mb = bytes(range(256)) * 4096
+        conn.executemany(
+            "INSERT INTO payloads (id, label, blob_data) VALUES (?, ?, ?)",
+            [(i, "payload_%03d" % i, one_mb) for i in range(megabytes)],
+        )
+        # A second, narrow table so the tab bar has something to switch to
+        conn.execute("CREATE TABLE labels (id INTEGER, name TEXT)")
+        conn.executemany(
+            "INSERT INTO labels VALUES (?, ?)",
+            [(i, "row_%03d" % i) for i in range(50)],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--blob-db",
+        metavar="PATH",
+        help="write a BLOB-heavy synthetic database here instead of the fixture",
+    )
+    parser.add_argument(
+        "--mb",
+        type=int,
+        default=8,
+        help="approximate size in MB for --blob-db (default 8)",
+    )
+    args = parser.parse_args()
+
+    if args.blob_db:
+        build_blob_database(args.blob_db, args.mb)
+        print(
+            "wrote %s (%d bytes)" % (args.blob_db, os.path.getsize(args.blob_db))
+        )
+        return
+
     build(DB_PATH)
     names, expected = verify(DB_PATH)
     print("wrote %s (%d bytes)" % (DB_PATH, os.path.getsize(DB_PATH)))

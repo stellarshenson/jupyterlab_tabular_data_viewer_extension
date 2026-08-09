@@ -108,5 +108,6 @@ Configure extension behavior through JupyterLab Settings:
    - **Enable SQLite files** - Default: enabled
    - **Maximum Cell Characters** - Default: 100. Maximum characters to display in a cell before truncating with "...". Set to 0 for unlimited display
    - **Maximum Unique Values** - Default: 100. Maximum number of unique values to display in filter dialog and column statistics. Set to 0 for no limit
+   - **Rows Per Page** - Default: 500. How many rows are fetched and rendered at a time. Filtering, sorting and column statistics always run over the whole table regardless of this value - it bounds only how much is displayed at once
 
 When a file type is disabled, files open with JupyterLab's default handler instead.

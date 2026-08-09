@@ -50,7 +50,7 @@ export class TabularDataViewer extends Widget {
   private _totalRows = 0;
   private _unfilteredTotalRows = 0;
   private _currentOffset = 0;
-  private _limit = 500;
+  private _limit: number;
   private _loading = false;
   private _hasMore = true;
   private _filters: { [key: string]: IFilterSpec } = {};
@@ -95,13 +95,15 @@ export class TabularDataViewer extends Widget {
     filePath: string,
     setLastContextMenuRow: (row: any) => void,
     maxCellCharacters: number = 100,
-    maxUniqueValues: number = 100
+    maxUniqueValues: number = 100,
+    rowsPerPage: number = 500
   ) {
     super();
     this._filePath = filePath;
     this._setLastContextMenuRow = setLastContextMenuRow;
     this._maxCellCharacters = maxCellCharacters;
     this._maxUniqueValues = maxUniqueValues;
+    this._limit = rowsPerPage;
     this.addClass('jp-TabularDataViewer');
 
     // Create table container (scrollable)

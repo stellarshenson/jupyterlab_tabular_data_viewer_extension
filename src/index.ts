@@ -6,13 +6,50 @@ import {
 import {
   IDocumentWidget,
   DocumentRegistry,
-  ABCWidgetFactory
+  ABCWidgetFactory,
+  TextModelFactory
 } from '@jupyterlab/docregistry';
+
+import { Contents } from '@jupyterlab/services';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { TabularDataViewer, SQLITE_EXTENSIONS } from './widget';
 import { TabularDataDocument } from './document';
+
+/**
+ * The name under which the no-content model factory is registered.
+ */
+const NO_CONTENT_MODEL = 'tabular-nocontent';
+
+/**
+ * A model factory that loads no file content at all.
+ *
+ * The viewer fetches everything it renders through this extension's own REST
+ * API and uses only `context.path`, so the document model's content was read
+ * and thrown away. With a `base64` model JupyterLab first pulls the whole file
+ * through `/api/contents` and encodes it, which scales with file size and, past
+ * roughly 384 MB, cannot complete at all - the base64 string exceeds V8's
+ * maximum string length and the open fails outright.
+ *
+ * `Context` gates the content fetch on `fileFormat !== null`, so returning null
+ * makes it request `content: false`. The contents model, and therefore
+ * `context.path` and the `fileChanged` signal, are still populated.
+ */
+class NoContentModelFactory extends TextModelFactory {
+  constructor() {
+    // Nothing to synchronise - the model never holds content
+    super(false);
+  }
+
+  get name(): string {
+    return NO_CONTENT_MODEL;
+  }
+
+  get fileFormat(): Contents.FileFormat {
+    return null;
+  }
+}
 
 /**
  * A widget factory for Parquet files
@@ -50,7 +87,8 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
       context.path,
       this._setLastContextMenuRow,
       settings.maxCellCharacters,
-      settings.maxUniqueValues
+      settings.maxUniqueValues,
+      settings.rowsPerPage
     );
     const widget = new TabularDataDocument({ content, context });
     widget.title.label = context.path.split('/').pop() || 'Tabular Data File';
@@ -79,6 +117,7 @@ interface ISettings {
   enableSQLite: boolean;
   maxCellCharacters: number;
   maxUniqueValues: number;
+  rowsPerPage: number;
 }
 
 /**
@@ -109,7 +148,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       enableTSV: true,
       enableSQLite: true,
       maxCellCharacters: 100,
-      maxUniqueValues: 100
+      maxUniqueValues: 100,
+      rowsPerPage: 500
     };
 
     // console.log('[Tabular Data Viewer] Default settings:', settings);
@@ -311,12 +351,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     }
 
+    // One shared no-content model factory for every tabular type. Registered
+    // before the widget factories that name it.
+    docRegistry.addModelFactory(new NoContentModelFactory());
+
     // Create binary factory for Parquet, Excel and SQLite files
     if (binaryFileTypes.length > 0) {
       const binaryFactory = new TabularDataWidgetFactory(
         {
           name: 'Tabular Data Viewer (Binary)',
-          modelName: 'base64',
+          modelName: NO_CONTENT_MODEL,
           fileTypes: binaryFileTypes,
           defaultFor: binaryFileTypes,
           defaultRendered: binaryFileTypes,
@@ -340,7 +384,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const textFactory = new TabularDataWidgetFactory(
         {
           name: 'Tabular Data Viewer (Text)',
-          modelName: 'text',
+          modelName: NO_CONTENT_MODEL,
           fileTypes: textFileTypes,
           defaultFor: textFileTypes,
           defaultRendered: textFileTypes,

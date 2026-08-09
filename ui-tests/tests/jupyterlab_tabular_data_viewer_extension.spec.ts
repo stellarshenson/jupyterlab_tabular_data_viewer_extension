@@ -1,4 +1,7 @@
 import { expect, galata, test } from '@jupyterlab/galata';
+import { execFileSync } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 /**
@@ -404,5 +407,77 @@ test.describe('Tabular Data Viewer Extension', () => {
     await expect(
       modal.locator('.jp-FilterModal-buttons .jp-FilterModal-button').first()
     ).toHaveText('Download as Original Format');
+  });
+
+  test('should open a SQLite database without fetching its contents', async ({
+    page
+  }) => {
+    // The whole file used to be pulled through /api/contents and base64
+    // encoded before the widget rendered, even though the viewer only ever
+    // uses context.path. Past ~384MB the encoded string exceeds V8's maximum
+    // string length and the open fails outright, which is how a 507MB
+    // database became unopenable. Assert on the wire, not on timing.
+    const contentsRequests: string[] = [];
+    page.on('request', (req: any) => {
+      const url = req.url();
+      if (
+        url.includes('/api/contents/') &&
+        url.includes('sample_database.db')
+      ) {
+        contentsRequests.push(url);
+      }
+    });
+
+    const viewer = await openInViewer(page, 'sample_database.db');
+    await expect(gridRows(viewer).first()).toBeVisible();
+
+    // The context still stats the file, so a total absence of requests would
+    // mean the filter matched nothing and this test proves nothing
+    expect(contentsRequests.length).toBeGreaterThan(0);
+    expect(
+      contentsRequests.filter(url => /[?&]content=1(&|$)/.test(url))
+    ).toEqual([]);
+  });
+
+  test('should open a large synthetic database and placeholder its BLOBs', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // Generated here rather than committed: the point is a file far bigger
+    // than anything belonging in git, holding BLOBs that must never leave the
+    // server.
+    const generator = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'make_sample_database.py'
+    );
+    const localPath = path.join(os.tmpdir(), `blob_${process.pid}.db`);
+    execFileSync('python3', [generator, '--blob-db', localPath, '--mb', '8']);
+    expect(fs.statSync(localPath).size).toBeGreaterThan(8 * 1024 * 1024);
+
+    const contents = galata.newContentsHelper(request);
+    await contents.uploadFile(localPath, `${tmpPath}/large_database.db`);
+    fs.unlinkSync(localPath);
+    await page.filebrowser.refresh();
+
+    const viewer = await openInViewer(page, 'large_database.db');
+    await expect(gridRows(viewer).first()).toBeVisible();
+
+    // `labels` sorts before `payloads`, so the database opens on the narrow
+    // table; switch to the BLOB one deliberately rather than relying on which
+    // table happens to be first
+    await expect(gridRows(viewer)).toHaveCount(50, { timeout: GRID_TIMEOUT });
+    await sheetTab(viewer, 'payloads').click();
+    await expect(gridRows(viewer)).toHaveCount(8, { timeout: GRID_TIMEOUT });
+
+    // 8 rows of 1MB each, every one rendered as a placeholder
+    const cells = await gridRows(viewer)
+      .first()
+      .locator('td')
+      .allTextContents();
+    expect(cells.join(' ')).toContain('<BLOB 1 MB>');
   });
 });

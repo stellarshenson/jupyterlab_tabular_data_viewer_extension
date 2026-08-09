@@ -48,6 +48,14 @@
       "type": "number",
       "default": 100,
       "minimum": 0
+    },
+    "rowsPerPage": {
+      "type": "number",
+      "title": "Rows Per Page",
+      "description": "Number of rows fetched and displayed per page. Filters, sorting and statistics always apply to the whole table; this only bounds how much is rendered at once.",
+      "default": 500,
+      "minimum": 1,
+      "maximum": 100000
     }
   },
   "additionalProperties": false

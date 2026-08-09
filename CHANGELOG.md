@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.7.10] - 2026-08-09
+
+### Added
+
+- **Rows Per Page setting** (`rowsPerPage`, default 500) controlling how many rows are fetched and rendered at a time. Filtering, sorting and column statistics continue to run over the whole table - this bounds only what is displayed at once, and was previously a hardcoded constant
+- **Read cache**: a tabular file is read once and reused across requests, so paging, sorting, filtering and statistics after the first read cost no disk access. Keyed on path, sheet or table, modification time, size and the SQLite `-wal` sidecar, bounded at 256 MB with least-recently-used eviction. On a 46,415-row table a page went from 633.7 ms to 0.03 ms
+- `docs/defects.md` and `docs/acc-crit-jupyterlab_tabular_data_viewer_extension.md` - a tracked defect list and acceptance criteria for the extension
+- `scripts/make_sample_database.py --blob-db PATH --mb N` generates a BLOB-heavy database for tests rather than committing a large fixture
+- 30 new pytest tests (80 total) and 2 new galata tests (15 total), including a network assertion that opening a database fetches none of its contents, and a memory bound proving BLOB payloads are never read
+
+### Changed
+
+- **Tabular files no longer load their contents into the browser.** The viewer reads everything it renders through this extension's own API and only ever needed the file path, but the document model was fetching and base64-encoding the whole file first. A dedicated no-content model factory removes that fetch for every format
+- **BLOB placeholders are produced by SQLite instead of in Python.** The select list is built per column so a BLOB yields its `<BLOB n.n KB>` placeholder from the database, leaving the payload where it is. Reading a table holding 128 MB of BLOBs now costs 0.004 s and 5 MB of memory
+- BLOB sizes at an exact half - 1,280 bytes, for instance - now round up rather than to even, so such a size renders `1.3 KB` where 1.7.6 rendered `1.2 KB`. The two implementations of the format disagreed on 5,118 sizes; there is now only one, in SQL
+
+### Fixed
+
+- **A large SQLite database could not be opened at all.** The whole file was base64-encoded before the viewer rendered, and past roughly 384 MB the encoded string exceeds the browser's maximum string length, so the open failed outright rather than slowly. A 507 MB database now opens in the same order of time as a small one
+- Binary columns were read into memory in full and then replaced with placeholders, costing around 410 MB of pointless reading per request on a database holding large images
+- Every request re-read the entire table before returning a single page, so each scroll, sort or filter paid the full read again
+
 ## [1.7.6] - 2026-08-09
 
 ### Added
