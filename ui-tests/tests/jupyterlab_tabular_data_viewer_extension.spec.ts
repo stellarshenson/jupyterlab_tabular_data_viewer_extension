@@ -112,6 +112,23 @@ test.describe('Tabular Data Viewer Extension', () => {
     if (await fileBrowserTab.isVisible()) {
       await fileBrowserTab.click();
     }
+
+    // Open tmpPath explicitly rather than trusting where `page.goto()` lands.
+    // It does not land in the same place everywhere: locally the browser opens
+    // inside tmpPath, on CI it opens at the server root with tmpPath shown as a
+    // folder. That divergence is why uploading to the root passed CI while
+    // failing locally, and uploading to tmpPath did the reverse.
+    //
+    // Home first: openDirectory walks path segments from wherever the browser
+    // currently is, so from inside tmpPath it would look for tmpPath/tmpPath.
+    // Starting from a known directory makes this deterministic in both.
+    await page.filebrowser.openHomeDirectory();
+    await page.filebrowser.openDirectory(tmpPath);
+    await expect(
+      page.locator('.jp-DirListing-content').getByText(testFiles[0], {
+        exact: true
+      })
+    ).toBeVisible({ timeout: 30000 });
   });
 
   test('should emit an activation console message', async ({ page }) => {
