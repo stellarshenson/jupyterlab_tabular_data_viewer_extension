@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.7.11] - 2026-08-10
+
+Test and documentation coverage only - no runtime behaviour changed.
+
+### Added
+
+- **Export coverage across every offered format**, proving an export writes the whole table rather than the page on screen. Three integration tests drive the real export popup and parse the downloaded bytes back into a row count: a Parquet source exported to all five formats, a generated SQLite database to the four it offers, and CSV and XLSX sources to two each - every count checked against the 500-row display window
+- Export filenames are asserted per source and format, so a test pins which table or sheet an export actually came from rather than only how many rows it carried
+- `scripts/count_rows.py` counts the data rows in a downloaded CSV, TSV, JSONL, Parquet or XLSX export. Parquet is counted from footer metadata rather than by materialising the table
+- `scripts/make_sample_database.py --label-rows N` sets the row count of the narrow `labels` table, so a generated database can hold more rows than the display window shows
+- Acceptance criteria gained an Export section: export is global, filters narrow it, sorting reorders it, and pagination does neither
+
+### Changed
+
+- README no longer describes an export as covering "the current view", which could be read as the visible page; it now states that every row is exported and that pagination never limits it
+
 ## [1.7.10] - 2026-08-09
 
 ### Added

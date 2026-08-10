@@ -175,7 +175,7 @@ def verify(path):
         conn.close()
 
 
-def build_blob_database(path, megabytes):
+def build_blob_database(path, megabytes, label_rows):
     """Write a BLOB-heavy synthetic database of roughly `megabytes` MB.
 
     Generated at test time rather than committed - the point is a file far
@@ -200,11 +200,13 @@ def build_blob_database(path, megabytes):
             "INSERT INTO payloads (id, label, blob_data) VALUES (?, ?, ?)",
             [(i, "payload_%03d" % i, one_mb) for i in range(megabytes)],
         )
-        # A second, narrow table so the tab bar has something to switch to
+        # A second, narrow table so the tab bar has something to switch to.
+        # `label_rows` above the display window is what lets an export test
+        # tell a global export from one that only covers the visible page.
         conn.execute("CREATE TABLE labels (id INTEGER, name TEXT)")
         conn.executemany(
             "INSERT INTO labels VALUES (?, ?)",
-            [(i, "row_%03d" % i) for i in range(50)],
+            [(i, "row_%04d" % i) for i in range(label_rows)],
         )
         conn.commit()
     finally:
@@ -226,10 +228,16 @@ def main():
         default=8,
         help="approximate size in MB for --blob-db (default 8)",
     )
+    parser.add_argument(
+        "--label-rows",
+        type=int,
+        default=50,
+        help="rows in the narrow `labels` table for --blob-db (default 50)",
+    )
     args = parser.parse_args()
 
     if args.blob_db:
-        build_blob_database(args.blob_db, args.mb)
+        build_blob_database(args.blob_db, args.mb, args.label_rows)
         print(
             "wrote %s (%d bytes)" % (args.blob_db, os.path.getsize(args.blob_db))
         )

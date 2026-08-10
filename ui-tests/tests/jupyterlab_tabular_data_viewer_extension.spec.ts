@@ -68,19 +68,86 @@ async function columnNames(viewer: any): Promise<string[]> {
 }
 
 /**
- * Open a file from the file browser and wait for the viewer to appear
+ * Open a file from the file browser and wait for the viewer to appear.
+ *
+ * `openWith` names an "Open With" submenu entry, needed for formats another
+ * factory owns by default - a double-clicked .csv opens JupyterLab's own CSV
+ * viewer, not this one.
  */
-async function openInViewer(page: any, fileName: string): Promise<any> {
+async function openInViewer(
+  page: any,
+  fileName: string,
+  openWith?: string
+): Promise<any> {
   const item = page
     .locator('.jp-DirListing-content')
     .getByText(fileName, { exact: true });
   await item.waitFor({ state: 'visible', timeout: 30000 });
-  await item.dblclick();
+
+  if (openWith) {
+    await item.click({ button: 'right' });
+    await page.waitForSelector('.lm-Menu-content', { timeout: 15000 });
+    await page.click('text=Open With');
+    await page.waitForSelector(`text=${openWith}`, { timeout: 15000 });
+    await page.click(`text=${openWith}`);
+  } else {
+    await item.dblclick();
+  }
 
   const viewer = activeViewer(page);
   await viewer.waitFor({ state: 'visible', timeout: GRID_TIMEOUT });
   await waitForGridReady(viewer);
   return viewer;
+}
+
+/**
+ * One page of rows, as shipped: the `rowsPerPage` setting's default.
+ *
+ * Every export assertion below is a comparison against this - an export that
+ * returned only what the grid shows would come back with this many rows.
+ */
+const PAGE_SIZE = 500;
+
+/**
+ * Trigger one export from the export popup and count the rows that arrive.
+ *
+ * The download lands as bytes, so the only honest check that an export covered
+ * the whole table is to parse the payload back; `scripts/count_rows.py`
+ * dispatches on the extension the server put in Content-Disposition.
+ */
+async function exportRowCount(
+  page: any,
+  viewer: any,
+  buttonLabel: string
+): Promise<{ rows: number; filename: string }> {
+  await viewer.locator('.jp-TabularDataViewer-exportLink').click();
+  // `.jp-FilterModal` is shared with the column filter modal, so scope to the
+  // format buttons - only the export popup renders that container.
+  const formats = page.locator('.jp-FilterModal .jp-FilterModal-buttons');
+  await expect(formats).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: GRID_TIMEOUT }),
+    formats.getByRole('button', { name: buttonLabel, exact: true }).click()
+  ]);
+
+  const filename = download.suggestedFilename();
+  const target = path.join(os.tmpdir(), `export_${process.pid}_${filename}`);
+  await download.saveAs(target);
+
+  const counter = path.resolve(
+    __dirname,
+    '..',
+    '..',
+    'scripts',
+    'count_rows.py'
+  );
+  const rows = parseInt(
+    execFileSync('python3', [counter, target], { encoding: 'utf8' }).trim(),
+    10
+  );
+  fs.unlinkSync(target);
+  return { rows, filename };
 }
 
 test.describe('Tabular Data Viewer Extension', () => {
@@ -479,5 +546,145 @@ test.describe('Tabular Data Viewer Extension', () => {
       .locator('td')
       .allTextContents();
     expect(cells.join(' ')).toContain('<BLOB 1 MB>');
+  });
+
+  test('should export a parquet source in every format, whole table not the visible page', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+
+    // Display is local: one page out of 1500 rows. This is the control for
+    // every count below - a page-scoped export would return PAGE_SIZE.
+    await expect(gridRows(viewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+
+    const formats: [string, string][] = [
+      ['Download as Original Format', '.parquet'],
+      ['Download as Excel (.xlsx)', '.xlsx'],
+      ['Download as CSV', '.csv'],
+      ['Download as Parquet (.parquet)', '.parquet'],
+      ['Download as JSONL (.jsonl)', '.jsonl']
+    ];
+
+    for (const [label, ext] of formats) {
+      const { rows, filename } = await exportRowCount(page, viewer, label);
+      expect(filename, label).toBe(`sample_data${ext}`);
+      expect(rows, label).toBe(1500);
+    }
+  });
+
+  test('should export a SQLite table in every offered format, whole table not the visible page', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // The committed fixture's biggest table is 30 rows, which cannot tell a
+    // global export from a page-scoped one. Generate a table above the page
+    // size instead; 1MB of BLOBs keeps the file cheap.
+    const generator = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'make_sample_database.py'
+    );
+    const localPath = path.join(os.tmpdir(), `export_${process.pid}.db`);
+    execFileSync('python3', [
+      generator,
+      '--blob-db',
+      localPath,
+      '--mb',
+      '1',
+      '--label-rows',
+      '1200'
+    ]);
+
+    const contents = galata.newContentsHelper(request);
+    await contents.uploadFile(localPath, `${tmpPath}/export_database.db`);
+    fs.unlinkSync(localPath);
+    await page.filebrowser.refresh();
+
+    const viewer = await openInViewer(page, 'export_database.db');
+
+    // Opens on `labels`, which sorts before `payloads` - 1200 rows, one page shown
+    await expect(gridRows(viewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+
+    // 'Original' is absent for SQLite: the backend cannot write a .db back out
+    const formats: [string, string][] = [
+      ['Download as Excel (.xlsx)', '.xlsx'],
+      ['Download as CSV', '.csv'],
+      ['Download as Parquet (.parquet)', '.parquet'],
+      ['Download as JSONL (.jsonl)', '.jsonl']
+    ];
+
+    for (const [label, ext] of formats) {
+      const { rows, filename } = await exportRowCount(page, viewer, label);
+      // Table name is slugged into the filename, so the export is traceable
+      // to the tab it came from rather than just the database
+      expect(filename, label).toBe(`export_database_labels${ext}`);
+      expect(rows, label).toBe(1200);
+    }
+
+    // Switching tab must change what is exported, not just what is rendered - a
+    // frontend that always sent the first table would satisfy every assertion
+    // above. `payloads` holds exactly one row at --mb 1, so this pins WHICH
+    // TABLE was exported: no single wrong table gives both 1200 for `labels`
+    // and 1 here. Row identity is not asserted - nothing here reads a cell.
+    await sheetTab(viewer, 'payloads').click();
+    await expect(gridRows(viewer)).toHaveCount(1, { timeout: GRID_TIMEOUT });
+    const payloads = await exportRowCount(page, viewer, 'Download as CSV');
+    expect(payloads.filename).toBe('export_database_payloads.csv');
+    expect(payloads.rows).toBe(1);
+  });
+
+  test('should export csv and xlsx sources beyond the visible page', async ({
+    page
+  }) => {
+    // Both carry 1500 rows. Covered together because the reader engine differs
+    // per source while the export path is shared - a regression in either
+    // reader would show up as a short export here.
+    const csvViewer = await openInViewer(
+      page,
+      'sample_data.csv',
+      'Tabular Data Viewer (Text)'
+    );
+    await expect(gridRows(csvViewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+    // Both viewers resolve to whichever tab is active, so the filename is what
+    // ties an export to its source. Every export below asserts one: the sheet
+    // slug distinguishes the two sources even for the same output format.
+    const csvAsCsv = await exportRowCount(page, csvViewer, 'Download as CSV');
+    expect(csvAsCsv.filename).toBe('sample_data.csv');
+    expect(csvAsCsv.rows).toBe(1500);
+    const csvAsParquet = await exportRowCount(
+      page,
+      csvViewer,
+      'Download as Parquet (.parquet)'
+    );
+    expect(csvAsParquet.filename).toBe('sample_data.parquet');
+    expect(csvAsParquet.rows).toBe(1500);
+
+    const xlsxViewer = await openInViewer(page, 'sample_data.xlsx');
+    await expect(gridRows(xlsxViewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+    // Slugged as `_sheet1` even though the workbook has a single sheet and the
+    // tab bar therefore stays hidden - the active sheet is still set, and it
+    // reaches the filename for every output format, not just the original. The
+    // csv source has no sheet at all and gets no slug.
+    const xlsxAsCsv = await exportRowCount(page, xlsxViewer, 'Download as CSV');
+    expect(xlsxAsCsv.filename).toBe('sample_data_sheet1.csv');
+    expect(xlsxAsCsv.rows).toBe(1500);
+    const xlsxOriginal = await exportRowCount(
+      page,
+      xlsxViewer,
+      'Download as Original Format'
+    );
+    expect(xlsxOriginal.filename).toBe('sample_data_sheet1.xlsx');
+    expect(xlsxOriginal.rows).toBe(1500);
   });
 });

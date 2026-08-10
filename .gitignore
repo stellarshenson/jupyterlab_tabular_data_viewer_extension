@@ -131,3 +131,6 @@ dmypy.json
 
 # Yarn cache
 .yarn/
+
+# Scratch and analysis output (graphify graph, impact assessments)
+tmp/

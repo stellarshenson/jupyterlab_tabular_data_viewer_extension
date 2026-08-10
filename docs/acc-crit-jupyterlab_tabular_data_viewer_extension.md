@@ -5,6 +5,7 @@ Consolidated criteria for the extension. One `##` section per feature area; `[ ]
 ## Contents
 
 - [Large database handling](#large-database-handling)
+- [Export](#export)
 
 ## Large database handling
 
@@ -144,3 +145,21 @@ Filtering, sorting and statistics are global - they always see every row. Only t
   - log: 2026-08-09 corrected - the earlier close was premature: galata test 15 failed on its first run (default 5000ms on a grid assertion that omitted GRID_TIMEOUT) and passed only on the re-run; timeout added, suite must be green twice before this is closed
   - log: 2026-08-09 reopened: reopened pending two consecutive green galata runs
   - log: 2026-08-09 closed: two consecutive galata runs 15/15 (8.0m and 7.0m, both exit 0), 80 pytest, tsc exit 0 - closed only after the second green run, having been reopened when the first close rested on a single one
+
+## Export
+
+Export writes the whole table, never the rendered window. Filters narrow it, sorting reorders it, pagination does neither. A tabbed source names the active table in the downloaded filename.
+
+- [x] **Export is global** - exporting a source larger than the rendered window returns every row: all five formats for a parquet source, the four offered formats for a SQLite table, and two formats each for csv and xlsx
+  - log: 2026-08-10 criterion added
+  - log: 2026-08-10 closed: three galata tests - parquet 1500 rows across original, xlsx, csv, parquet and jsonl; a generated 1200-row SQLite table across the four offered formats; csv and xlsx 1500 rows each. Every count is compared against the 500-row rendered window, and payloads are parsed back with scripts/count_rows.py so the assertion is on bytes that arrived, not on the request
+  - log: 2026-08-10 verified the tests can fail: slicing the export to 500 rows in the download handler failed both source families at exactly 500. NB the mutation had to be applied to the INSTALLED copy in site-packages - galata drives that, not the working tree, so a backend edit is invisible to galata until make install
+- [x] **Export is the right table, not just the right size** - an export of the right size taken from the wrong table must fail
+  - log: 2026-08-10 criterion added after review proved counts alone are insufficient: 400 distinct rows written three times counts as 1200 in all four formats, so every count assertion would have passed
+  - log: 2026-08-10 closed: the SQLite test switches to `payloads` (exactly 1 row at --mb 1) and asserts 1 - no single wrong table can satisfy both 1200 and 1
+  - log: 2026-08-10 scope limit, stated rather than closed over: no assertion reads an exported cell, so a handler emitting one row repeated to the table's own length passes every count and filename. Round 2 named that surviving mutation; a content differ costs more than the gap, so the criterion claims table identity only
+- [x] **Export filename carries the active table** - switching table changes the downloaded filename, not only the grid
+  - log: 2026-08-10 criterion added
+  - log: 2026-08-10 first close was wrong: the test asserted export_database_labels.<ext> but never switched tab, so a frontend that always sent the first table would have passed. Found by architect review
+  - log: 2026-08-10 closed: the test now clicks the `payloads` tab and asserts export_database_payloads.csv, and all four exports in the csv/xlsx test assert their filenames, so an export cannot be attributed to the wrong tab
+  - log: 2026-08-10 the added assertion corrected two wrong beliefs: a single-sheet workbook still carries its sheet slug (an xlsx original export is sample_data_sheet1.xlsx), and the slug applies to every output format, not only the original - so the xlsx source's CSV export is sample_data_sheet1.csv and does distinguish it from the csv source's sample_data.csv. A comment claiming the two could not be told apart was false; both are now asserted

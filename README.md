@@ -31,7 +31,7 @@ View and browse Parquet, Excel, CSV, TSV, and SQLite files directly in JupyterLa
 
 ![Copy Row as JSON](.resources/screenshot-copy-json.png)
 
-**Export:** Click the **Export** link in the status bar (or right-click on the viewer) to export the current view in your choice of format - original, Excel (.xlsx), CSV, Parquet (.parquet), or JSONL (.jsonl). When filters are active, the export popup notes that only filtered rows will be exported.
+**Export:** Click the **Export** link in the status bar (or right-click on the viewer) to export the whole table in your choice of format - original, Excel (.xlsx), CSV, Parquet (.parquet), or JSONL (.jsonl). Pagination never limits an export: what you get is every row, not the page on screen. When filters are active, the export popup notes that only filtered rows will be exported.
 
 ![Download Filtered Data](.resources/screenshot-download-filtered.png)
 
