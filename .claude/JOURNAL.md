@@ -234,3 +234,6 @@ This journal tracks substantive work on documents, diagrams, and documentation c
 
 77. **Task - Python floor raised to 3.10** (v1.7.12): CI's `test_isolated` job failed on the polars swap - the wheel would not install on the 3.9 interpreter that job pins<br>
     **Result**: One line, not a code defect: polars declares `Requires-Python >=3.10` from 1.37.0, so pip found no candidate and the isolated install died before any test ran. Fixed forward on the user's call to drop 3.9 rather than pin an untested older polars - `pyproject.toml` moves `requires-python` to `>=3.10` with a comment recording that the floor is polars', not this code's, and drops the 3.9 classifier; `.github/workflows/build.yml:75` moves its pinned interpreter to 3.10. The six `base-setup` call sites need no change, the action resolving `inputs.python_version || matrix.python-version`. Green on `028146f`: all four Build jobs, including `test_isolated` and the galata `Integration tests`, plus Check Release.
+
+78. **Task [Short] - Version-only release** (v1.7.13): released on request with no source change since 1.7.12<br>
+    **Result**: Identical content to 1.7.12 - no code, test or doc change between `2891abe` and this release. Version bump and registry upload only.

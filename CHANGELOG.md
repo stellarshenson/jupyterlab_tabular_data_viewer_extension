@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.7.13] - 2026-08-11
+
+Version-only release - no source change since 1.7.12.
+
+### Changed
+
+- Released on request with content identical to 1.7.12; no code, test or documentation change
+
 ## [1.7.12] - 2026-08-11
 
 ### Changed
