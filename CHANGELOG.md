@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **pandas is no longer a dependency** (DEF-4). Polars reads CSV, TSV and SQLite and writes every export, openpyxl reads an .xlsx worksheet and polars types it, and pyarrow still reads parquet directly. The dependency set gains polars and xlsxwriter, loses pandas, and raises openpyxl's floor from 3.0.0 to 3.1.5 now that the reader calls openpyxl directly, and the server extension no longer imports pandas at startup
+- **A nullable integer column stays an integer.** pandas promoted an INTEGER column holding NULLs to float64, so a value of 42 exported as `42.0`; it now exports as `42`. The promotion was never visible in the grid - JSON has a single number type, so the browser rendered `42.0` as `42` either way - only in an exported file
+- **Mixed-type columns resolve to text without the two-step conversion cascade** the previous release needed. For CSV and SQLite polars resolves the column natively, asked to inspect every row rather than the first hundred; for Excel the reader groups the cells by value kind itself, before polars sees them. Either way the odd value is found wherever it sits, and there is no inference window to outrun
+- **A UTF-16 CSV now returns HTTP 400 rather than opening as mojibake.** Excel's "Unicode Text" export is UTF-16, and every such file carries a NUL byte inside its first header name, which polars' arrow layer refuses. pandas' latin1 retry opened these as a single column named `ÿþa`; the message is the more honest outcome, but it is a file that used to open
+- **Exported bytes differ from pandas' within a cell or a file's framing.** Row counts, column order, content types and filenames are unchanged in every format. The known differences, with the remainder recorded in `docs/defects.md`:
+  - CSV and TSV write booleans lowercase (`false`, where pandas wrote `False`), bringing them into agreement with JSONL for the first time
+  - CSV and TSV write a timestamp in full ISO form - the `join_date` column of `sample_data.xlsx` exports as `2023-02-25T00:00:00.000000` where pandas dropped the zero time and wrote `2023-02-25`
+  - JSONL writes floats at round-trip precision where pandas truncated to 10 significant digits
+  - JSONL renders a date-only column as `2023-02-25` rather than `2023-02-25T00:00:00.000`
+  - JSONL separates a timestamp's date and time with a space rather than a `T`
+  - JSONL leaves `/` unescaped
+  - A binary column is hex-encoded in every format but Parquet, where pandas wrote the Python `b'...'` repr to CSV, TSV and XLSX and failed outright on JSONL. Hex is lossless and never fails, which the previous behaviour could not claim: a BLOB is image bytes or a hash, not text. Note the grid still shows such a cell decoded as UTF-8 with replacement characters, so what is on screen and what is exported differ - as they did under pandas' repr
+  - JSONL renders a duration column as `PT86400S` where pandas wrote `1 days`
+  - XLSX carries a defined table object and no autofilter row, where pandas wrote a plain sheet
+  - Parquet is written with ZSTD compression where pandas wrote SNAPPY, which matters only to a reader too old for ZSTD
+
+### Fixed
+
+- **A 0-byte or ragged CSV returns HTTP 400 with a message again**, rather than a 500 with a traceback. The two pandas exceptions for these cases both subclassed `ValueError`, which the handlers map to 400; no polars exception does
+- **Excel files with awkward shapes keep their shape.** A blank column header is named positionally (`Unnamed: 2`) as before, a blank row inside the data is retained, an all-empty column is kept and typed as text so statistics can report on it, and an empty sheet reads as an empty table instead of failing the tab. Every blank header in a worksheet is numbered by its position, as pandas numbered them; in a CSV the second and later blanks keep the name polars gives them (`_duplicated_0`), which cannot be told apart from a column a file genuinely carries under that name
+- **A worksheet carrying a defined table keeps everything outside it.** A sheet structured with Excel's "Format as Table" was being read as just that table's declared range - and only the first table on the sheet - so a table whose range was never extended after rows were appended silently hid them from the grid, the row count, the statistics and every export. Worksheets are now read as pandas read them, by their used range
+- **A sheet with a blank row above the data keeps that data**, and a sheet with headers but no data rows keeps its column names. The header is taken from the first row rather than from the first row that happens to hold something - otherwise a blank spacer row above a table consumed the first real data row, and a template tab opened with no columns at all
+- **A missing-value marker no longer turns a numeric column into text.** `NA`, `N/A`, `NULL`, `null`, `NaN` and the rest of the set pandas treated as missing are read as missing again. One `NA` in a column of numbers had been enough to make the column text, which offered a substring filter in place of a numeric one, sorted 9 after 100, and dropped the minimum, maximum and mean from its statistics
+- Duplicate column headers are suffixed `.1`, `.2` as pandas suffixed them, rather than making the file fail to open
+- **A worksheet column mixing a clock time with a date or an elapsed time reads as text.** `time` and `timedelta` cannot share a column with `datetime`: a timesheet with one cell typed `09:00` among full timestamps refused to open at all, an elapsed-time cell beside a timestamp was silently dropped to null, and a clock time beside an elapsed time reached the grid as unreadable bytes. All three now read as text, exactly as the previous release rendered them
+- **A broken formula no longer retypes the column it sits in.** `#REF!`, `#DIV/0!`, `#VALUE!`, `#NAME?`, `#NUM!` and `#NULL!` are read as missing, as pandas read them. One post-delete `#REF!` in an amount column had been enough to make the whole column text, which offered a substring filter in place of a numeric one and dropped the minimum, maximum and mean
+- **A file carrying an integer too wide for a 64-bit column opens again.** A uint64 key or snowflake id in a CSV, or a value above 2^64 in a spreadsheet, made the file unopenable with a 400; such a column is now read as text, which keeps every digit. pandas read it as uint64, and no arrow integer type is wide enough
+- **An .xlsx saved under the old `.xls` name opens through the API.** openpyxl refuses a path ending `.xls`, and both the sheet listing and the read passed it one, so both returned a 500 with a traceback where pandas opened the file. The viewer itself is not yet offered for such a file - no frontend file type claims `.xls`, recorded as DEF-18
+- **A column that is NULL in every row of a SQLite table now reports statistics** instead of returning a 500. Such a column has no type for arrow to compute on; it is typed as text, the same treatment the CSV and Excel readers already gave it
+- **An export that cannot be written returns a 500 with a message**, rather than closing the connection with no response. A failure inside the engine's Rust core arrives as an exception outside the normal hierarchy, which the handler was not catching; two column types can still trigger it and are recorded as defects
+- A chartsheet is no longer listed in the sheet bar, where it appeared as a tab that could not be opened
+
 <!-- <START NEW CHANGELOG ENTRY> -->
 
 ## [1.7.11] - 2026-08-10

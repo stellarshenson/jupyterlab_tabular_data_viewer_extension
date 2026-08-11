@@ -8,6 +8,8 @@ from decimal import Decimal
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
 import tornado
+import polars as pl
+import polars.selectors as cs
 import pyarrow.parquet as pq
 import pyarrow.compute as pc
 import pyarrow as pa
@@ -245,16 +247,9 @@ class ParquetDataHandler(APIHandler):
             file_type = get_file_type(str(abs_path))
             self.log.debug(f"Reading {file_type} file: {abs_path}")
 
-            # The whole table is read even though only a page is returned.
-            # Serving the page from a SQL LIMIT/OFFSET window was tried and
-            # reverted: pandas infers a column's dtype from the rows it is
-            # given, so a window disagrees with the full table whenever a
-            # column mixes storage classes or is merely nullable - a nullable
-            # integer column reads back as int64 from a window and float64 from
-            # the full table, rendering 0 on one page and 0.0 on another. Every
-            # table in the database that prompted this has nullable columns, so
-            # gating the pushdown on type stability would never fire. See
-            # DEF-3 in docs/defects.md.
+            # The whole table is read even though only a page is returned; a
+            # SQL LIMIT/OFFSET window was tried and reverted. See DEF-3 in
+            # docs/defects.md.
             try:
                 table = read_as_arrow_table(str(abs_path), sheet)
             except ValueError as e:
@@ -765,8 +760,26 @@ class DownloadHandler(APIHandler):
                 )
                 table = pc.take(table, indices)
 
-            # Convert table to pandas DataFrame for export
-            df = table.to_pandas()
+            # Numeric buffers are shared with the arrow table rather than
+            # copied; string columns are converted, because polars' String is a
+            # view type. Still cheaper than the pandas call it replaces, which
+            # copied everything.
+            df = pl.from_arrow(table)
+
+            if output_format != "parquet":
+                # Binary is writable only by the parquet writer: the csv writer
+                # raises ComputeError, the xlsx writer TypeError, and
+                # write_ndjson panics in Rust - see the PanicException arm at
+                # the bottom of this method for why a panic needs its own.
+                #
+                # Hex, not a decode. Casting to String is a strict UTF-8 decode,
+                # and a real BLOB is image bytes or a hash, so it raised
+                # ComputeError on exactly the payloads worth exporting. Hex
+                # never raises, is lossless and is stable across formats. It
+                # matches neither of pandas' two behaviours - pandas wrote the
+                # Python repr b'...' to csv/tsv/xlsx and raised
+                # UnicodeDecodeError on jsonl - and the changelog says so.
+                df = df.with_columns(cs.binary().bin.encode("hex"))
 
             # Export based on requested output format.
             # NB: APIHandler.finish() overrides Content-Type to application/json
@@ -776,13 +789,33 @@ class DownloadHandler(APIHandler):
 
             if output_format == "parquet":
                 buffer = io.BytesIO()
-                df.to_parquet(buffer, index=False)
+                df.write_parquet(buffer)
                 buffer.seek(0)
                 body: bytes = buffer.read()
                 content_type = "application/octet-stream"
             elif output_format == "excel":
                 buffer = io.BytesIO()
-                df.to_excel(buffer, index=False, engine="openpyxl")
+                # Restore the General number format pandas wrote. Without this
+                # polars applies '#,##0.000;[Red]-#,##0.000', which displays a
+                # float rounded to 3 decimals with red negatives - the stored
+                # value stays exact, but the sheet does not show it.
+                #
+                # Keyed per column rather than per dtype: `dtype_formats` needs
+                # an exact dtype and polars seeds every integer and float WIDTH
+                # separately, so naming Int64 and Float64 left Int32, UInt32 and
+                # Float32 on polars' format. `column_formats` is consulted ahead
+                # of the dtype defaults, so it covers every width and leaves the
+                # date and time formats alone. The sheet also carries a defined
+                # table object, which is not suppressible here.
+                df.write_excel(
+                    buffer,
+                    autofilter=False,
+                    column_formats={
+                        name: "General"
+                        for name, dtype in df.schema.items()
+                        if dtype.is_numeric()
+                    },
+                )
                 buffer.seek(0)
                 body = buffer.read()
                 content_type = (
@@ -790,16 +823,21 @@ class DownloadHandler(APIHandler):
                     "spreadsheetml.sheet"
                 )
             elif output_format == "csv":
-                body = df.to_csv(index=False).encode("utf-8")
+                body = df.write_csv().encode("utf-8")
                 content_type = "text/csv"
             elif output_format == "tsv":
-                body = df.to_csv(index=False, sep="\t").encode("utf-8")
+                body = df.write_csv(separator="\t").encode("utf-8")
                 content_type = "text/tab-separated-values"
             elif output_format == "jsonl":
-                jsonl_data = df.to_json(
-                    orient="records", lines=True, date_format="iso", force_ascii=False
-                )
-                body = jsonl_data.encode("utf-8")
+                # No ASCII escaping, null for missing values. NOT byte-identical
+                # to the pandas call this replaces: polars writes floats at
+                # round-trip precision where pandas truncated to 10 significant
+                # digits, renders a date32 as '2023-02-25' rather than
+                # '2023-02-25T00:00:00.000', renders a timestamp with a space
+                # instead of a 'T', and does not escape '/'. Polars is the more
+                # faithful of the two; the differences are listed in the
+                # changelog because they change exported bytes.
+                body = df.write_ndjson().encode("utf-8")
                 content_type = "application/x-ndjson"
             else:
                 self.set_status(400)
@@ -813,7 +851,20 @@ class DownloadHandler(APIHandler):
             self.finish(set_content_type=content_type)
             return
 
-        except Exception as e:
+        except (Exception, pl.exceptions.PanicException) as e:
+            # PanicException needs naming explicitly: a Rust panic reaches
+            # Python as a direct BaseException subclass, so `except Exception`
+            # alone let it escape the handler and the client got a closed
+            # connection with no status and no body - nothing the frontend can
+            # report. Naming the class is not a blanket BaseException arm:
+            # KeyboardInterrupt and SystemExit are siblings of PanicException,
+            # not subclasses, so both still propagate.
+            #
+            # Two shapes reach a panic today. A decimal256 column panics inside
+            # `pl.from_arrow` before any format branch, so it kills all five
+            # formats (DEF-8), and a Binary column nested in a List or Struct is
+            # not matched by the top-level hex cast above and panics in
+            # write_ndjson (DEF-9). Both are now a plain 500 with a message.
             import traceback
 
             error_traceback = traceback.format_exc()

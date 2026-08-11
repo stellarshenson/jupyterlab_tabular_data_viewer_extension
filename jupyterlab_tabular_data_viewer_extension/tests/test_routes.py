@@ -394,6 +394,45 @@ def test_list_excel_sheets_non_excel():
     assert list_excel_sheets(str(parquet_file)) == []
 
 
+def test_list_excel_sheets_excludes_chartsheets(tmp_path):
+    """A chartsheet must not be offered as a tab - nothing can open it.
+
+    `book.sheetnames` lists chartsheets alongside worksheets; `book.worksheets`
+    does not. Reading one raises, so listing it would put a tab in the sheet bar
+    that fails on click. The chart matters to the fixture: openpyxl only writes
+    a rels part for a chartsheet that holds one, and its own reader crashes on a
+    chartsheet without that part, so an empty chartsheet cannot be read back at
+    all.
+    """
+    import openpyxl
+    from openpyxl.chart import BarChart, Reference
+
+    from jupyterlab_tabular_data_viewer_extension.readers import list_excel_sheets
+
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.title = "Data"
+    sheet.append(["n", "v"])
+    for i in range(1, 5):
+        sheet.append([i, i * 2])
+
+    chartsheet = book.create_chartsheet("Chart1")
+    chart = BarChart()
+    chart.add_data(
+        Reference(sheet, min_col=2, min_row=1, max_row=5), titles_from_data=True
+    )
+    chartsheet.add_chart(chart)
+
+    target = tmp_path / "with_chartsheet.xlsx"
+    book.save(target)
+
+    assert openpyxl.load_workbook(target, read_only=True).sheetnames == [
+        "Data",
+        "Chart1",
+    ]
+    assert list_excel_sheets(str(target)) == ["Data"]
+
+
 def test_read_excel_specific_sheet(tmp_path):
     """read_as_arrow_table with sheet param reads the named sheet"""
     from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
@@ -427,6 +466,711 @@ def test_read_excel_default_first_sheet(tmp_path):
 
     t = read_as_arrow_table(str(target))
     assert t.column_names == ["id", "name", "score"]
+
+
+def _awkward_workbook(path):
+    """A workbook holding every shape polars' Excel defaults would damage."""
+    import openpyxl
+
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.title = "Shapes"
+    # Third header cell is blank; the fourth column is named but never filled.
+    sheet.append(["id", "name", None, "empty_col"])
+    sheet.append([1, "a", "x", None])
+    sheet.append([None, None, None, None])  # blank row inside the data
+    sheet.append([3, "c", "z", None])
+    book.create_sheet("Blank")  # empty sheet, and not the first one
+    book.save(path)
+    return path
+
+
+def test_excel_awkward_shapes_survive_the_read(tmp_path):
+    """Blank headers, blank rows and empty columns must not change the shape.
+
+    Polars' `read_excel` defaults `drop_empty_cols` and `drop_empty_rows` to
+    True, which would silently drop the fourth column and the third row. Pandas
+    dropped neither, so each default is turned off and a blank header is given
+    the positional name pandas assigned it. An all-empty column would otherwise
+    stay Null-typed, which carries no type for statistics to report.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = read_as_arrow_table(str(_awkward_workbook(tmp_path / "shapes.xlsx")))
+
+    assert table.column_names == ["id", "name", "Unnamed: 2", "empty_col"]
+    assert len(table) == 3
+    assert table.column("id").to_pylist() == [1, None, 3]
+    assert str(table.schema.field("empty_col").type) == "large_string"
+
+    stats = calculate_column_stats(table, "empty_col")
+    assert stats["data_type"] == "string"
+    assert stats["null_count"] == 3
+
+
+@pytest.mark.parametrize(
+    "label,rows,expected_columns,expected_rows",
+    [
+        # A blank spacer row above the data. Polars promotes the first real data
+        # row to the header, losing it - and raising TypeError, which is neither
+        # a PolarsError nor a ValueError, when those values are numeric.
+        ("blank first row, numeric", [[None, None], [1, 2], [3, 4]], 2, 2),
+        ("blank first row, text", [[None, None], ["a", "b"], ["c", "d"]], 2, 2),
+        # A header with no data under it - a template or summary tab. Polars
+        # returns a 0x0 frame, so the tab renders with no columns at all.
+        ("header only", [["a", "b", "c"]], 3, 0),
+        # A trailing blank row is trimmed, as pandas trimmed it: a sheet's used
+        # range overshoots whenever a cell was formatted and then cleared.
+        ("header then blank row", [["a", "b", "c"], [None, None, None]], 3, 0),
+        ("data then two blank rows", [["a"], [1], [None], [None]], 1, 1),
+        # A formula cell with no cached result reads as its formula text unless
+        # the workbook is loaded with data_only.
+        ("formula header", [["=X!A9", "=X!B9"], [1, 2], [3, 4]], 2, 2),
+        ("duplicate headers", [["a", "a", "b"], [1, 2, 3]], 3, 1),
+    ],
+)
+def test_excel_header_row_edge_shapes_keep_their_columns(
+    tmp_path, label, rows, expected_columns, expected_rows
+):
+    """Polars reads the header from the first non-empty row; pandas did not.
+
+    Each shape here lost data under polars' own header detection - a row, or
+    every column name. `_read_excel` inspects the first row through openpyxl to
+    tell the two cases apart. The expected values are pandas' output for the
+    same file, measured, since preserving it is the point of the swap.
+    """
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    sheet = book.active
+    for row in rows:
+        sheet.append(row)
+    target = tmp_path / "header_shape.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert len(table.column_names) == expected_columns
+    assert len(table) == expected_rows
+    assert all(name.strip() for name in table.column_names)
+
+
+@pytest.mark.parametrize(
+    "label,ref,totals,expected_columns,expected_rows",
+    [
+        # A table whose ref was never extended after rows were appended - the
+        # normal way a "Format as Table" spreadsheet rots.
+        ("stale ref", "A1:B3", 0, 3, 4),
+        # A table declaring a totals row: polars drops totalsRowCount rows from
+        # the end on top of the range truncation.
+        ("totals row", "A1:C5", 1, 3, 4),
+    ],
+)
+def test_excel_defined_table_does_not_truncate_the_sheet(
+    tmp_path, label, ref, totals, expected_columns, expected_rows
+):
+    """A defined Excel Table must not decide what the sheet contains.
+
+    Polars prefers `ws.tables` over the used range and reads only the FIRST
+    table, with no kwarg to turn it off - so a sheet of 4 rows and 3 columns
+    carrying a stale `ref="A1:B3"` came back as 2 rows and 2 columns, silently,
+    in the grid, the row count, the statistics and all five exports. "Format as
+    Table" is one click in Excel, and no fixture in this repo contains a table
+    part, which is why the whole suite passed over it.
+    """
+    import openpyxl
+    from openpyxl.worksheet.table import Table
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.append(["id", "name", "extra"])
+    for i in range(1, 5):
+        sheet.append([i, f"row{i}", "x" if i == 1 else None])
+
+    table = Table(displayName="T1", ref=ref)
+    if totals:
+        table.totalsRowCount = totals
+    sheet.add_table(table)
+    target = tmp_path / "defined_table.xlsx"
+    book.save(target)
+
+    result = read_as_arrow_table(str(target))
+
+    assert len(result.column_names) == expected_columns
+    assert len(result) == expected_rows
+    # The row outside the table's range is present, which is the whole point
+    assert result.column("id").to_pylist()[-1] == 4
+
+
+@pytest.mark.parametrize(
+    "header,expected",
+    [
+        # A repeat whose `.1` name the header ALREADY carries. Stopping at the
+        # first candidate produced a second 'name.1', and because the frame is
+        # built from a name-to-values mapping the middle column was silently
+        # overwritten - three columns in the file, two in the table.
+        (["name", "name.1", "name"], ["name", "name.1", "name.2"]),
+        (["a.1", "a.2", "a", "a", "a"], ["a.1", "a.2", "a", "a.3", "a.4"]),
+        (["q", "q", "q.1"], ["q", "q.2", "q.1"]),
+    ],
+)
+def test_excel_duplicate_headers_never_collapse_two_columns(
+    tmp_path, header, expected
+):
+    """Deduplicating a header must not land on a name the header already has.
+
+    Every expected list here is pandas' own output for the same file. The failure
+    this guards is silent: no error, just a column's values gone and another
+    column's values under its label.
+    """
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    book.active.append(header)
+    book.active.append(list(range(1, len(header) + 1)))
+    target = tmp_path / "dupes.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert table.column_names == expected
+    # Every column of the file survived, in order
+    assert [c.to_pylist()[0] for c in table.columns] == list(range(1, len(header) + 1))
+
+
+@pytest.mark.parametrize(
+    "label,rows,expected_columns,expected_rows",
+    [
+        # Whitespace is a VALUE, not an absence, so a trailing row of spaces is
+        # a row. Trimming it with the blankness test used for header naming
+        # dropped it, and pandas kept it.
+        ("trailing whitespace row", [["a", "b"], [1, 2], ["   ", "   "]], 2, 2),
+        # And a sheet whose only row is a blank header must keep its columns:
+        # trimming without a floor consumed the header itself, leaving a table
+        # of nothing where pandas reported two named columns and no rows.
+        ("blank header, no data", [["  ", " "]], 2, 0),
+        # Not a counter-example: a row of nothing but None writes no cells at
+        # all, so openpyxl reports the sheet as empty and pandas returns no
+        # columns either. Measured, not assumed.
+        ("no cells at all", [[None, None, None]], 0, 0),
+    ],
+)
+def test_excel_trailing_trim_stops_at_the_header_and_at_whitespace(
+    tmp_path, label, rows, expected_columns, expected_rows
+):
+    """The trailing-empty-row trim has two floors, both found by measurement."""
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    for row in rows:
+        book.active.append(row)
+    target = tmp_path / "trim.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert len(table.column_names) == expected_columns
+    assert len(table) == expected_rows
+
+
+def test_excel_understated_dimension_does_not_truncate_the_sheet(tmp_path):
+    """A sheet's declared <dimension> must not decide what it contains.
+
+    openpyxl trusts that record in read-only mode, and several writers emit one
+    that under-reports the used range - some a bare "A1" placeholder - so the
+    sheet was silently cut down to it. Pandas calls `reset_dimensions()` for
+    exactly this reason.
+    """
+    import re
+    import zipfile
+
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    book.active.append(["a", "b", "c"])
+    for row in ([1, 2, 3], [4, 5, 6], [7, 8, 9]):
+        book.active.append(row)
+    honest = tmp_path / "honest.xlsx"
+    book.save(honest)
+
+    target = tmp_path / "understated.xlsx"
+    with zipfile.ZipFile(honest) as src, zipfile.ZipFile(target, "w") as dst:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename == "xl/worksheets/sheet1.xml":
+                data = re.sub(rb'<dimension ref="[^"]+"/>', b'<dimension ref="A1"/>', data)
+            dst.writestr(item, data)
+
+    table = read_as_arrow_table(str(target))
+
+    assert table.column_names == ["a", "b", "c"]
+    assert len(table) == 3
+
+
+def test_xlsx_saved_under_the_xls_extension_opens(tmp_path):
+    """`.xls` is an extension this viewer claims, so a mislabelled file must open.
+
+    openpyxl refuses a *path* ending in .xls outright, so passing the path 500d;
+    handing it an open file works, which is what pandas did.
+
+    Both openpyxl call sites are asserted. `list_excel_sheets` is the one the
+    metadata handler reaches FIRST, and its refusal is an InvalidFileException -
+    not a ValueError - so testing the reader alone passed over a broken path.
+    """
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import (
+        list_excel_sheets,
+        read_as_arrow_table,
+    )
+
+    book = openpyxl.Workbook()
+    book.active.append(["a", "b"])
+    book.active.append([1, "x"])
+    real = tmp_path / "real.xlsx"
+    book.save(real)
+    mislabelled = tmp_path / "real.xls"
+    mislabelled.write_bytes(real.read_bytes())
+
+    table = read_as_arrow_table(str(mislabelled))
+
+    assert table.column_names == ["a", "b"]
+    assert len(table) == 1
+    assert list_excel_sheets(str(mislabelled)) == ["Sheet"]
+
+
+async def test_metadata_opens_an_xlsx_named_xls(jp_fetch, jp_root_dir):
+    """The metadata request is the first one the widget makes, so it must not 500.
+
+    `list_excel_sheets` runs before the reader in the handler, so a path-only
+    openpyxl call there sank the whole file open even with the reader fixed.
+    """
+    import openpyxl
+
+    book = openpyxl.Workbook()
+    book.active.append(["a", "b"])
+    book.active.append([1, "x"])
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    book.save(target_dir / "legacy.xls")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "metadata",
+        method="POST",
+        body=json.dumps({"path": "data/legacy.xls"}),
+    )
+
+    assert response.code == 200
+    metadata = json.loads(response.body)
+    assert metadata["sheets"] == ["Sheet"]
+    assert [column["name"] for column in metadata["columns"]] == ["a", "b"]
+
+
+@pytest.mark.parametrize(
+    "label,values,expected",
+    [
+        # Both of these raised, so the file would not open at all.
+        ("datetime and time", ["DT", "T"], ["2024-06-15 00:00:00", "09:30:00"]),
+        ("date and time", ["D", "T"], ["2024-06-15 00:00:00", "09:30:00"]),
+        # Here the duration was silently dropped to null.
+        ("datetime and duration", ["DT", "TD"], ["2024-06-15 00:00:00", "3:00:00"]),
+        # And this one reached arrow as fixed_size_binary[8] of raw CPython
+        # object pointers, which the grid rendered as mojibake.
+        ("time and duration", ["T", "TD"], ["09:30:00", "3:00:00"]),
+    ],
+)
+def test_excel_column_mixing_temporal_types_falls_back_to_text(
+    tmp_path, label, values, expected
+):
+    """time and timedelta cannot widen with datetime, so such a column is text.
+
+    Every expected value here is what v1.7.11's cascade produced for the same
+    file. `date` and `datetime` share a kind on purpose - polars widens those two
+    correctly, and openpyxl returns a datetime for both.
+    """
+    import datetime as dt
+
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    cells = {
+        "DT": dt.datetime(2024, 6, 15),
+        "D": dt.date(2024, 6, 15),
+        "T": dt.time(9, 30),
+        "TD": dt.timedelta(hours=3),
+    }
+    book = openpyxl.Workbook()
+    book.active.append(["v"])
+    for value in values:
+        book.active.append([cells[value]])
+    target = tmp_path / "mixed_temporal.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert str(table.schema.field("v").type) == "large_string"
+    assert table.column("v").to_pylist() == expected
+
+
+@pytest.mark.parametrize("column", [["DT", "DT"], ["D", "DT"]])
+def test_excel_datetime_column_still_types_as_a_timestamp(tmp_path, column):
+    """The kind split must not stringify a column polars types correctly."""
+    import datetime as dt
+
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    cells = {"DT": dt.datetime(2024, 6, 15), "D": dt.date(2024, 6, 16)}
+    book = openpyxl.Workbook()
+    book.active.append(["v"])
+    for value in column:
+        book.active.append([cells[value]])
+    target = tmp_path / "temporal.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert str(table.schema.field("v").type) == "timestamp[us]"
+
+
+@pytest.mark.parametrize(
+    "error", ["#DIV/0!", "#REF!", "#VALUE!", "#NAME?", "#NUM!", "#NULL!", "#N/A"]
+)
+def test_excel_error_cell_keeps_a_numeric_column_numeric(tmp_path, error):
+    """A broken formula must not retype the column it sits in.
+
+    Read with `values_only` openpyxl hands back the error string, where pandas
+    mapped the cell to NaN. Left alone, one `#REF!` made the column text, so the
+    grid filtered it as a substring, sorted 9 after 100, and lost min/max/mean.
+    """
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    book.active.append(["amount"])
+    for value in [10, error, 30]:
+        book.active.append([value])
+    target = tmp_path / "broken_formula.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert str(table.schema.field("amount").type) == "int64"
+    assert table.column("amount").to_pylist() == [10, None, 30]
+
+
+@pytest.mark.parametrize(
+    "suffix,body",
+    [
+        ("csv", b"id,n\n9223372036854775808,1\n2,2\n"),
+        ("tsv", b"id\tn\n9223372036854775808\t1\n2\t2\n"),
+    ],
+)
+def test_integer_wider_than_int64_opens_as_text(tmp_path, suffix, body):
+    """Polars infers Int128 for these, and pyarrow cannot export that dtype.
+
+    `.to_arrow()` raised ArrowInvalid('_pli128'), which IS a ValueError, so a csv
+    carrying one uint64 key or snowflake id became a 400 and never opened.
+    Pandas read the column as uint64; string is the only arrow type wide enough.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / f"wide_ints.{suffix}"
+    target.write_bytes(body)
+
+    table = read_as_arrow_table(str(target))
+
+    assert table.column("id").to_pylist() == ["9223372036854775808", "2"]
+    assert str(table.schema.field("n").type) == "int64"
+
+
+def test_utf16_csv_is_a_400_not_a_dead_socket(tmp_path):
+    """A NUL byte in a header name panics polars' arrow FFI.
+
+    Every UTF-16 csv has one - Excel's own "Unicode Text" export produces them -
+    and a Rust panic arrives as a direct BaseException subclass, so it escaped
+    the handlers and left the request with no status and no body.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / "unicode_text.csv"
+    target.write_bytes("a,b\n1,2\n".encode("utf-16"))
+
+    with pytest.raises(ValueError):
+        read_as_arrow_table(str(target))
+
+
+@pytest.mark.parametrize(
+    "label,column,expected",
+    [
+        # polars' strict=False coerces the odd value into the majority type, so
+        # a date among integers came back as its epoch microsecond count.
+        ("date among numbers", [1, 2, "DATE"], ["1", "2", "2024-06-15 00:00:00"]),
+        # And a stray string in a column of dates made the whole read raise, so
+        # the file would not open at all.
+        ("string among dates", ["DATE", "notadate", "DATE"], None),
+    ],
+)
+def test_excel_column_mixing_value_kinds_falls_back_to_text(
+    tmp_path, label, column, expected
+):
+    """A column mixing kinds reads as text, exactly as the old cascade produced.
+
+    Every expected value here was measured by running v1.7.11's
+    `_series_to_arrow_array` over pandas' object column for the same file.
+    """
+    import datetime as dt
+
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    book.active.append(["v"])
+    for value in column:
+        book.active.append([dt.datetime(2024, 6, 15) if value == "DATE" else value])
+    target = tmp_path / "mixed_kinds.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert str(table.schema.field("v").type) == "large_string"
+    if expected is not None:
+        assert table.column("v").to_pylist() == expected
+
+
+@pytest.mark.parametrize("suffix", ["csv", "xlsx"])
+def test_missing_value_markers_keep_a_numeric_column_numeric(tmp_path, suffix):
+    """`NA` in a numeric column must not turn the column into text.
+
+    Pandas treated a set of markers as missing by default; polars parses none of
+    them, so one `NA` typed the whole column as text. The frontend then offers a
+    substring filter instead of a numeric one, sorts 9 after 100, and the
+    statistics lose min, max and mean.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    target = tmp_path / f"markers.{suffix}"
+    rows = [("id", "value"), (1, 10), (2, "NA"), (3, 30)]
+    if suffix == "csv":
+        target.write_text("\n".join(f"{a},{b}" for a, b in rows) + "\n")
+    else:
+        import openpyxl
+
+        book = openpyxl.Workbook()
+        for row in rows:
+            book.active.append(list(row))
+        book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert str(table.schema.field("value").type) == "int64"
+    assert table.column("value").to_pylist() == [10, None, 30]
+    assert calculate_column_stats(table, "value")["max_value"] == 30
+
+
+async def test_xlsx_export_uses_general_format_for_every_numeric_width(
+    jp_fetch, jp_root_dir
+):
+    """Narrow integer and float columns need the General format too.
+
+    `dtype_formats` is keyed by exact dtype and polars seeds each integer and
+    float width separately, so naming Int64 and Float64 left an int32 or float32
+    column displaying polars' '#,##0.000;[Red]-#,##0.000'. Pandas wrote General
+    for every width. Parquet is read by pyarrow directly, so the width is
+    whatever the file carries.
+    """
+    import io
+    import zipfile
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table(
+            {
+                "narrow_int": pa.array([1, -2], pa.int32()),
+                "narrow_float": pa.array([1.5, -2.5], pa.float32()),
+            }
+        ),
+        target_dir / "widths.parquet",
+    )
+
+    response, _, _ = await _download(
+        jp_fetch, path="data/widths.parquet", format="xlsx"
+    )
+    assert response.code == 200
+
+    styles = zipfile.ZipFile(io.BytesIO(response.body)).read("xl/styles.xml").decode()
+    assert "#,##0" not in styles
+
+
+@pytest.mark.parametrize(
+    "label,header",
+    [
+        # A wholly blank header row.
+        ("blank", [None, None, None]),
+        # A header of formulas with no cached result - what every workbook
+        # written by openpyxl or xlsxwriter contains. Loading without
+        # `data_only=True` yields the formula TEXT, so these would become the
+        # column names instead of being seen as the empty cells pandas saw.
+        ("formulas", ["=X!A9", "=X!B9", "=X!C9"]),
+        # Whitespace renders as blank, so it is treated as blank.
+        ("whitespace", ["   ", None, "\t"]),
+    ],
+)
+def test_excel_blank_header_row_names_columns_positionally(tmp_path, label, header):
+    """A header row with nothing readable in it yields pandas' `Unnamed: N`.
+
+    Separate from the shape test above because this pins the NAMES rather than
+    the count, which is what tells a resolved-empty header apart from one
+    carrying formula text.
+    """
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.append(header)
+    sheet.append([1, "x", 2])
+    target = tmp_path / f"blank_header_{label}.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert table.column_names == ["Unnamed: 0", "Unnamed: 1", "Unnamed: 2"]
+    assert len(table) == 1
+
+
+def test_excel_unknown_sheet_still_raises_value_error(tmp_path):
+    """A bad sheet name must stay a 400, not become a KeyError from the peek.
+
+    `_read_excel` opens the workbook itself to inspect the first row, and
+    indexing a workbook by a name it does not carry raises KeyError - not a
+    ValueError, so it would 500 where polars' own message 400s.
+    """
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    book.active.append(["a"])
+    book.active.append([1])
+    target = tmp_path / "one_sheet.xlsx"
+    book.save(target)
+
+    with pytest.raises(ValueError):
+        read_as_arrow_table(str(target), "NoSuchSheet")
+
+
+def test_all_null_sqlite_column_has_a_computable_type(tmp_path):
+    """A column NULL in every row must not 500 the statistics request.
+
+    SQLite is where a wholly-NULL column is most common, and polars types it
+    Null, which has no arrow kernels - `count_distinct` raises
+    ArrowNotImplementedError, which is not a ValueError, so it becomes a 500.
+    Pandas produced a null-typed column here too, so this is a pre-existing
+    failure the swap is in a position to cure rather than a regression.
+    """
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    db = tmp_path / "all_null.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE readings (id INTEGER, note TEXT)")
+    conn.executemany("INSERT INTO readings VALUES (?, ?)", [(1, None), (2, None)])
+    conn.commit()
+    conn.close()
+
+    table = read_as_arrow_table(str(db), "readings")
+
+    assert str(table.schema.field("note").type) == "large_string"
+    assert calculate_column_stats(table, "note")["data_type"] == "string"
+
+
+def test_latin1_delimited_file_reads_through_the_retry(tmp_path):
+    """The latin1 fallback is the one swapped branch with no other coverage.
+
+    Its guard changed from `UnicodeDecodeError` to polars' `ComputeError`, which
+    also covers genuine parse failures, so the branch is easy to break without
+    any test noticing.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / "latin1.csv"
+    target.write_bytes("city,name\nZürich,José\n".encode("latin1"))
+
+    table = read_as_arrow_table(str(target))
+
+    assert table.column_names == ["city", "name"]
+    assert table.column("city").to_pylist() == ["Zürich"]
+    assert table.column("name").to_pylist() == ["José"]
+
+
+def test_excel_every_blank_header_gets_a_usable_name(tmp_path):
+    """No column may reach the frontend nameless, however many headers are blank.
+
+    The stats handler rejects an empty column name with a 400, so a nameless
+    column renders a blank header with a button that cannot work. Polars leaves
+    only the first blank header empty and names later ones '0', '1', ... - odd,
+    but usable, and not renamed because '0' cannot be told apart from a column a
+    spreadsheet genuinely titled 0. This asserts the guarantee, not the names;
+    the divergence from pandas' `Unnamed: <position>` is DEF-7.
+    """
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.append(["a", None, "b", None, None])
+    sheet.append([1, "x", 2, "y", "z"])
+    target = tmp_path / "many_blank_headers.xlsx"
+    book.save(target)
+
+    table = read_as_arrow_table(str(target))
+
+    assert len(table.column_names) == 5
+    assert all(name.strip() for name in table.column_names)
+    assert table.column_names[1] == "Unnamed: 1"
+
+
+def test_excel_empty_sheet_reads_as_an_empty_table(tmp_path):
+    """An empty sheet yields an empty table rather than raising.
+
+    `raise_if_empty` defaults True in polars. Pandas returned a zero-row frame,
+    and the sheet bar offers every sheet in the workbook, so a raise here makes
+    one tab of an otherwise readable workbook fatal.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    table = read_as_arrow_table(
+        str(_awkward_workbook(tmp_path / "shapes.xlsx")), "Blank"
+    )
+
+    assert table.column_names == []
+    assert len(table) == 0
 
 
 def test_cascade_mixed_type_column(tmp_path):
@@ -588,6 +1332,101 @@ async def _download(jp_fetch, **params):
     if 'filename="' in cd:
         filename = cd.split('filename="', 1)[1].rsplit('"', 1)[0]
     return response, filename, qs
+
+
+@pytest.mark.parametrize("fmt", ["csv", "jsonl", "xlsx", "parquet"])
+async def test_download_binary_column_in_every_format(jp_fetch, jp_root_dir, fmt):
+    """A binary column must export in every format, not kill the request.
+
+    Every format a caller can request, that is. `tsv` is not one of them - it is
+    reachable only as `original` on a .tsv source, which is text and cannot hold
+    a binary column.
+
+    Parquet is the only writer that accepts Binary. `write_csv` refuses it with
+    a ComputeError, which the handler would turn into a 500, and `write_ndjson`
+    does worse: it panics in Rust, and a PanicException inherits BaseException,
+    so it passes through `except Exception` and leaves the connection dead with
+    no body at all. Every non-parquet write therefore casts binary to text
+    first, which is what pandas' own conversion produced here.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table(
+            {
+                "id": [1, 2],
+                "payload": pa.array([b"\x00\x01hi", b"bye"], pa.binary()),
+            }
+        ),
+        target_dir / "binary.parquet",
+    )
+
+    response, filename, _ = await _download(
+        jp_fetch, path="data/binary.parquet", format=fmt
+    )
+    assert response.code == 200
+    assert filename == f"binary.{fmt}"
+    assert len(response.body) > 0
+
+
+async def test_download_undecodable_binary_is_hex_not_a_500(jp_fetch, jp_root_dir):
+    """A real BLOB is not UTF-8, and it must still export.
+
+    The first version of this cast decoded to String, which is strict, so image
+    bytes or a hash raised ComputeError and every non-parquet export 500d - on
+    exactly the payloads worth exporting. Hex never raises. It matches neither of
+    pandas' behaviours: pandas wrote the Python repr to csv/tsv/xlsx and raised
+    UnicodeDecodeError on jsonl.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table({"blob": pa.array([b"\xff\xfe\x00png"], pa.binary())}),
+        target_dir / "undecodable.parquet",
+    )
+
+    response, _, _ = await _download(
+        jp_fetch, path="data/undecodable.parquet", format="csv"
+    )
+    assert response.code == 200
+    assert response.body.decode().splitlines()[1] == "fffe00706e67"
+
+
+@pytest.mark.parametrize("fmt", ["csv", "jsonl", "parquet"])
+async def test_download_panicking_column_returns_500_not_a_dead_socket(
+    jp_fetch, jp_root_dir, fmt
+):
+    """A Rust panic must become an HTTP 500, not a closed connection.
+
+    `PanicException` is a direct BaseException subclass, so `except Exception`
+    alone let it escape the handler and the client got no status and no body -
+    nothing the frontend could report. A decimal256 column panics inside
+    `pl.from_arrow`, before any format branch, so it takes every format with it
+    including parquet (DEF-8).
+    """
+    from decimal import Decimal
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table(
+            {"amount": pa.array([Decimal("1.25")], pa.decimal256(40, 2))}
+        ),
+        target_dir / "wide_decimal.parquet",
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        await _download(jp_fetch, path="data/wide_decimal.parquet", format=fmt)
+    assert "500" in str(excinfo.value)
 
 
 async def test_download_filename_no_sheet_no_filter(jp_fetch, jp_root_dir):
@@ -833,10 +1672,13 @@ def test_corrupt_sqlite_raises_value_error(tmp_path):
 def test_unreadable_table_raises_value_error(tmp_path):
     """A listed table whose SELECT fails surfaces as ValueError, not a 500.
 
-    pandas re-raises driver errors as pandas.errors.DatabaseError, which
-    subclasses OSError - neither sqlite3.Error nor ValueError - so this escaped
-    the 400 path even after the connection wrapper was added. The table sorts
-    first, so the whole database was unopenable, not just this tab.
+    Originally this escaped the 400 path even with the connection wrapper in
+    place, because pandas re-raised the driver's error as its own DatabaseError,
+    which subclasses OSError - neither sqlite3.Error nor ValueError. Polars
+    leaves sqlite3.Error alone, so the wrapper's own arm catches this now; the
+    test stays because the guarantee is what matters, not which engine threatens
+    it. The table sorts first, so the whole database was unopenable, not just
+    this tab.
     """
     import sqlite3
 
@@ -867,6 +1709,30 @@ def test_unreadable_table_raises_value_error(tmp_path):
         read_as_arrow_table(str(db))
     # The readable table is unaffected
     assert len(read_as_arrow_table(str(db), "zz")) == 1
+
+
+@pytest.mark.parametrize(
+    "name,content",
+    [
+        ("empty.csv", ""),
+        ("ragged.csv", "a,b\n1,2\n3,4,5,6,7\n"),
+    ],
+)
+def test_unreadable_delimited_file_raises_value_error(tmp_path, name, content):
+    """A csv the reader cannot parse surfaces as ValueError, so HTTP 400.
+
+    The handlers map ValueError to 400 and everything else to a 500 with a
+    traceback. Pandas raised EmptyDataError and ParserError here, both of which
+    subclass ValueError, and no polars exception does - so both shapes regressed
+    to a 500 until `_read_uncached` mapped PolarsError across the dispatch.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / name
+    target.write_text(content)
+
+    with pytest.raises(ValueError):
+        read_as_arrow_table(str(target))
 
 
 def test_sniff_does_not_block_on_fifo(tmp_path):
@@ -1615,21 +2481,23 @@ async def test_data_endpoint_filter_is_global_not_page_local(jp_fetch, jp_root_d
 def test_nullable_column_type_is_stable_across_any_row_window(tmp_path):
     """A column's arrow type must not depend on which rows were read.
 
-    This pins the invariant that killed the LIMIT/OFFSET pushdown (DEF-3) by
-    demonstrating the mismatch itself, not merely the full read: pandas types a
-    nullable INTEGER column int64 from a window whose rows happen to be
-    non-null, and float64 from the whole table, so the same cell renders 0 on
-    one page and 0.0 on another. Any future attempt to serve a page from a SQL
-    window has to make these two agree.
+    This assertion used to run the other way. Under pandas a nullable INTEGER
+    column came back int64 from a window whose rows happened to be non-null and
+    float64 from the whole table, so the same cell rendered 0 on one page and
+    0.0 on another - which is what made a SQL LIMIT/OFFSET window unable to
+    agree with a full read and killed the pushdown (DEF-3). The old test pinned
+    that disagreement and said in as many words that agreement would be grounds
+    to reconsider. Removing pandas (DEF-4) is that change, so the test now pins
+    the property instead of the defect.
+
+    Two things ride on this. A nullable integer renders 42 rather than 42.0, and
+    the pushdown is no longer blocked by the reader's type inference.
     """
     import sqlite3
 
-    import pandas as pd
+    import polars as pl
 
-    from jupyterlab_tabular_data_viewer_extension.readers import (
-        _df_to_arrow,
-        _read_sqlite,
-    )
+    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
 
     target = tmp_path / "nullable.db"
     conn = sqlite3.connect(str(target))
@@ -1645,25 +2513,102 @@ def test_nullable_column_type_is_stable_across_any_row_window(tmp_path):
 
     full = _read_sqlite(str(target))
     assert len(full) == 11
-    assert str(full.schema.field("v").type) == "double"
-    assert full.column("v").to_pylist()[:3] == [0.0, 1.0, 2.0]
+    assert str(full.schema.field("v").type) == "int64"
+    # Integers, not 0.0/1.0/2.0 - the promotion is what displayed 42 as 42.0
+    assert full.column("v").to_pylist()[:3] == [0, 1, 2]
     assert full.column("v").to_pylist()[-1] is None
 
-    # The window the pushdown would have served, read the same way the reader
-    # reads: it disagrees, which is exactly why the pushdown was reverted
+    # The window a pushdown would serve, read the way the reader reads
     conn = sqlite3.connect(str(target))
     try:
-        windowed = _df_to_arrow(
-            pd.read_sql_query("SELECT v FROM readings LIMIT 10", conn)
-        )
+        windowed = pl.read_database(
+            "SELECT v FROM readings LIMIT 10", conn, infer_schema_length=None
+        ).to_arrow()
     finally:
         conn.close()
 
     assert str(windowed.schema.field("v").type) == "int64"
     assert windowed.column("v").to_pylist()[:3] == [0, 1, 2]
-    assert str(windowed.schema.field("v").type) != str(full.schema.field("v").type), (
-        "the window and the full read now agree - if that is a deliberate "
-        "improvement, DEF-3 can be reopened and the pushdown reconsidered"
+    assert str(windowed.schema.field("v").type) == str(full.schema.field("v").type), (
+        "a row window and a full read disagree on this column's type again - a "
+        "pushdown built on that would render the same cell differently per page"
+    )
+
+
+def test_mixed_column_resolves_when_the_string_arrives_late(tmp_path):
+    """A mixed column resolves to string even if the string is past row 200.
+
+    This is the test for `infer_schema_length=None` in the CSV and SQLite
+    readers, and it is the only one: every mixed fixture in this repo is a
+    handful of rows long, so the reader's inference window is invisible to them
+    and a default window would keep them all green. Reading whole columns is
+    what the v1.6.0 cascade means - a real workbook does not put its one odd
+    value in the first hundred rows out of courtesy.
+
+    Both readers raise ComputeError under polars' 100-row default here, so this
+    fails loudly rather than subtly if either call loses the argument.
+    """
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    late = [(i, str(i * 3)) for i in range(200)] + [(200, "ACCFS-108")]
+
+    csv_path = tmp_path / "late.csv"
+    with open(csv_path, "w", encoding="utf-8") as fh:
+        fh.write("id,val\n")
+        for i, v in late:
+            fh.write(f"{i},{v}\n")
+
+    csv_table = read_as_arrow_table(str(csv_path))
+    assert csv_table.num_rows == 201
+    assert str(csv_table.schema.field("val").type) == "large_string"
+    assert csv_table.column("val").to_pylist()[-1] == "ACCFS-108"
+
+    db_path = tmp_path / "late.db"
+    conn = sqlite3.connect(str(db_path))
+    try:
+        # No declared affinity, so each value keeps its own storage class - the
+        # SQLite shape of a mixed column
+        conn.execute("CREATE TABLE t (id INTEGER, val)")
+        conn.executemany(
+            "INSERT INTO t VALUES (?, ?)",
+            [(i, int(v) if v.isdigit() else v) for i, v in late],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    db_table = read_as_arrow_table(str(db_path))
+    assert db_table.num_rows == 201
+    assert str(db_table.schema.field("val").type) == "large_string"
+    assert db_table.column("val").to_pylist()[-1] == "ACCFS-108"
+
+
+def test_extension_does_not_import_pandas():
+    """Importing the extension must not pull pandas in (DEF-4).
+
+    Checked in a fresh interpreter rather than against this one's `sys.modules`:
+    an in-process assertion passes or fails on whatever else happened to import
+    pandas first, and once imported it never leaves. The subprocess asserts the
+    extension's own import graph. The point is the server extension's startup
+    cost - pandas was the heaviest thing it reached for.
+    """
+    import subprocess
+    import sys
+
+    probe = (
+        "import sys;"
+        "import jupyterlab_tabular_data_viewer_extension.routes;"
+        "import jupyterlab_tabular_data_viewer_extension.readers;"
+        "import jupyterlab_tabular_data_viewer_extension.stats;"
+        "print('pandas' in sys.modules)"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe], capture_output=True, text=True, check=True
+    )
+    assert result.stdout.strip() == "False", (
+        "pandas is back in the import graph: " + result.stdout.strip()
     )
 
 

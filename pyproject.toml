@@ -24,8 +24,18 @@ classifiers = [
 ]
 dependencies = [
     "pyarrow>=10.0.0",
-    "pandas>=1.5.0",
-    "openpyxl>=3.0.0"
+    # Floor is the series this was verified against, not a researched minimum.
+    # The readers pass `infer_schema_length` to `read_database`, which an older
+    # polars would reject with a TypeError at read time rather than at install
+    # time; the earliest version accepting it was not established.
+    "polars>=1.43.0",
+    # Excel: openpyxl reads the worksheet rows directly (polars' default
+    # calamine engine would pull in fastexcel), xlsxwriter is what polars writes
+    # .xlsx through. This floor is this code's own, not polars' - the reader
+    # calls `ReadOnlyWorksheet.reset_dimensions()`, which was verified at 3.1.5
+    # and not below it. Pandas declares the same floor for its excel extra.
+    "openpyxl>=3.1.5",
+    "xlsxwriter"
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 

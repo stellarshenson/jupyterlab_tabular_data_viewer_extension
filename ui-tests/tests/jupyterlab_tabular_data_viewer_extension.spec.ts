@@ -109,17 +109,17 @@ async function openInViewer(
 const PAGE_SIZE = 500;
 
 /**
- * Trigger one export from the export popup and count the rows that arrive.
+ * Trigger one export from the export popup and save it to a local file.
  *
- * The download lands as bytes, so the only honest check that an export covered
- * the whole table is to parse the payload back; `scripts/count_rows.py`
- * dispatches on the extension the server put in Content-Disposition.
+ * The caller owns the file and must delete it. Two things read the payload back
+ * - a row count and, for text formats, the content itself - and both need the
+ * bytes that actually arrived rather than the request that asked for them.
  */
-async function exportRowCount(
+async function exportToFile(
   page: any,
   viewer: any,
   buttonLabel: string
-): Promise<{ rows: number; filename: string }> {
+): Promise<{ target: string; filename: string }> {
   await viewer.locator('.jp-TabularDataViewer-exportLink').click();
   // `.jp-FilterModal` is shared with the column filter modal, so scope to the
   // format buttons - only the export popup renders that container.
@@ -134,6 +134,22 @@ async function exportRowCount(
   const filename = download.suggestedFilename();
   const target = path.join(os.tmpdir(), `export_${process.pid}_${filename}`);
   await download.saveAs(target);
+  return { target, filename };
+}
+
+/**
+ * Trigger one export from the export popup and count the rows that arrive.
+ *
+ * The download lands as bytes, so the only honest check that an export covered
+ * the whole table is to parse the payload back; `scripts/count_rows.py`
+ * dispatches on the extension the server put in Content-Disposition.
+ */
+async function exportRowCount(
+  page: any,
+  viewer: any,
+  buttonLabel: string
+): Promise<{ rows: number; filename: string }> {
+  const { target, filename } = await exportToFile(page, viewer, buttonLabel);
 
   const counter = path.resolve(
     __dirname,
@@ -148,6 +164,23 @@ async function exportRowCount(
   );
   fs.unlinkSync(target);
   return { rows, filename };
+}
+
+/**
+ * Trigger one export and return its payload decoded as UTF-8 text.
+ *
+ * For the text formats only. Row counts prove an export's extent; this exists
+ * for the cases where the cell values themselves are the claim.
+ */
+async function exportText(
+  page: any,
+  viewer: any,
+  buttonLabel: string
+): Promise<{ text: string; filename: string }> {
+  const { target, filename } = await exportToFile(page, viewer, buttonLabel);
+  const text = fs.readFileSync(target, 'utf8');
+  fs.unlinkSync(target);
+  return { text, filename };
 }
 
 test.describe('Tabular Data Viewer Extension', () => {
@@ -686,5 +719,96 @@ test.describe('Tabular Data Viewer Extension', () => {
     );
     expect(xlsxOriginal.filename).toBe('sample_data_sheet1.xlsx');
     expect(xlsxOriginal.rows).toBe(1500);
+  });
+
+  test('should export a nullable integer without a decimal tail', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // A nullable INTEGER column used to be promoted to float64 by the reader,
+    // because a column's type followed whichever rows were read (DEF-4).
+    //
+    // Asserted on the exported file, NOT on the grid. The grid was checked first
+    // and cannot see this: the backend serialises 42.0, JSON has one number
+    // type, and JavaScript stringifies that as "42" - so a DOM assertion passes
+    // under the promotion and proves nothing. Re-introducing the float cast in
+    // the installed reader left a grid-based version of this test green. The
+    // export is where the promotion is visible, because a CSV writer prints the
+    // type it is given.
+    const generator = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'make_sample_database.py'
+    );
+    const localPath = path.join(os.tmpdir(), `nullable_${process.pid}.db`);
+    execFileSync('python3', [generator, '--nullable-db', localPath]);
+
+    const contents = galata.newContentsHelper(request);
+    await contents.uploadFile(localPath, `${tmpPath}/nullable.db`);
+    fs.unlinkSync(localPath);
+    await page.filebrowser.refresh();
+
+    const viewer = await openInViewer(page, 'nullable.db');
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+
+    const { text, filename } = await exportText(
+      page,
+      viewer,
+      'Download as CSV'
+    );
+    expect(filename).toBe('nullable_readings.csv');
+
+    const values = text
+      .trim()
+      .split('\n')
+      .slice(1)
+      .map(line => line.split(',')[1]);
+    // 42 is row 7 (7 * 6). Under the promotion this field read '42.0'
+    expect(values).toContain('42');
+    // Whole column, not one sentinel - a promotion applies to every value at
+    // once, and the nulls must stay empty rather than becoming a written value
+    expect(values.filter(v => /\./.test(v))).toEqual([]);
+    expect(values.filter(v => v === '')).toHaveLength(2);
+  });
+
+  test('should render a mixed-type column as text rather than failing the read', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // The v1.6.0 cascade, asserted through the UI. `AccountID` holds large
+    // integers and the string 'ACCFS-108'; a reader that types the column from
+    // its leading rows raises on the string and the sheet will not open at all.
+    //
+    // This sheet is three rows, so it does NOT exercise the inference window -
+    // any default would cover it. The window is pinned in
+    // test_mixed_column_resolves_when_the_string_arrives_late (pytest), which
+    // plants the string past row 200. What this test covers is the UI end of
+    // the path: a mixed column reaching the grid with both classes intact.
+    const contents = galata.newContentsHelper(request);
+    const source = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'data',
+      'multi_sheet.xlsx'
+    );
+    await contents.uploadFile(source, `${tmpPath}/multi_sheet.xlsx`);
+    await page.filebrowser.refresh();
+
+    const viewer = await openInViewer(page, 'multi_sheet.xlsx');
+    await sheetTab(viewer, 'MixedTypes').click();
+    await expect(gridRows(viewer).first()).toBeVisible({
+      timeout: GRID_TIMEOUT
+    });
+
+    const cells = await gridRows(viewer).locator('td').allTextContents();
+    // Both storage classes survive: the string is not dropped, and the integer
+    // is not mangled into scientific notation on its way through a text column
+    expect(cells).toContain('ACCFS-108');
+    expect(cells).toContain('43216987345427');
   });
 });

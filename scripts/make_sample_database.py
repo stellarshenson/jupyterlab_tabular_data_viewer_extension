@@ -213,6 +213,34 @@ def build_blob_database(path, megabytes, label_rows):
         conn.close()
 
 
+def build_nullable_database(path):
+    """Write a small database whose INTEGER column holds NULLs.
+
+    Generated rather than added to the committed fixture: several tests assert
+    the fixture's table list exactly, so a new table there would break them for
+    no gain. The nulls are the point. A nullable INTEGER used to be promoted to
+    float64 on the way through pandas, so a csv export wrote 42 as 42.0 (DEF-4);
+    reading it as int64 is what keeps the integer an integer.
+    """
+    if os.path.exists(path):
+        os.remove(path)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            "CREATE TABLE readings (id INTEGER PRIMARY KEY, reading INTEGER)"
+        )
+        # Every fifth row NULL. Multiples of six elsewhere, so 42 appears and a
+        # float promotion would be visible as '42.0' rather than needing a
+        # fractional value planted to expose it.
+        conn.executemany(
+            "INSERT INTO readings VALUES (?, ?)",
+            [(i, None if i % 5 == 0 else i * 6) for i in range(1, 13)],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def main():
     import argparse
 
@@ -234,7 +262,20 @@ def main():
         default=50,
         help="rows in the narrow `labels` table for --blob-db (default 50)",
     )
+    parser.add_argument(
+        "--nullable-db",
+        metavar="PATH",
+        help="write a small database with a nullable INTEGER column here",
+    )
     args = parser.parse_args()
+
+    if args.nullable_db:
+        build_nullable_database(args.nullable_db)
+        print(
+            "wrote %s (%d bytes)"
+            % (args.nullable_db, os.path.getsize(args.nullable_db))
+        )
+        return
 
     if args.blob_db:
         build_blob_database(args.blob_db, args.mb, args.label_rows)
