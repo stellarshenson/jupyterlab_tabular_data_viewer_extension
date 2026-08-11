@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+<!-- <START NEW CHANGELOG ENTRY> -->
+
+## [1.7.12] - 2026-08-11
 
 ### Changed
 
@@ -50,8 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A column that is NULL in every row of a SQLite table now reports statistics** instead of returning a 500. Such a column has no type for arrow to compute on; it is typed as text, the same treatment the CSV and Excel readers already gave it
 - **An export that cannot be written returns a 500 with a message**, rather than closing the connection with no response. A failure inside the engine's Rust core arrives as an exception outside the normal hierarchy, which the handler was not catching; two column types can still trigger it and are recorded as defects
 - A chartsheet is no longer listed in the sheet bar, where it appeared as a tab that could not be opened
-
-<!-- <START NEW CHANGELOG ENTRY> -->
 
 ## [1.7.11] - 2026-08-10
 
