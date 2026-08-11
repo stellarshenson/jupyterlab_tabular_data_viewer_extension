@@ -25,7 +25,22 @@ from urllib.parse import quote
 
 import openpyxl
 import polars as pl
+import pyarrow as pa
 import pyarrow.parquet as pq
+
+# Bound at import, not looked up inside an `except` clause. Resolving
+# `pl.exceptions.X` while an exception is already propagating would raise
+# AttributeError from the handler itself, which is the dead request these arms
+# exist to prevent; PanicException is only re-exported by polars (it is
+# pyo3_runtime's) so it is the likeliest of the two to move.
+from polars.exceptions import ComputeError, PanicException, PolarsError
+
+# Both openpyxl call sites load with these options. keep_links is the one that
+# changes behaviour: left at its default True, openpyxl walks every
+# <externalReference> part, which costs 0.55s against 0.002s on a workbook with
+# a large cached link and raises AttributeError - not a ValueError, so a 500 -
+# when a link's relationship is missing, as an Excel repair leaves it.
+_OPENPYXL_LOAD = dict(read_only=True, data_only=True, keep_links=False)
 
 # Only SQLite is sniffed. It is the one format whose extension carries no
 # information (.db belongs to Berkeley DB, LevelDB and others, and a database
@@ -186,25 +201,43 @@ def _cast_unsupported_columns_to_string(df):
       and above 2**64 in a spreadsheet, and pyarrow cannot consume its arrow
       export - `.to_arrow()` raises ArrowInvalid('_pli128'). That is itself a
       ValueError, so a csv carrying one uint64 key or snowflake id became a 400
-      and would not open at all, where pandas read the column as uint64. String
-      keeps every digit exact; no arrow integer is wide enough to hold it.
+      and would not open at all, where pandas read the column as uint64.
+
+    An Int128 column whose values all fit in an unsigned 64-bit integer becomes
+    UInt64, which is where snowflake ids, uint64 hashes and Discord or Twitter
+    ids actually live - keeping numeric sorting and min/max/mean, as pandas did.
+    A column outside that band falls back to String, which keeps every digit
+    but sorts lexicographically and reports no aggregates - so a value past
+    2**64-1, and equally a uint64 id column carrying a negative sentinel, which
+    no unsigned type can hold.
+
+    This runs after inference has succeeded, so it cannot help a literal wider
+    than Int128 itself - a 39-digit integer fails inside `read_csv` with a
+    ComputeError and stays a 400 with a message, recorded as DEF-21.
     """
-    recast = [
-        name
-        for name, dtype in df.schema.items()
-        if dtype == pl.Null or dtype == pl.Int128
-    ]
-    return df.cast({name: pl.String for name in recast}) if recast else df
+    to_string, to_uint64 = [], []
+    for name, dtype in df.schema.items():
+        if dtype == pl.Null:
+            to_string.append(name)
+        elif dtype == pl.Int128:
+            low, high = df[name].min(), df[name].max()
+            fits = low is not None and low >= 0 and high <= 2**64 - 1
+            (to_uint64 if fits else to_string).append(name)
+    casts = {name: pl.String for name in to_string}
+    casts.update({name: pl.UInt64 for name in to_uint64})
+    return df.cast(casts) if casts else df
 
 
 def _is_blank(value):
     """True for a header cell that renders as nothing.
 
     Whitespace counts as blank, so a header of '   ' is numbered exactly as an
-    empty one: the two are indistinguishable in the grid, and pandas' own
-    `Unnamed:` numbering is the behaviour being preserved. The trailing-row trim
-    deliberately does NOT share this definition - there a whitespace cell is a
-    value, not an absence.
+    empty one: the two are indistinguishable in the grid, and a name made only
+    of spaces is unusable in a filter or a statistics request. This is a
+    deliberate divergence, not parity - measured, pandas kept '   ' as the column
+    name and gave `Unnamed: N` only to a truly empty cell. The trailing-row trim
+    deliberately does NOT share this definition either - there a whitespace cell
+    is a value, not an absence.
     """
     return value is None or not str(value).strip()
 
@@ -277,11 +310,27 @@ def _value_kind(value):
 
 
 def _column_series(name, values):
-    """One column, typed by polars, forced to text when it mixes value kinds."""
+    """One column, typed by polars, forced to text when it mixes value kinds.
+
+    `strict=False` is what resolves a single-kind column without raising, but it
+    resolves by DISCARDING: a value the inferred dtype cannot hold becomes null,
+    with no error and no trace in the response - an integer at or above 2**127
+    lands in an Int128 column as nothing at all. The mixed-kind guard cannot
+    catch it, since every value there is the same kind. So the result is counted
+    against the input, and a column that lost a value is rebuilt as text, where
+    every digit survives.
+    """
+    def as_text():
+        return pl.Series(name, [None if v is None else str(v) for v in values], strict=False)
+
     kinds = {_value_kind(v) for v in values if v is not None}
     if len(kinds) > 1:
-        values = [None if v is None else str(v) for v in values]
-    return pl.Series(name, values, strict=False)
+        return as_text()
+    series = pl.Series(name, values, strict=False)
+    supplied = sum(1 for v in values if v is not None)
+    if series.null_count() != len(values) - supplied:
+        return as_text()
+    return series
 
 
 def _read_excel(file_path, sheet=None):
@@ -322,9 +371,7 @@ def _read_excel(file_path, sheet=None):
     # claims, so a real xlsx saved under the old name 500d. Pandas passed a
     # handle for the same reason.
     with open(file_path, "rb") as handle:
-        book = openpyxl.load_workbook(
-            handle, read_only=True, data_only=True, keep_links=False
-        )
+        book = openpyxl.load_workbook(handle, **_OPENPYXL_LOAD)
         try:
             if not book.worksheets:
                 # A workbook of nothing but chartsheets. Indexing [0] would
@@ -397,11 +444,13 @@ def list_excel_sheets(file_path):
     if get_file_type(file_path) != "excel":
         return []
     # Handed an open file rather than a path, for the reason `_read_excel`
-    # records. Both call sites must agree: this one runs FIRST on every metadata
-    # request, and openpyxl's refusal is an InvalidFileException, which is not a
-    # ValueError, so a mislabelled file 500d here even once the reader opened it.
+    # records, and loaded through the shared `_OPENPYXL_LOAD` so the two sites
+    # cannot drift: this one runs FIRST on every metadata request, and both
+    # openpyxl's refusal of a .xls path and its external-link walk raise
+    # exceptions that are not ValueError, so either 500d here even once the
+    # reader opened the same file.
     with open(file_path, "rb") as handle:
-        book = openpyxl.load_workbook(handle, read_only=True)
+        book = openpyxl.load_workbook(handle, **_OPENPYXL_LOAD)
         try:
             return [sheet.title for sheet in book.worksheets]
         finally:
@@ -427,7 +476,7 @@ def _read_delimited(file_path, delimiter):
             infer_schema_length=None,
             null_values=_NULL_STRINGS,
         )
-    except pl.exceptions.ComputeError:
+    except ComputeError:
         df = pl.read_csv(
             file_path,
             separator=delimiter,
@@ -673,7 +722,25 @@ def _read_uncached(file_path, sheet):
     """
     ft = get_file_type(file_path)
     if ft == "parquet":
-        return pq.read_table(file_path)
+        table = pq.read_table(file_path)
+        # The same policy `_cast_unsupported_columns_to_string` applies to the
+        # three polars readers, repeated here because parquet returns before
+        # their dispatch: a column that is null in every row arrives as arrow
+        # `null`, and column statistics on it raise ArrowNotImplementedError,
+        # which is not a ValueError, so the request 500s. Pandas' parquet
+        # reader gave such a column object dtype and the old cascade typed it
+        # as text.
+        null_columns = [f.name for f in table.schema if pa.types.is_null(f.type)]
+        if null_columns:
+            table = table.cast(
+                pa.schema(
+                    [
+                        f.with_type(pa.string()) if f.name in null_columns else f
+                        for f in table.schema
+                    ]
+                )
+            )
+        return table
     try:
         if ft == "excel":
             return _read_excel(file_path, sheet)
@@ -683,9 +750,9 @@ def _read_uncached(file_path, sheet):
             return _read_delimited(file_path, ",")
         if ft == "tsv":
             return _read_delimited(file_path, "\t")
-    except pl.exceptions.PolarsError as e:
+    except PolarsError as e:
         raise ValueError(f"Cannot read {ft} file: {e}")
-    except pl.exceptions.PanicException as e:
+    except PanicException as e:
         # A Rust panic reaches Python as a direct BaseException subclass, so the
         # handlers' `except Exception` would let it escape and the client got a
         # closed connection with no status and no body. This is reachable, not

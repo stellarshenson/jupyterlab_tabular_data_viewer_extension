@@ -70,8 +70,12 @@ export class ColumnStatsModal extends Widget {
     summarySection.appendChild(summaryList);
     content.appendChild(summarySection);
 
-    // Numeric statistics
-    if (this._stats.data_type === 'int' || this._stats.data_type === 'float') {
+    // Numeric statistics. Keyed on the payload carrying an aggregate rather
+    // than on the column's type: a column of numbers stored as text stays typed
+    // `string` - a zip code must keep its leading zeros - but the backend
+    // computes its minimum, maximum and mean from a numeric reading of the same
+    // values, and gating on the type alone discarded them before display.
+    if (this._stats.min_value !== undefined && this._stats.min_value !== null) {
       const numericSection = document.createElement('div');
       numericSection.className = 'jp-ColumnStatsModal-section';
       const numericTitle = document.createElement('h4');

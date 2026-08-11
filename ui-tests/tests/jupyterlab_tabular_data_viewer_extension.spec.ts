@@ -779,7 +779,7 @@ test.describe('Tabular Data Viewer Extension', () => {
     request,
     tmpPath
   }) => {
-    // The v1.6.0 cascade, asserted through the UI. `AccountID` holds large
+    // Mixed-type column resolution, asserted through the UI. `AccountID` holds large
     // integers and the string 'ACCFS-108'; a reader that types the column from
     // its leading rows raises on the string and the sheet will not open at all.
     //

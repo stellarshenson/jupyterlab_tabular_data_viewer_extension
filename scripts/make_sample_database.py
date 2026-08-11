@@ -6,8 +6,8 @@ Four user tables cover every branch of the SQLite datasource:
 - customers    plain TEXT/INTEGER/REAL columns, first table alphabetically
 - orders       INTEGER PRIMARY KEY AUTOINCREMENT, which creates sqlite_sequence
 - attachments  a BLOB column, for the "<BLOB n>" placeholder
-- mixed_types  one column holding both integers and strings, for the
-               per-column cascading type inference
+- mixed_types  one column holding both integers and strings, which must
+               resolve to text rather than failing the read
 
 No randomness and no current timestamps - re-running rebuilds the same
 logical content. Run with: python scripts/make_sample_database.py

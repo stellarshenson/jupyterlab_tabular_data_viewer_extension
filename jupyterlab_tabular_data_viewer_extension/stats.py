@@ -2,6 +2,8 @@
 Column statistics calculation using PyArrow.
 """
 
+import math
+
 import pyarrow as pa
 import pyarrow.compute as pc
 from typing import Dict, Any
@@ -45,6 +47,51 @@ def simplify_type(arrow_type: pa.DataType) -> str:
         return type_str
 
 
+def numeric_view(column):
+    """A numeric reading of a text column, or None when it is not all numbers.
+
+    A worksheet cell can hold a number as TEXT, and openpyxl returns a str for
+    it, so the column is genuinely a string column and stays one - a zip code
+    typed as text keeps its leading zeros, which pandas destroyed by coercing
+    the column to int64. But the harm pandas' coercion avoided is real: a text
+    column sorts lexicographically, putting 10 before 2, and reports no minimum,
+    maximum or mean. This gives the sort key and the aggregates a numeric view
+    of the same values without changing what is stored, displayed or exported.
+
+    int64 is tried before float64 so a 19-digit id keeps every digit; float64
+    would round it. The cast raises on anything not a number - a non-numeric
+    value, an empty string, even surrounding whitespace - which makes one
+    vectorised attempt the whole test.
+    """
+    if not (pa.types.is_string(column.type) or pa.types.is_large_string(column.type)):
+        return None
+    for target in (pa.int64(), pa.float64()):
+        try:
+            return pc.cast(column, target)
+        except pa.ArrowInvalid:
+            continue
+    return None
+
+
+def json_safe(stats: Dict[str, Any]) -> Dict[str, Any]:
+    """Replace NaN and +/-Infinity with None throughout a statistics payload.
+
+    Both are legal python floats and `json.dumps` writes them as bare `NaN` and
+    `Infinity`, which `JSON.parse` rejects - so a single non-finite aggregate
+    made the entire response unparseable and the column's panel reported a load
+    failure. Reachable from a text column holding `Inf`, which R's write.csv
+    emits, and from any genuine float column carrying an infinity.
+    """
+    return {
+        key: (
+            None
+            if isinstance(value, float) and not math.isfinite(value)
+            else value
+        )
+        for key, value in stats.items()
+    }
+
+
 def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
     """
     Calculate comprehensive statistics for a column.
@@ -74,10 +121,14 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
 
     # Basic statistics for all types
     total_count = len(column)
-    null_count = int(pc.sum(pc.is_null(column)).as_py())
+    # pc.sum over an empty column returns null, and int(None) raises TypeError -
+    # not a ValueError, so the handler answered 500 with a traceback for any
+    # zero-row table: a header-only worksheet, an empty SQLite table, or a csv
+    # the reader opened with no data rows.
+    null_count = 0 if total_count == 0 else int(pc.sum(pc.is_null(column)).as_py())
     non_null_count = total_count - null_count
     null_percentage = (null_count / total_count * 100) if total_count > 0 else 0
-    non_null_percentage = 100 - null_percentage
+    non_null_percentage = (100 - null_percentage) if total_count > 0 else 0
 
     # Unique values (computed on non-null values)
     unique_count = int(pc.count_distinct(column).as_py())
@@ -99,10 +150,13 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
     if non_null_count == 0:
         return stats
 
-    # Numeric statistics
-    if simplified_type in ("int", "float"):
+    # Numeric statistics. A text column whose every value is a number gets them
+    # too, computed on a numeric view - the reported data_type stays "string",
+    # and the stored values are untouched.
+    numeric_column = column if simplified_type in ("int", "float") else numeric_view(column)
+    if numeric_column is not None:
         try:
-            min_max = pc.min_max(column)
+            min_max = pc.min_max(numeric_column)
             stats["min_value"] = (
                 float(min_max["min"].as_py()) if min_max["min"].is_valid else None
             )
@@ -110,13 +164,13 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
                 float(min_max["max"].as_py()) if min_max["max"].is_valid else None
             )
 
-            mean_val = pc.mean(column)
+            mean_val = pc.mean(numeric_column)
             stats["mean"] = (
                 round(float(mean_val.as_py()), 2) if mean_val.is_valid else None
             )
 
             # Median using quantile
-            median_val = pc.quantile(column, q=0.5)
+            median_val = pc.quantile(numeric_column, q=0.5)
             if isinstance(median_val, pa.Array):
                 stats["median"] = (
                     round(float(median_val[0].as_py()), 2)
@@ -128,14 +182,14 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
                     round(float(median_val.as_py()), 2) if median_val.is_valid else None
                 )
 
-            stddev_val = pc.stddev(column)
+            stddev_val = pc.stddev(numeric_column)
             stats["std_dev"] = (
                 round(float(stddev_val.as_py()), 2) if stddev_val.is_valid else None
             )
 
             # IQR and outlier detection
-            q1 = pc.quantile(column, q=0.25)
-            q3 = pc.quantile(column, q=0.75)
+            q1 = pc.quantile(numeric_column, q=0.25)
+            q3 = pc.quantile(numeric_column, q=0.75)
 
             if isinstance(q1, pa.Array):
                 q1_val = float(q1[0].as_py()) if q1[0].is_valid else None
@@ -154,7 +208,7 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
 
                 # Count outliers
                 outlier_mask = pc.or_(
-                    pc.less(column, lower_bound), pc.greater(column, upper_bound)
+                    pc.less(numeric_column, lower_bound), pc.greater(numeric_column, upper_bound)
                 )
                 outlier_count = int(pc.sum(outlier_mask).as_py())
                 outlier_percentage = (
@@ -169,8 +223,8 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
             # Log but don't fail - return partial stats
             print(f"Warning: Could not compute numeric stats for {column_name}: {e}")
 
-    # String statistics
-    elif simplified_type == "string":
+    # String statistics - also for a numeric-text column, which is a string
+    if simplified_type == "string":
         try:
             # Filter out nulls for string operations
             non_null_column = pc.drop_null(column)

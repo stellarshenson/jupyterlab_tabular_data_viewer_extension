@@ -6,7 +6,10 @@ build-backend = "hatchling.build"
 name = "jupyterlab_tabular_data_viewer_extension"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.9"
+# Floor set by polars, not by this code: every polars from 1.37.0 declares
+# Requires-Python >=3.10, so on 3.9 pip resolves this wheel and then fails to
+# find polars at all. pandas ran on 3.9; polars does not.
+requires-python = ">=3.10"
 classifiers = [
     "Framework :: Jupyter",
     "Framework :: Jupyter :: JupyterLab",
@@ -16,7 +19,6 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

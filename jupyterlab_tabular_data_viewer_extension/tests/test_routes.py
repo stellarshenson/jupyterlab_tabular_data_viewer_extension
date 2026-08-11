@@ -343,7 +343,7 @@ async def test_column_stats_all_types(jp_fetch, jp_root_dir):
 
 
 # ---------------------------------------------------------------------------
-# Unit tests: slugify, list_excel_sheets, cascading type inference
+# Unit tests: slugify, list_excel_sheets, mixed-type column resolution
 # ---------------------------------------------------------------------------
 
 
@@ -488,9 +488,8 @@ def _awkward_workbook(path):
 def test_excel_awkward_shapes_survive_the_read(tmp_path):
     """Blank headers, blank rows and empty columns must not change the shape.
 
-    Polars' `read_excel` defaults `drop_empty_cols` and `drop_empty_rows` to
-    True, which would silently drop the fourth column and the third row. Pandas
-    dropped neither, so each default is turned off and a blank header is given
+    Pandas dropped neither a blank column nor a blank row, so `_read_excel`
+    reads the worksheet rows itself and keeps both, and a blank header is given
     the positional name pandas assigned it. An all-empty column would otherwise
     stay Null-typed, which carries no type for statistics to report.
     """
@@ -533,12 +532,12 @@ def test_excel_awkward_shapes_survive_the_read(tmp_path):
 def test_excel_header_row_edge_shapes_keep_their_columns(
     tmp_path, label, rows, expected_columns, expected_rows
 ):
-    """Polars reads the header from the first non-empty row; pandas did not.
+    """The header comes from the first row, not the first non-empty one.
 
     Each shape here lost data under polars' own header detection - a row, or
-    every column name. `_read_excel` inspects the first row through openpyxl to
-    tell the two cases apart. The expected values are pandas' output for the
-    same file, measured, since preserving it is the point of the swap.
+    every column name - which is why `_read_excel` takes row 1 as the header
+    whatever it holds. The expected values are pandas' output for the same
+    file, measured, since preserving it is the point of the swap.
     """
     import openpyxl
 
@@ -750,6 +749,79 @@ def test_xlsx_saved_under_the_xls_extension_opens(tmp_path):
     assert list_excel_sheets(str(mislabelled)) == ["Sheet"]
 
 
+def test_sheet_listing_survives_a_broken_external_link(tmp_path):
+    """A workbook whose external-link relationship is missing must still list.
+
+    openpyxl walks every <externalReference> unless `keep_links=False`, and an
+    unresolvable one leaves it dereferencing None: AttributeError, which is not
+    a ValueError, so the metadata request 500d with a traceback while the reader
+    - which passed keep_links=False - opened the same file. Both call sites now
+    load through `_OPENPYXL_LOAD`. Excel leaves this shape behind after a repair
+    or when a linked workbook is stripped from the package.
+    """
+    import zipfile
+
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import (
+        list_excel_sheets,
+        read_as_arrow_table,
+    )
+
+    book = openpyxl.Workbook()
+    book.active.title = "Data"
+    book.active.append(["a", "b"])
+    book.active.append([1, 2])
+    intact = tmp_path / "intact.xlsx"
+    book.save(intact)
+
+    # Declare an external reference whose relationship id is absent from
+    # workbook.xml.rels, which is what openpyxl cannot resolve.
+    broken = tmp_path / "broken.xlsx"
+    with zipfile.ZipFile(intact) as src, zipfile.ZipFile(broken, "w") as dst:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename == "xl/workbook.xml":
+                data = data.replace(
+                    b"</workbook>",
+                    b'<externalReferences><externalReference'
+                    b' xmlns:r="http://schemas.openxmlformats.org/officeDocument'
+                    b'/2006/relationships" r:id="rIdMissing"/>'
+                    b"</externalReferences></workbook>",
+                )
+            dst.writestr(item, data)
+
+    assert list_excel_sheets(str(broken)) == ["Data"]
+    assert read_as_arrow_table(str(broken)).column_names == ["a", "b"]
+
+
+def test_parquet_column_null_in_every_row_reports_statistics(tmp_path):
+    """An all-null parquet column must be typed as text, like every other reader.
+
+    Arrow's `null` type has no kernels, so `count_distinct` raises
+    ArrowNotImplementedError - not a ValueError - and the statistics request
+    500d. The three polars readers recast such a column already; parquet returns
+    before that dispatch and needed the same treatment. Pandas' parquet reader
+    gave the column object dtype and the old cascade typed it as text.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    path = tmp_path / "nulls.parquet"
+    pq.write_table(
+        pa.table({"a": pa.array([1, 2]), "blank": pa.nulls(2)}), str(path)
+    )
+
+    table = read_as_arrow_table(str(path))
+
+    assert str(table.schema.field("blank").type) == "string"
+    assert calculate_column_stats(table, "blank")["data_type"] == "string"
+    assert table.column("blank").to_pylist() == [None, None]
+
+
 async def test_metadata_opens_an_xlsx_named_xls(jp_fetch, jp_root_dir):
     """The metadata request is the first one the widget makes, so it must not 500.
 
@@ -877,16 +949,18 @@ def test_excel_error_cell_keeps_a_numeric_column_numeric(tmp_path, error):
 @pytest.mark.parametrize(
     "suffix,body",
     [
-        ("csv", b"id,n\n9223372036854775808,1\n2,2\n"),
-        ("tsv", b"id\tn\n9223372036854775808\t1\n2\t2\n"),
+        ("csv", b"id,n\n18446744073709551616,1\n2,2\n"),
+        ("tsv", b"id\tn\n18446744073709551616\t1\n2\t2\n"),
     ],
 )
-def test_integer_wider_than_int64_opens_as_text(tmp_path, suffix, body):
+def test_integer_wider_than_uint64_opens_as_text(tmp_path, suffix, body):
     """Polars infers Int128 for these, and pyarrow cannot export that dtype.
 
     `.to_arrow()` raised ArrowInvalid('_pli128'), which IS a ValueError, so a csv
-    carrying one uint64 key or snowflake id became a 400 and never opened.
-    Pandas read the column as uint64; string is the only arrow type wide enough.
+    carrying such a key became a 400 and never opened. Text is the fallback only
+    past 2**64-1, where no arrow integer reaches; inside the uint64 band the
+    column stays numeric, which
+    `test_integer_in_the_uint64_band_stays_numeric` covers.
     """
     from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
 
@@ -895,7 +969,7 @@ def test_integer_wider_than_int64_opens_as_text(tmp_path, suffix, body):
 
     table = read_as_arrow_table(str(target))
 
-    assert table.column("id").to_pylist() == ["9223372036854775808", "2"]
+    assert table.column("id").to_pylist() == ["18446744073709551616", "2"]
     assert str(table.schema.field("n").type) == "int64"
 
 
@@ -1023,6 +1097,356 @@ async def test_xlsx_export_uses_general_format_for_every_numeric_width(
     assert "#,##0" not in styles
 
 
+async def test_xlsx_export_keeps_every_row_when_headers_clash_by_case(
+    jp_fetch, jp_root_dir
+):
+    """Two headers differing only in case must not cost the whole table.
+
+    `write_excel` writes through xlsxwriter's `add_table`, which requires
+    case-insensitively unique headers: given `ID` and `id` it warned and returned
+    before writing the header row or a single value, so the response was a valid
+    workbook containing one cell - at HTTP 200, with the spreadsheet content
+    type. Total silent data loss. Pandas wrote a plain sheet and had no such
+    rule. The clashing header is suffixed for the export only.
+    """
+    import io
+
+    import openpyxl
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "case.csv").write_text("ID,id,other\n1,a,9\n2,b,8\n3,c,7\n")
+
+    response, _, _ = await _download(jp_fetch, path="data/case.csv", format="xlsx")
+    assert response.code == 200
+
+    sheet = openpyxl.load_workbook(io.BytesIO(response.body)).active
+    rows = [list(row) for row in sheet.iter_rows(values_only=True)]
+
+    assert rows[0] == ["ID", "id.1", "other"]
+    assert rows[1:] == [[1, "a", 9], [2, "b", 8], [3, "c", 7]]
+
+
+async def test_xlsx_export_suffix_does_not_steal_a_name_the_file_carries(
+    jp_fetch, jp_root_dir
+):
+    """Renaming for the writer must not relabel a column that never clashed.
+
+    Searching only against names already processed let `id` take the `id.1` the
+    frame itself carried, so two columns shipped under labels belonging to other
+    columns - the same defect `_header_names` documents for this convention. Only
+    the clashing column may move.
+    """
+    import io
+
+    import openpyxl
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "clash.csv").write_text("ID,id,id.1\n1,2,3\n")
+
+    response, _, _ = await _download(jp_fetch, path="data/clash.csv", format="xlsx")
+    assert response.code == 200
+
+    sheet = openpyxl.load_workbook(io.BytesIO(response.body)).active
+    rows = [list(row) for row in sheet.iter_rows(values_only=True)]
+
+    # `id` moves out of the way; the file's own `id.1` keeps its name and value
+    assert rows[0] == ["ID", "id.2", "id.1"]
+    assert rows[1] == [1, 2, 3]
+
+
+async def test_xlsx_export_past_the_grid_is_a_400_not_a_one_cell_file(
+    jp_fetch, jp_root_dir, monkeypatch
+):
+    """A frame wider than the worksheet must fail loudly, not write one cell.
+
+    xlsxwriter's table writer fails its dimension check and returns without
+    writing a header or a value, silently, so the response was a valid but almost
+    empty workbook at HTTP 200. Measured against the real limit: 16384 columns
+    write in full, 16385 yields A1:A1, and only 16386 raises. The limits are
+    monkeypatched here so the test does not have to build a 16385-column frame.
+    """
+    from jupyterlab_tabular_data_viewer_extension import routes
+
+    monkeypatch.setattr(routes, "_XLSX_MAX_COLUMNS", 2)
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "wide.csv").write_text("a,b,c\n1,2,3\n")
+
+    with pytest.raises(Exception) as caught:
+        await _download(jp_fetch, path="data/wide.csv", format="xlsx")
+
+    assert "400" in str(caught.value)
+
+
+async def test_statistics_on_a_zero_row_table_are_not_a_500(jp_fetch, jp_root_dir):
+    """A table with columns but no rows must still answer the statistics request.
+
+    `pc.sum` over an empty column returns null and `int(None)` raises TypeError,
+    which the handler does not map to 400, so a header-only worksheet, an empty
+    SQLite table or a csv opened with no data rows answered 500 with a traceback.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "headeronly.csv").write_text("a,b\n")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps({"path": "data/headeronly.csv", "columnName": "a"}),
+    )
+
+    assert response.code == 200
+    payload = json.loads(response.body)
+    assert payload["total_rows"] == 0
+    assert payload["null_count"] == 0
+
+
+async def test_numeric_text_column_stays_text_but_sorts_numerically(
+    jp_fetch, jp_root_dir
+):
+    """Numbers typed as text keep their text, and stop sorting as text.
+
+    A worksheet cell can hold a number as a string, and pandas coerced such a
+    column to int64 - which destroyed a zip code's leading zeros, turning
+    `00501` into 501. The column stays text here, so the stored, displayed and
+    exported value is what the file holds. What was wrong is the behaviour of a
+    text column over numeric values: it sorted lexicographically, putting 10
+    before 2, and reported no minimum, maximum or mean. Both now use a numeric
+    reading of the same values.
+    """
+    import openpyxl
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    book = openpyxl.Workbook()
+    book.active.append(["qty", "zip"])
+    for qty, zipcode in [("1", "00501"), ("10", "01234"), ("2", "90210")]:
+        book.active.append([qty, zipcode])
+    book.save(target_dir / "numeric_text.xlsx")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "data/numeric_text.xlsx",
+                "offset": 0,
+                "limit": 10,
+                "filters": {},
+                "useRegex": False,
+                "caseInsensitive": False,
+                "sortBy": "qty",
+                "sortOrder": "asc",
+            }
+        ),
+    )
+    assert response.code == 200
+    rows = json.loads(response.body)["data"]
+
+    # Numeric order, not lexicographic - and the leading zeros survive
+    assert [row["qty"] for row in rows] == ["1", "2", "10"]
+    assert [row["zip"] for row in rows] == ["00501", "90210", "01234"]
+
+    stats = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps({"path": "data/numeric_text.xlsx", "columnName": "qty"}),
+    )
+    payload = json.loads(stats.body)
+
+    assert payload["data_type"] == "string"
+    assert payload["min_value"] == 1.0
+    assert payload["max_value"] == 10.0
+    assert payload["mean"] == 4.33
+
+
+def test_spreadsheet_integer_past_int128_reads_as_text_not_null(tmp_path):
+    """A value polars cannot hold must not vanish without a word.
+
+    `pl.Series(..., strict=False)` is what lets a single-kind column resolve
+    without raising, but it resolves by discarding: an integer at or above
+    2**127 became null in an Int128 column, with no error and nothing in the
+    response to say a value had been lost. The mixed-kind guard cannot catch it,
+    every value being the same kind. The column is now rebuilt as text, where
+    every digit survives.
+
+    The fixture writes the sheet XML directly: openpyxl's own writer stores a
+    large integer in scientific notation, so a file it produced could never
+    reach this path - which is why no generated fixture had.
+    """
+    import zipfile
+
+    import openpyxl
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    book = openpyxl.Workbook()
+    book.active.append(["v"])
+    for value in (1, 2, 3):
+        book.active.append([value])
+    intact = tmp_path / "intact.xlsx"
+    book.save(intact)
+
+    huge = str(2**127)
+    raw = tmp_path / "raw.xlsx"
+    with zipfile.ZipFile(intact) as src, zipfile.ZipFile(raw, "w") as dst:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename == "xl/worksheets/sheet1.xml":
+                data = data.replace(b"<v>2</v>", f"<v>{huge}</v>".encode())
+            dst.writestr(item, data)
+
+    table = read_as_arrow_table(str(raw))
+
+    assert str(table.schema.field("v").type) == "large_string"
+    assert table.column("v").to_pylist() == ["1", huge, "3"]
+
+
+async def test_numeric_filter_on_a_wide_integer_column_is_applied(jp_fetch, jp_root_dir):
+    """A filter that a kernel refuses must not be silently discarded.
+
+    Comparing a uint64 column against a python float made pyarrow promote it to
+    double and refuse - `ArrowInvalid: Integer value ... not in range` - and
+    ArrowInvalid IS a ValueError, so the arm written for a non-numeric entry
+    swallowed it. The request then answered 200 with every row: a filter that
+    silently matched everything, and a `_filtered` download of the whole table.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "ids.csv").write_text(
+        "id,who\n9223372036854775808,big\n12,small\n7,tiny\n"
+    )
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "data/ids.csv",
+                "offset": 0,
+                "limit": 10,
+                "filters": {"id": {"type": "number", "operator": ">", "value": "100"}},
+                "useRegex": False,
+                "caseInsensitive": False,
+            }
+        ),
+    )
+    assert response.code == 200
+    payload = json.loads(response.body)
+
+    assert payload["totalRows"] == 1
+    assert [row["who"] for row in payload["data"]] == ["big"]
+
+
+async def test_wide_integer_survives_the_grid_and_the_xlsx_export(jp_fetch, jp_root_dir):
+    """An id past 2**53 must not be rounded on the way to the browser or Excel.
+
+    Javascript has only doubles, so `JSON.parse` turned 9223372036854775808 into
+    9223372036854776000, and Excel stores numbers as doubles too, so the cell
+    read 9.223372036854776e+18 - while the csv export of the same file kept every
+    digit. Both now carry the value as text; the column stays an integer server
+    side, so sorting and statistics remain numeric.
+    """
+    import io
+
+    import openpyxl
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "wide.csv").write_text("id,small\n9223372036854775808,1\n12,2\n")
+
+    grid = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "data/wide.csv",
+                "offset": 0,
+                "limit": 10,
+                "filters": {},
+                "useRegex": False,
+                "caseInsensitive": False,
+            }
+        ),
+    )
+    rows = json.loads(grid.body)["data"]
+
+    assert rows[0]["id"] == "9223372036854775808"
+    assert rows[1]["id"] == 12  # inside the exact range, still a number
+
+    response, _, _ = await _download(jp_fetch, path="data/wide.csv", format="xlsx")
+    sheet = openpyxl.load_workbook(io.BytesIO(response.body)).active
+    cells = [list(row) for row in sheet.iter_rows(values_only=True)]
+
+    assert cells[1] == ["9223372036854775808", 1]
+
+
+async def test_statistics_stay_parseable_when_a_column_holds_inf(jp_fetch, jp_root_dir):
+    """NaN and Infinity are not JSON, and one of them broke the whole response.
+
+    A text column holding `Inf` - which R's write.csv emits - is cast to double
+    for its aggregates, so the payload carried bare `Infinity` and `NaN`
+    literals. Python writes those happily; `JSON.parse` rejects them, so the
+    panel reported a load failure for the column rather than showing anything.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "inf.csv").write_text("v\nInf\n1\n2\n")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps({"path": "data/inf.csv", "columnName": "v"}),
+    )
+    assert response.code == 200
+
+    def reject_constant(name):
+        raise AssertionError(f"non-JSON literal in the response: {name}")
+
+    payload = json.loads(response.body, parse_constant=reject_constant)
+
+    assert payload["data_type"] == "string"
+    assert payload["max_value"] is None
+
+
+def test_integer_in_the_uint64_band_stays_numeric(tmp_path):
+    """A snowflake id must keep numeric sorting and aggregates, as under pandas.
+
+    Polars infers Int128 for any integer at or above 2**63 and pyarrow cannot
+    carry that dtype, but uint64 holds the whole [2**63, 2**64) band - which is
+    where snowflake ids, uint64 hashes and Discord or Twitter ids live. Casting
+    those to text lost numeric ordering and every aggregate; pandas read them as
+    uint64. A column outside that band - past 2**64-1, or holding a negative
+    sentinel - falls back to text.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    fits = tmp_path / "snowflake.csv"
+    fits.write_text("id\n9223372036854775808\n1\n")
+    table = read_as_arrow_table(str(fits))
+
+    assert str(table.schema.field("id").type) == "uint64"
+    assert table.column("id").to_pylist() == [9223372036854775808, 1]
+    assert calculate_column_stats(table, "id")["max_value"] == 9223372036854775808
+
+    beyond = tmp_path / "beyond.csv"
+    beyond.write_text("id\n18446744073709551616\n1\n")
+    wide = read_as_arrow_table(str(beyond))
+
+    assert str(wide.schema.field("id").type) == "large_string"
+    assert wide.column("id").to_pylist() == ["18446744073709551616", "1"]
+
+
 @pytest.mark.parametrize(
     "label,header",
     [
@@ -1062,11 +1486,12 @@ def test_excel_blank_header_row_names_columns_positionally(tmp_path, label, head
 
 
 def test_excel_unknown_sheet_still_raises_value_error(tmp_path):
-    """A bad sheet name must stay a 400, not become a KeyError from the peek.
+    """A bad sheet name must stay a 400, not become a 500.
 
-    `_read_excel` opens the workbook itself to inspect the first row, and
-    indexing a workbook by a name it does not carry raises KeyError - not a
-    ValueError, so it would 500 where polars' own message 400s.
+    `_read_excel` resolves the sheet itself by scanning `book.worksheets`, so a
+    name the workbook does not carry has to raise ValueError deliberately;
+    indexing the workbook instead would raise KeyError, which the handlers do
+    not map to 400 and would surface as a 500 with a traceback.
     """
     import openpyxl
 

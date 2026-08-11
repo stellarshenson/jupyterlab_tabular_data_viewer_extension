@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -10,6 +11,11 @@ from jupyter_server.utils import url_path_join
 import tornado
 import polars as pl
 import polars.selectors as cs
+
+# Bound at import rather than resolved inside the `except` clause below, where
+# an AttributeError would fire while the original exception was propagating and
+# take out the very handler that arm exists to keep alive.
+from polars.exceptions import PanicException
 import pyarrow.parquet as pq
 import pyarrow.compute as pc
 import pyarrow as pa
@@ -20,7 +26,7 @@ from .readers import (
     list_sqlite_tables,
     read_as_arrow_table,
 )
-from .stats import calculate_column_stats
+from .stats import calculate_column_stats, json_safe, numeric_view
 
 
 def slugify(s):
@@ -31,9 +37,114 @@ def slugify(s):
     return re.sub(r"[^a-z0-9]+", "_", (s or "").lower()).strip("_") or "sheet"
 
 
+# The Excel grid. A worksheet holds 1,048,576 rows including the header row and
+# 16,384 columns; one past either, xlsxwriter writes a single cell instead.
+_XLSX_MAX_ROWS = 1_048_576
+_XLSX_MAX_COLUMNS = 16_384
+
+
+def _numeric_scalar(filter_value, column_type):
+    """A comparison scalar in the COLUMN's type, not a bare python float.
+
+    `pc.greater(uint64_column, 100.0)` makes pyarrow promote the column to
+    double, and it refuses outright when a value exceeds a double's exact
+    integer range - `ArrowInvalid: Integer value 9223372036854775808 not in
+    range`. ArrowInvalid is a ValueError, so the arm meant for a non-numeric
+    entry swallowed it and the filter silently matched every row. Building the
+    scalar in the column's own type compares exactly and never promotes.
+
+    Raises ValueError when the entry is not a number, which is the caller's
+    signal that there is no predicate to add.
+    """
+    text = str(filter_value).strip()
+    if pa.types.is_integer(column_type):
+        try:
+            return pa.scalar(int(text), column_type)
+        except (ValueError, OverflowError, pa.ArrowInvalid):
+            # A decimal entry against an integer column, or one outside the
+            # column type's range: fall through to a float comparison, which
+            # pyarrow can still answer for an in-range integer column.
+            pass
+    return float(text)
+
+
+def _sort_indices(table, sort_by, sort_order):
+    """Sort indices for one column, numerically when a text column holds numbers.
+
+    A worksheet cell can hold a number as text, so the column is a string column
+    and stays one - forcing it numeric would strip a zip code's leading zeros.
+    Sorting it as text puts 10 before 2, which is the wrong answer for the same
+    values. Sorting on `numeric_view`'s reading of the column gives the numeric
+    order while the stored, displayed and exported values remain the text the
+    file holds. Both the grid and the export sort through here, so a downloaded
+    file is ordered exactly as the grid showed it.
+    """
+    direction = "ascending" if sort_order == "asc" else "descending"
+    numeric = numeric_view(table.column(sort_by))
+    if numeric is not None:
+        return pc.sort_indices(
+            pa.table({sort_by: numeric}), sort_keys=[(sort_by, direction)]
+        )
+    return pc.sort_indices(table, sort_keys=[(sort_by, direction)])
+
+
+def _uniquify_headers_for_excel(df):
+    """Suffix column names that collide case-insensitively, for the xlsx writer.
+
+    `write_excel` writes through xlsxwriter's `add_table`, which requires
+    case-insensitively unique headers: given `ID` and `id` it warns and returns
+    before writing the header row or a single value, so the export was a valid
+    workbook holding one cell and the whole table was gone - at HTTP 200, with
+    the correct content type. Pandas wrote a plain sheet and had no such rule.
+
+    Renames follow pandas' duplicate-header convention (`.1`, `.2`), so only the
+    exported header differs and no cell value is touched. The grid, and every
+    other export format, keep the original names.
+
+    A candidate is rejected if any OTHER column already carries it, not merely if
+    an earlier one took it - the rule `_header_names` documents for the same
+    convention. Without it, `ID, id, id.1` renamed `id` to the `id.1` the frame
+    already had, so two columns shipped under labels belonging to other columns.
+    """
+    taken = {name.lower() for name in df.columns}
+    seen = set()
+    renames = {}
+    for name in df.columns:
+        candidate, suffix = name, 0
+        while candidate.lower() in seen or (
+            candidate != name and candidate.lower() in taken
+        ):
+            suffix += 1
+            candidate = f"{name}.{suffix}"
+        seen.add(candidate.lower())
+        if candidate != name:
+            renames[name] = candidate
+    return df.rename(renames) if renames else df
+
+
+# A double holds every integer up to 2**53 exactly and no more. Javascript has
+# only doubles, so `JSON.parse` silently rounds anything past this: a uint64
+# snowflake id 9223372036854775808 reached the grid as 9223372036854776000.
+_JS_EXACT_INTEGER = 2**53
+INF = math.inf
+
+
 def convert_to_json_serializable(value):
     """Convert Python objects to JSON-serializable types"""
     if value is None:
+        return None
+    elif isinstance(value, bool):
+        return value
+    elif isinstance(value, int) and abs(value) > _JS_EXACT_INTEGER:
+        # Sent as a string so the browser cannot round it. The column keeps its
+        # integer type, so sorting, filtering and statistics stay numeric; only
+        # the wire form of these particular values changes, and it is the only
+        # form in which they survive the trip.
+        return str(value)
+    elif isinstance(value, float) and (value != value or value in (INF, -INF)):
+        # NaN and +/-Infinity are not JSON. Python emits them as bare literals
+        # that `JSON.parse` rejects, so one such cell made the whole response
+        # unparseable and the panel reported a load failure for the column.
         return None
     elif isinstance(value, (date, datetime)):
         return value.isoformat()
@@ -63,6 +174,11 @@ def normalize_arrow_type(arrow_type_str):
         "large_string": "string",
         "large_binary": "binary",
         "large_utf8": "string",
+        # Parquet metadata is answered from `schema_arrow`, which is the file's
+        # own schema and so never sees the reader's recast of an all-null column
+        # to string. Without this the badge and the filter type came from `null`
+        # while the statistics for the same column said `string`.
+        "null": "string",
     }
     return type_map.get(arrow_type_str, arrow_type_str)
 
@@ -138,6 +254,11 @@ class ParquetMetadataHandler(APIHandler):
                     # call and sends the resolved name on every later one, so
                     # leaving it None caches the same table under two keys -
                     # on a tabbed source that is the first table held twice.
+                    # Canonicalising here only holds while this handler runs
+                    # BEFORE the four that pass `sheet` through untouched
+                    # (`src/widget.ts` sets the active sheet from the metadata
+                    # response before requesting rows); a client that asked for
+                    # rows first would still cache the default twice.
                     table = read_as_arrow_table(
                         str(abs_path), sheet or (sheets[0] if sheets else None)
                     )
@@ -312,35 +433,26 @@ class ParquetDataHandler(APIHandler):
                                 )
                             )
                     elif filter_type == "number":
-                        # Numerical comparison
                         operator = filter_spec.get("operator", "=")
                         try:
-                            numeric_value = float(filter_value)
-
-                            if operator == ">":
-                                filter_expressions.append(
-                                    pc.greater(column, numeric_value)
-                                )
-                            elif operator == "<":
-                                filter_expressions.append(
-                                    pc.less(column, numeric_value)
-                                )
-                            elif operator == ">=":
-                                filter_expressions.append(
-                                    pc.greater_equal(column, numeric_value)
-                                )
-                            elif operator == "<=":
-                                filter_expressions.append(
-                                    pc.less_equal(column, numeric_value)
-                                )
-                            elif operator == "=":
-                                filter_expressions.append(
-                                    pc.equal(column, numeric_value)
-                                )
+                            numeric_value = _numeric_scalar(filter_value, column.type)
                         except ValueError:
-                            pass  # Skip invalid numeric values
+                            continue
 
-                # Combine all filters with AND logic
+                        kernel = {
+                            ">": pc.greater,
+                            "<": pc.less,
+                            ">=": pc.greater_equal,
+                            "<=": pc.less_equal,
+                            "=": pc.equal,
+                        }.get(operator)
+                        if kernel is not None:
+                            # Same reasoning as the grid handler: the kernel's
+                            # own refusal must not be mistaken for a
+                            # non-numeric entry, or the download ships the whole
+                            # table under a `_filtered` filename.
+                            filter_expressions.append(kernel(column, numeric_value))
+
                 if filter_expressions:
                     combined_filter = filter_expressions[0]
                     for expr in filter_expressions[1:]:
@@ -350,14 +462,7 @@ class ParquetDataHandler(APIHandler):
 
             # Apply sorting if requested
             if sort_by and sort_by in table.column_names:
-                # Create sort indices
-                indices = pc.sort_indices(
-                    table,
-                    sort_keys=[
-                        (sort_by, "ascending" if sort_order == "asc" else "descending")
-                    ],
-                )
-                # Apply sort
+                indices = _sort_indices(table, sort_by, sort_order)
                 table = pc.take(table, indices)
 
             # Get total filtered rows
@@ -461,7 +566,7 @@ class ColumnStatsHandler(APIHandler):
                 return
 
             # Calculate statistics
-            stats = calculate_column_stats(table, column_name)
+            stats = json_safe(calculate_column_stats(table, column_name))
 
             self.finish(json.dumps(stats))
 
@@ -752,12 +857,7 @@ class DownloadHandler(APIHandler):
 
             # Apply sorting if requested
             if sort_by and sort_by in table.column_names:
-                indices = pc.sort_indices(
-                    table,
-                    sort_keys=[
-                        (sort_by, "ascending" if sort_order == "asc" else "descending")
-                    ],
-                )
+                indices = _sort_indices(table, sort_by, sort_order)
                 table = pc.take(table, indices)
 
             # Numeric buffers are shared with the arrow table rather than
@@ -807,6 +907,43 @@ class DownloadHandler(APIHandler):
                 # of the dtype defaults, so it covers every width and leaves the
                 # date and time formats alone. The sheet also carries a defined
                 # table object, which is not suppressible here.
+                df = _uniquify_headers_for_excel(df)
+                # Excel stores every number as a double, so an integer past
+                # 2**53 is written rounded - a uint64 id came out as
+                # 9.223372036854776e+18 while the csv export of the same file
+                # kept every digit. Such a column is written as text, which is
+                # exact and is what the previous release produced for it.
+                too_wide = [
+                    name
+                    for name, dtype in df.schema.items()
+                    if dtype.is_integer()
+                    and (
+                        (df[name].max() or 0) > _JS_EXACT_INTEGER
+                        or (df[name].min() or 0) < -_JS_EXACT_INTEGER
+                    )
+                ]
+                if too_wide:
+                    df = df.cast({name: pl.String for name in too_wide})
+                # A frame one column past the grid is written as a single cell:
+                # add_table fails its dimension check and returns without writing
+                # a header or a value, silently, and the 200 carries an almost
+                # empty workbook. Measured - 16384 columns write in full, 16385
+                # yields A1:A1, and only 16386 raises. The row limit truncates the
+                # same way. A 400 naming the limit is the honest answer, and a
+                # spreadsheet cannot hold this data in any case.
+                if df.width > _XLSX_MAX_COLUMNS or df.height + 1 > _XLSX_MAX_ROWS:
+                    # Reported the way this handler reports its other client
+                    # error: inline, not raised - the arm below maps everything
+                    # it catches to 500, and this is the caller's data, not a
+                    # server fault.
+                    self.set_status(400)
+                    self.finish(
+                        f"{df.height} rows x {df.width} columns does not fit an "
+                        f"Excel worksheet (limit {_XLSX_MAX_ROWS - 1} rows x "
+                        f"{_XLSX_MAX_COLUMNS} columns) - export CSV or Parquet "
+                        "instead"
+                    )
+                    return
                 df.write_excel(
                     buffer,
                     autofilter=False,
@@ -851,7 +988,7 @@ class DownloadHandler(APIHandler):
             self.finish(set_content_type=content_type)
             return
 
-        except (Exception, pl.exceptions.PanicException) as e:
+        except (Exception, PanicException) as e:
             # PanicException needs naming explicitly: a Rust panic reaches
             # Python as a direct BaseException subclass, so `except Exception`
             # alone let it escape the handler and the client got a closed
