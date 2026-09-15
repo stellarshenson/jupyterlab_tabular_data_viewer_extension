@@ -3,8 +3,8 @@ import math
 import os
 import re
 from pathlib import Path
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import date, datetime, time, timedelta
+from decimal import Decimal, InvalidOperation
 
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
@@ -21,6 +21,7 @@ import pyarrow.compute as pc
 import pyarrow as pa
 
 from .readers import (
+    _served_type,
     get_file_type,
     list_excel_sheets,
     list_sqlite_tables,
@@ -61,10 +62,16 @@ def _numeric_scalar(filter_value, column_type):
         try:
             return pa.scalar(int(text), column_type)
         except (ValueError, OverflowError, pa.ArrowInvalid):
-            # A decimal entry against an integer column, or one outside the
-            # column type's range: fall through to a float comparison, which
-            # pyarrow can still answer for an in-range integer column.
             pass
+        # A decimal, exponent or negative entry, or one outside the column
+        # type's range. A float scalar fails here too once the column holds a
+        # value a double cannot carry exactly; a decimal one compares exactly.
+        # `Decimal` reports a non-number as InvalidOperation, and pyarrow
+        # refuses an infinite decimal with TypeError; neither is a ValueError.
+        try:
+            return pa.scalar(Decimal(text))
+        except (InvalidOperation, TypeError):
+            raise ValueError(f"not a finite number: {text}") from None
     return float(text)
 
 
@@ -129,6 +136,58 @@ _JS_EXACT_INTEGER = 2**53
 INF = math.inf
 
 
+def _exportable_table(table, output_format):
+    """Replace the columns a writer cannot take with text, before `pl.from_arrow`.
+
+    Two shapes, each of which killed the export outright rather than degrading
+    it:
+
+    - decimal256. `pl.from_arrow` panics in Rust on it before any format
+      branch, so every format died (DEF-EXPORT-8). Precision above 38 fits no
+      decimal128, so text is the only lossless cast; pandas wrote `1.25`.
+    - duration, for csv and tsv. Polars' csv writer raises ComputeError on it
+      where pandas wrote a representation (DEF-EXPORT-9); written as Python
+      renders it - `1 day, 0:00:00`.
+
+    A nested column never reaches here: the reader serves it as JSON text.
+    Arrow-side on purpose: the cast has to land before polars sees the column.
+    """
+    for index, field in enumerate(table.schema):
+        if pa.types.is_decimal256(field.type):
+            column = table.column(index).cast(pa.string())
+        elif output_format in ("csv", "tsv") and pa.types.is_duration(field.type):
+            values = table.column(index).to_pylist()
+            column = pa.array(
+                [None if v is None else str(v) for v in values], pa.string()
+            )
+        else:
+            continue
+        table = table.set_column(index, field.name, column)
+    return table
+
+
+def _date_only_datetimes(df):
+    """Cast a Datetime column whose every value is at midnight to Date.
+
+    For the delimited writers only. openpyxl returns a datetime for a cell
+    formatted as a date, and polars' csv writer always writes the full ISO form,
+    so `2023-02-25` left the file as `2023-02-25T00:00:00.000000`; pandas
+    dropped a zero time when the whole column carried one (DEF-EXPORT-6). A
+    column holding any real time keeps its timestamps. Nulls are ignored.
+
+    A timezone-aware column keeps its timestamps too: its midnight is local, and
+    the cast to Date takes the UTC date, the day before in any zone east of UTC.
+    """
+    midnight = [
+        name
+        for name, dtype in df.schema.items()
+        if isinstance(dtype, pl.Datetime)
+        and dtype.time_zone is None
+        and (df[name].dt.truncate("1d") == df[name]).all()
+    ]
+    return df.cast({name: pl.Date for name in midnight}) if midnight else df
+
+
 def convert_to_json_serializable(value):
     """Convert Python objects to JSON-serializable types"""
     if value is None:
@@ -148,16 +207,18 @@ def convert_to_json_serializable(value):
         return None
     elif isinstance(value, (date, datetime)):
         return value.isoformat()
+    elif isinstance(value, time):
+        # arrow time64 - a cell formatted as a clock time. Neither this nor
+        # timedelta subclasses date, so both reached json.dumps and raised
+        # TypeError, a 500 on the rows request while statistics answered 200.
+        return value.isoformat()
+    elif isinstance(value, timedelta):
+        # arrow duration - an elapsed-time cell; str() renders '1 day, 2:03:04'
+        return str(value)
     elif isinstance(value, Decimal):
         return float(value)
     elif isinstance(value, bytes):
         return value.decode("utf-8", errors="replace")
-    elif isinstance(value, (list, tuple)):
-        # Convert list/tuple to JSON string for display
-        return json.dumps(value)
-    elif isinstance(value, dict):
-        # Convert dict to JSON string for display
-        return json.dumps(value)
     else:
         return value
 
@@ -174,11 +235,6 @@ def normalize_arrow_type(arrow_type_str):
         "large_string": "string",
         "large_binary": "binary",
         "large_utf8": "string",
-        # Parquet metadata is answered from `schema_arrow`, which is the file's
-        # own schema and so never sees the reader's recast of an all-null column
-        # to string. Without this the badge and the filter type came from `null`
-        # while the statistics for the same column said `string`.
-        "null": "string",
     }
     return type_map.get(arrow_type_str, arrow_type_str)
 
@@ -269,14 +325,17 @@ class ParquetMetadataHandler(APIHandler):
                 self.finish(json.dumps({"error": str(e)}))
                 return
 
-            # Extract column information
+            # Extract column information. The parquet fast path reports the
+            # FILE's schema, so each type goes through the reader's
+            # `_served_type` and the type answered here is the one the rows
+            # carry (DEF-LOAD-24).
             columns = []
             for i in range(len(schema)):
                 field = schema.field(i)
                 columns.append(
                     {
                         "name": field.name,
-                        "type": normalize_arrow_type(str(field.type)),
+                        "type": normalize_arrow_type(str(_served_type(field.type))),
                     }
                 )
 
@@ -447,10 +506,6 @@ class ParquetDataHandler(APIHandler):
                             "=": pc.equal,
                         }.get(operator)
                         if kernel is not None:
-                            # Same reasoning as the grid handler: the kernel's
-                            # own refusal must not be mistaken for a
-                            # non-numeric entry, or the download ships the whole
-                            # table under a `_filtered` filename.
                             filter_expressions.append(kernel(column, numeric_value))
 
                 if filter_expressions:
@@ -823,30 +878,23 @@ class DownloadHandler(APIHandler):
                     elif filter_type == "number":
                         operator = filter_spec.get("operator", "=")
                         try:
-                            numeric_value = float(filter_value)
-
-                            if operator == ">":
-                                filter_expressions.append(
-                                    pc.greater(column, numeric_value)
-                                )
-                            elif operator == "<":
-                                filter_expressions.append(
-                                    pc.less(column, numeric_value)
-                                )
-                            elif operator == ">=":
-                                filter_expressions.append(
-                                    pc.greater_equal(column, numeric_value)
-                                )
-                            elif operator == "<=":
-                                filter_expressions.append(
-                                    pc.less_equal(column, numeric_value)
-                                )
-                            elif operator == "=":
-                                filter_expressions.append(
-                                    pc.equal(column, numeric_value)
-                                )
+                            numeric_value = _numeric_scalar(filter_value, column.type)
                         except ValueError:
-                            pass
+                            continue
+
+                        kernel = {
+                            ">": pc.greater,
+                            "<": pc.less,
+                            ">=": pc.greater_equal,
+                            "<=": pc.less_equal,
+                            "=": pc.equal,
+                        }.get(operator)
+                        if kernel is not None:
+                            # Same reasoning as the grid handler: the kernel's
+                            # own refusal must not be mistaken for a
+                            # non-numeric entry, or the download ships the whole
+                            # table under a `_filtered` filename.
+                            filter_expressions.append(kernel(column, numeric_value))
 
                 if filter_expressions:
                     combined_filter = filter_expressions[0]
@@ -859,6 +907,8 @@ class DownloadHandler(APIHandler):
             if sort_by and sort_by in table.column_names:
                 indices = _sort_indices(table, sort_by, sort_order)
                 table = pc.take(table, indices)
+
+            table = _exportable_table(table, output_format)
 
             # Numeric buffers are shared with the arrow table rather than
             # copied; string columns are converted, because polars' String is a
@@ -959,12 +1009,20 @@ class DownloadHandler(APIHandler):
                     "application/vnd.openxmlformats-officedocument."
                     "spreadsheetml.sheet"
                 )
-            elif output_format == "csv":
-                body = df.write_csv().encode("utf-8")
-                content_type = "text/csv"
-            elif output_format == "tsv":
-                body = df.write_csv(separator="\t").encode("utf-8")
-                content_type = "text/tab-separated-values"
+            elif output_format in ("csv", "tsv"):
+                df = _date_only_datetimes(df)
+                body = df.write_csv(
+                    separator="," if output_format == "csv" else "\t",
+                    # A one-column table wrote a null as an empty LINE, which a
+                    # consumer skipping blank lines reads as a missing row;
+                    # pandas wrote "" there (DEF-EXPORT-15). A wider table has
+                    # a delimiter on the line, so its empty field is unambiguous
+                    # and stays unquoted.
+                    null_value='""' if df.width == 1 else "",
+                ).encode("utf-8")
+                content_type = (
+                    "text/csv" if output_format == "csv" else "text/tab-separated-values"
+                )
             elif output_format == "jsonl":
                 # No ASCII escaping, null for missing values. NOT byte-identical
                 # to the pandas call this replaces: polars writes floats at
@@ -997,11 +1055,11 @@ class DownloadHandler(APIHandler):
             # KeyboardInterrupt and SystemExit are siblings of PanicException,
             # not subclasses, so both still propagate.
             #
-            # Two shapes reach a panic today. A decimal256 column panics inside
-            # `pl.from_arrow` before any format branch, so it kills all five
-            # formats (DEF-8), and a Binary column nested in a List or Struct is
-            # not matched by the top-level hex cast above and panics in
-            # write_ndjson (DEF-9). Both are now a plain 500 with a message.
+            # No known shape reaches a panic now - decimal256 is rendered as
+            # text in `_exportable_table` and a nested Binary as JSON text on
+            # read, both before polars sees them. The arm stays: a panic
+            # anywhere in the Rust core would otherwise close the socket
+            # instead of answering.
             import traceback
 
             error_traceback = traceback.format_exc()

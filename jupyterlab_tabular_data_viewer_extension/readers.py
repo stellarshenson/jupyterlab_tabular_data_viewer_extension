@@ -15,8 +15,12 @@ catch the regression. Excel needs no window: `_column_series` resolves such a
 column in Python, over every row, before polars sees a value.
 """
 
+import codecs
 import datetime as dt
+import json
+import mmap
 import os
+import re
 import sqlite3
 import threading
 from collections import OrderedDict
@@ -148,42 +152,15 @@ def _null_marker_to_none(value):
     return None if value in _NULL_STRING_SET or value in _EXCEL_ERRORS else value
 
 
-def _name_unnamed_columns(df):
-    """Replace an empty column name with a positional one, as pandas did.
+# The message polars raises when an integer literal overflows Int128, its widest
+# integer type. The column name is what a retry needs.
+_I128_OVERFLOW = re.compile(r"as dtype `i128` at column '([^']*)'")
 
-    An empty name is not cosmetic: the frontend posts the column name back for
-    statistics, and the handler rejects an empty one with a 400, so the column's
-    stats button fails and its header renders blank.
 
-    Only the FIRST blank header is empty, and only that one is renamed. Polars
-    names later blanks '_duplicated_0', '_duplicated_1' in a csv, where pandas
-    named every one of them 'Unnamed: <position>'. Those are left alone on
-    purpose: a name polars synthesised is indistinguishable from one the file
-    genuinely carries, and silently renaming a real column is worse than an
-    odd-looking one. The guarantee here is that no column reaches the frontend
-    nameless, not that the names match pandas' (DEF-7).
-
-    The positional name is suffixed if the file already carries it - two default
-    `to_csv` round-trips really do produce `,Unnamed: 0,a,b`, and renaming the
-    blank header onto the existing name made `rename` raise, so the file would
-    not open at all.
-
-    Excel does not come through here - `_read_excel` names every column from the
-    header row itself.
-    """
-    taken = set(df.columns)
-    renames = {}
-    for i, name in enumerate(df.columns):
-        if name and name.strip():
-            continue
-        candidate = f"Unnamed: {i}"
-        suffix = 0
-        while candidate in taken:
-            suffix += 1
-            candidate = f"Unnamed: {i}.{suffix}"
-        taken.add(candidate)
-        renames[name] = candidate
-    return df.rename(renames) if renames else df
+def _oversized_integer_column(error):
+    """The column an Int128 overflow names, or None for any other ComputeError."""
+    match = _I128_OVERFLOW.search(str(error))
+    return match.group(1) if match else None
 
 
 def _cast_unsupported_columns_to_string(df):
@@ -212,8 +189,9 @@ def _cast_unsupported_columns_to_string(df):
     no unsigned type can hold.
 
     This runs after inference has succeeded, so it cannot help a literal wider
-    than Int128 itself - a 39-digit integer fails inside `read_csv` with a
-    ComputeError and stays a 400 with a message, recorded as DEF-21.
+    than Int128 itself - a 39-digit integer fails inside `read_csv`. The csv
+    reader catches that and re-reads with the named column typed as text, which
+    lands here already String.
     """
     to_string, to_uint64 = [], []
     for name, dtype in df.schema.items():
@@ -457,6 +435,71 @@ def list_excel_sheets(file_path):
             book.close()
 
 
+# A line holding nothing but blanks, between two records - or as the very first
+# line. `\r?` lets the CRLF form match too. The blank set fills `%s`: space and
+# tab in a csv, space alone in a tsv, where a line of tabs is a row of empty
+# fields.
+_BLANK_LINE = rb"(?:^|\n)[%s]*\r?\n"
+
+
+def _delimited_source(file_path, delimiter):
+    """The path itself, or the file's bytes rewritten, for three shapes polars
+    cannot parse and pandas opened.
+
+    Each is detected on the first 64 KB where it is visible there, and the file
+    is rewritten only then, so an ordinary file still reaches polars as a path
+    - memory-mapped, one pass. The rewritten forms are read from bytes.
+
+    - UTF-16, which is what Excel's "Unicode Text" export writes. Every such
+      file carries a NUL byte inside its first header name, and polars' arrow
+      FFI panics on it; decoded to UTF-8 it parses like any other. Excel writes
+      a BOM; a file without one is told by the NUL in its first two bytes,
+      which no single-byte text can carry there, and its position gives the
+      byte order.
+    - Bare CR line terminators, the classic-Mac and old Excel-for-Mac form.
+      Polars ends a line only at LF, so the whole file read as one header row
+      with no data under it. Tested after the UTF-16 decode, because Excel 2011
+      for Mac wrote both at once.
+    - A blank line between records, which polars parsed as a row of nulls where
+      pandas skipped it. Removed only when the file holds no quote character at
+      all: inside a quoted field a blank line is content, and telling the two
+      apart is a full parse. A `,,` row, or a tsv line of tabs alone, is a row
+      of empty fields and stays, as pandas kept it; in a csv a tab is a blank.
+    """
+    with open(file_path, "rb") as fh:
+        head = fh.read(65536)
+        if head.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+            encoding = "utf-16"
+        elif head[:1] == b"\x00":
+            encoding = "utf-16-be"
+        elif head[1:2] == b"\x00":
+            encoding = "utf-16-le"
+        else:
+            encoding = None
+        data = None
+        if encoding:
+            fh.seek(0)
+            data = fh.read().decode(encoding).encode("utf-8")
+            head = data[:65536]
+        if b"\n" not in head and b"\r" in head:
+            if data is None:
+                fh.seek(0)
+                data = fh.read()
+            return data.replace(b"\r", b"\n")
+        if data is not None:
+            return data
+        if not head:
+            return file_path
+        blanks = b" " if delimiter == "\t" else b" \t"
+        with mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            if mm.find(b'"') == -1 and re.search(_BLANK_LINE % blanks, mm):
+                lines = bytes(mm).splitlines(keepends=True)
+                return b"".join(
+                    line for line in lines if line.strip(blanks + b"\r\n")
+                )
+    return file_path
+
+
 def _read_delimited(file_path, delimiter):
     """Read a delimited text file (CSV/TSV) into a PyArrow Table.
 
@@ -468,23 +511,56 @@ def _read_delimited(file_path, delimiter):
     consequence rather than the cause: binary rubbish named .csv reports a field
     count where the truth was the encoding. The retry also pays a second full
     scan, which the read cache amortises to once per file.
+
+    An integer literal of 39 or more digits is the other ComputeError handled
+    here: polars infers Int128 for anything at or above 2**63 and raises when a
+    literal exceeds it, so `_cast_unsupported_columns_to_string` - which recasts
+    Int128 to text - never ran, and the file did not open. The message names
+    the column, so the read is retried with that column typed as text; every
+    other column keeps its inferred type.
+
+    Column names come from the header row read raw, not from polars' parsed
+    names: polars leaves only the FIRST blank header empty and names the rest
+    `_duplicated_0`, `_duplicated_1`, and suffixes a repeated header
+    `a_duplicated_0`. `_header_names` numbers every blank by position and
+    suffixes a repeat `.1`, as pandas did and as the Excel reader already does,
+    so a header is named the same whichever file carries it. An empty name is
+    not cosmetic: the frontend posts it back for statistics and the handler
+    rejects it with a 400.
     """
-    try:
-        df = pl.read_csv(
-            file_path,
-            separator=delimiter,
-            infer_schema_length=None,
-            null_values=_NULL_STRINGS,
-        )
-    except ComputeError:
-        df = pl.read_csv(
-            file_path,
-            separator=delimiter,
-            encoding="latin1",
-            infer_schema_length=None,
-            null_values=_NULL_STRINGS,
-        )
-    return _cast_unsupported_columns_to_string(_name_unnamed_columns(df)).to_arrow()
+    source = _delimited_source(file_path, delimiter)
+    encoding = "utf8"
+    overrides = {}
+    while True:
+        try:
+            df = pl.read_csv(
+                source,
+                separator=delimiter,
+                encoding=encoding,
+                infer_schema_length=None,
+                null_values=_NULL_STRINGS,
+                schema_overrides=overrides or None,
+            )
+            break
+        except ComputeError as e:
+            column = _oversized_integer_column(e)
+            if column is not None and column not in overrides:
+                overrides[column] = pl.String
+            elif encoding == "utf8":
+                encoding = "latin1"
+            else:
+                raise
+    header = pl.read_csv(
+        source,
+        separator=delimiter,
+        encoding=encoding,
+        has_header=False,
+        n_rows=1,
+        infer_schema=False,
+    )
+    if header.width == df.width:
+        df.columns = _header_names(list(header.row(0)), df.width)
+    return _cast_unsupported_columns_to_string(df).to_arrow()
 
 
 def _sqlite_uri(file_path):
@@ -539,8 +615,13 @@ def _quote_ident(name):
     return '"' + name.replace('"', '""') + '"'
 
 
-def _blob_placeholder_sql(name):
+def _blob_placeholder_sql(name, alias=None):
     """SQL yielding '<BLOB size>' for BLOB cells and the value for everything else.
+
+    `alias` names the result column when it must differ from the source - a
+    column declared with an empty name. Left to polars, an unnamed result
+    column becomes `column_0`, which collided with a real column of that name
+    and made the table unopenable (DEF-SQLITE-13).
 
     Size is rendered B/KB/MB with one decimal and a trailing '.0' dropped:
     `rtrim(rtrim(x, '0'), '.')` removes it because the inner rtrim stops at the
@@ -573,7 +654,7 @@ def _blob_placeholder_sql(name):
         f" WHEN LENGTH({col}) < 1024 THEN {scaled('1.0', 'B')}"
         f" WHEN LENGTH({col}) < 1048576 THEN {scaled('1024.0', 'KB')}"
         f" ELSE {scaled('1048576.0', 'MB')} END || '>'"
-        f" ELSE {col} END AS {col}"
+        f" ELSE {col} END AS {_quote_ident(alias or name)}"
     )
 
 
@@ -609,7 +690,14 @@ def _read_sqlite(file_path, table=None):
         ]
         if not columns:
             raise ValueError(f"Table has no readable columns: {table}")
-        select_list = ", ".join(_blob_placeholder_sql(c) for c in columns)
+        # SQLite allows a column declared with an empty name. Numbered by
+        # position as the other readers number a blank header; a table cannot
+        # repeat a name, so the suffix branch of `_header_names` never fires.
+        names = _header_names(columns, len(columns))
+        select_list = ", ".join(
+            _blob_placeholder_sql(column, name)
+            for column, name in zip(columns, names)
+        )
         # infer_schema_length=None is load-bearing: SQLite columns carry a
         # storage class per value, not per column, so a column of integers with
         # a string at row 201 raises ComputeError under the default 100-row
@@ -707,6 +795,47 @@ def _cache_clear():
         _CACHE_BYTES = 0
 
 
+def _json_text(value):
+    """One nested cell as JSON text; bytes as hex, as a top-level binary is.
+
+    Non-ASCII characters are kept as written. Escaped to `\\u00fc`, a text
+    filter for the word found nothing and every export carried the escapes.
+    """
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        default=lambda o: o.hex() if isinstance(o, bytes) else str(o),
+    )
+
+
+def _served_type(arrow_type):
+    """The type a parquet column is served as.
+
+    Parquet returns before the polars readers' dispatch, so the policy
+    `_cast_unsupported_columns_to_string` applies to their columns is applied
+    here, for the column types arrow has no kernels for:
+
+    - null. A column that is null in every row arrives as arrow `null`, and
+      column statistics on it raise ArrowNotImplementedError, a 500. Served as
+      text, as pandas' parquet reader and the old cascade typed it.
+    - dictionary. A column written from a pandas Categorical has no
+      count_distinct, sort_indices or equal kernel, and the frontend's
+      numeric-type test matched the `int8` inside the type name (DEF-LOAD-24).
+      Served as its value type.
+    - list, struct, map and union. No sort, cast-to-text or count_distinct
+      kernel, so a header sort, a text filter, statistics and unique values each
+      answered 500. Served as JSON text - the form the grid already displayed.
+
+    The metadata handler passes the file's own schema through here too, so the
+    type it reports is the type the rows carry.
+    """
+    if pa.types.is_dictionary(arrow_type):
+        return arrow_type.value_type
+    if pa.types.is_null(arrow_type) or pa.types.is_nested(arrow_type):
+        return pa.string()
+    return arrow_type
+
+
 def _read_uncached(file_path, sheet):
     """Dispatch to the per-format reader. See `read_as_arrow_table`.
 
@@ -723,23 +852,20 @@ def _read_uncached(file_path, sheet):
     ft = get_file_type(file_path)
     if ft == "parquet":
         table = pq.read_table(file_path)
-        # The same policy `_cast_unsupported_columns_to_string` applies to the
-        # three polars readers, repeated here because parquet returns before
-        # their dispatch: a column that is null in every row arrives as arrow
-        # `null`, and column statistics on it raise ArrowNotImplementedError,
-        # which is not a ValueError, so the request 500s. Pandas' parquet
-        # reader gave such a column object dtype and the old cascade typed it
-        # as text.
-        null_columns = [f.name for f in table.schema if pa.types.is_null(f.type)]
-        if null_columns:
-            table = table.cast(
-                pa.schema(
-                    [
-                        f.with_type(pa.string()) if f.name in null_columns else f
-                        for f in table.schema
-                    ]
+        for index, field in enumerate(table.schema):
+            served = _served_type(field.type)
+            if served == field.type:
+                continue
+            column = table.column(index)
+            if pa.types.is_nested(field.type):
+                # arrow has no cast from a nested type to string
+                values = column.to_pylist()
+                column = pa.array(
+                    [None if v is None else _json_text(v) for v in values], pa.string()
                 )
-            )
+            else:
+                column = column.cast(served)
+            table = table.set_column(index, field.name, column)
         return table
     try:
         if ft == "excel":
@@ -751,7 +877,11 @@ def _read_uncached(file_path, sheet):
         if ft == "tsv":
             return _read_delimited(file_path, "\t")
     except PolarsError as e:
-        raise ValueError(f"Cannot read {ft} file: {e}")
+        # Polars appends a hint addressed to its own caller after a blank line
+        # ("Consider setting 'truncate_ragged_lines=True'"), which nobody
+        # reading the 400 can act on.
+        message = str(e).split("\n\n")[0]
+        raise ValueError(f"Cannot read {ft} file: {message}")
     except PanicException as e:
         # A Rust panic reaches Python as a direct BaseException subclass, so the
         # handlers' `except Exception` would let it escape and the client got a

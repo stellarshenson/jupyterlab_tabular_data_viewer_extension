@@ -14,6 +14,8 @@ import { Contents } from '@jupyterlab/services';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
+import { spreadsheetIcon } from '@jupyterlab/ui-components';
+
 import { TabularDataViewer, SQLITE_EXTENSIONS } from './widget';
 import { TabularDataDocument } from './document';
 
@@ -92,6 +94,14 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
     );
     const widget = new TabularDataDocument({ content, context });
     widget.title.label = context.path.split('/').pop() || 'Tabular Data File';
+    // Only MimeDocument copies the file type's icon onto the tab; a widget
+    // factory has to do it itself. Every tabular type shares this one.
+    widget.title.icon = spreadsheetIcon;
+
+    // The model holds no content, so a save has nothing to write. It used to
+    // send an empty body with no format, which the contents API rejected with a
+    // "File Save Error" dialog (DEF-LOAD-5). Ctrl+S is a no-op here.
+    context.save = () => Promise.resolve();
 
     // Listen to context fileChanged signal to refresh data when file is reverted
     context.fileChanged.connect(() => {
@@ -246,6 +256,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           displayName: 'Parquet',
           extensions: ['.parquet'],
           mimeTypes: ['application/x-parquet'],
+          icon: spreadsheetIcon,
           iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
           contentType: 'file',
           fileFormat: 'base64'
@@ -266,10 +277,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         docRegistry.addFileType({
           name: 'xlsx-parquet-viewer',
           displayName: 'Excel (Parquet Viewer)',
-          extensions: ['.xlsx'],
+          extensions: ['.xlsx', '.xls'],
           mimeTypes: [
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           ],
+          icon: spreadsheetIcon,
           iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
           contentType: 'file',
           fileFormat: 'base64'
@@ -292,6 +304,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           displayName: 'CSV (Tabular Viewer)',
           extensions: ['.csv'],
           mimeTypes: ['text/csv'],
+          icon: spreadsheetIcon,
           iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
           contentType: 'file',
           fileFormat: 'text'
@@ -314,6 +327,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           displayName: 'TSV (Tabular Viewer)',
           extensions: ['.tsv'],
           mimeTypes: ['text/tab-separated-values'],
+          icon: spreadsheetIcon,
           iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
           contentType: 'file',
           fileFormat: 'text'
@@ -338,6 +352,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           displayName: 'SQLite (Tabular Viewer)',
           extensions: SQLITE_EXTENSIONS,
           mimeTypes: ['application/vnd.sqlite3'],
+          icon: spreadsheetIcon,
           iconClass: 'jp-MaterialIcon jp-SpreadsheetIcon',
           contentType: 'file',
           fileFormat: 'base64'

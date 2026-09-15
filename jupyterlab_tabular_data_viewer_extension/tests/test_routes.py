@@ -973,20 +973,24 @@ def test_integer_wider_than_uint64_opens_as_text(tmp_path, suffix, body):
     assert str(table.schema.field("n").type) == "int64"
 
 
-def test_utf16_csv_is_a_400_not_a_dead_socket(tmp_path):
-    """A NUL byte in a header name panics polars' arrow FFI.
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-16-be"])
+def test_utf16_csv_opens_with_its_columns_intact(tmp_path, encoding):
+    """Excel's "Unicode Text" export is UTF-16, and it has to open.
 
-    Every UTF-16 csv has one - Excel's own "Unicode Text" export produces them -
-    and a Rust panic arrives as a direct BaseException subclass, so it escaped
-    the handlers and left the request with no status and no body.
+    A NUL byte in a header name panics polars' arrow FFI, and every UTF-16 csv
+    has one, so the file first left the request with no status and no body,
+    then - once the panic was mapped - a 400 (DEF-DELIM-16). pandas' latin1
+    retry opened it as one column named 'ÿþa' holding mojibake. Decoded on the
+    BOM before polars sees it, it reads like any other csv.
     """
     from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
 
     target = tmp_path / "unicode_text.csv"
-    target.write_bytes("a,b\n1,2\n".encode("utf-16"))
+    target.write_bytes("a,b\n1,2\n3,4\n".encode(encoding))
 
-    with pytest.raises(ValueError):
-        read_as_arrow_table(str(target))
+    table = read_as_arrow_table(str(target))
+    assert table.column_names == ["a", "b"]
+    assert table.column("a").to_pylist() == [1, 3]
 
 
 @pytest.mark.parametrize(
@@ -1343,6 +1347,101 @@ async def test_numeric_filter_on_a_wide_integer_column_is_applied(jp_fetch, jp_r
 
     assert payload["totalRows"] == 1
     assert [row["who"] for row in payload["data"]] == ["big"]
+
+
+async def test_numeric_filter_on_a_wide_integer_column_is_applied_to_the_export(
+    jp_fetch, jp_root_dir
+):
+    """The export applies the wide-integer filter the grid applies.
+
+    The download handler kept the float comparison inside the arm meant for a
+    non-numeric entry, so the kernel's refusal was swallowed and the `_filtered`
+    csv carried every row of the table.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "ids.csv").write_text(
+        "id,who\n9223372036854775808,big\n12,small\n7,tiny\n"
+    )
+
+    response, _, _ = await _download(
+        jp_fetch,
+        path="data/ids.csv",
+        format="csv",
+        filters=json.dumps({"id": {"type": "number", "operator": ">", "value": "100"}}),
+    )
+    assert response.code == 200
+    rows = response.body.decode("utf-8").splitlines()[1:]
+    assert [row.split(",")[1] for row in rows] == ["big"]
+
+
+@pytest.mark.parametrize(
+    "entry,expected",
+    [("1.5", ["big", "tiny"]), ("-1", ["big", "tiny"]), ("1e18", ["big"])],
+)
+async def test_numeric_filter_entry_forms_on_a_wide_integer_column(
+    jp_fetch, jp_root_dir, entry, expected
+):
+    """A decimal, negative or exponent entry filters a column past 2**53.
+
+    None of them builds an integer scalar, and the float comparison it fell back
+    to fails once the column holds a value a double cannot carry exactly, so the
+    request answered 500. The entry is compared as a decimal instead.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "snowflakes.csv").write_text(
+        "id,who\n9223372036854775813,big\n7,tiny\n"
+    )
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "data/snowflakes.csv",
+                "offset": 0,
+                "limit": 10,
+                "filters": {"id": {"type": "number", "operator": ">", "value": entry}},
+            }
+        ),
+    )
+    assert response.code == 200
+    assert [row["who"] for row in json.loads(response.body)["data"]] == expected
+
+
+@pytest.mark.parametrize("entry", ["abc", "inf", "-inf", "nan"])
+async def test_non_numeric_entry_on_an_integer_column_adds_no_predicate(
+    jp_fetch, jp_root_dir, entry
+):
+    """A number filter holding text or a non-finite value leaves the table
+    unfiltered, not a 500.
+
+    An entry that is not an integer is retried as a decimal. `Decimal` reports
+    text as InvalidOperation, and pyarrow refuses an infinite decimal with
+    TypeError; neither is the ValueError the handlers read as "no predicate to
+    add".
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    (target_dir / "counts.csv").write_text("n,who\n5,a\n7,b\n")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "data/counts.csv",
+                "offset": 0,
+                "limit": 10,
+                "filters": {"n": {"type": "number", "operator": ">", "value": entry}},
+            }
+        ),
+    )
+    assert response.code == 200
+    assert json.loads(response.body)["totalRows"] == 2
 
 
 async def test_wide_integer_survives_the_grid_and_the_xlsx_export(jp_fetch, jp_root_dir):
@@ -1823,20 +1922,20 @@ async def test_download_undecodable_binary_is_hex_not_a_500(jp_fetch, jp_root_di
     assert response.body.decode().splitlines()[1] == "fffe00706e67"
 
 
-@pytest.mark.parametrize("fmt", ["csv", "jsonl", "parquet"])
-async def test_download_panicking_column_returns_500_not_a_dead_socket(
-    jp_fetch, jp_root_dir, fmt
-):
-    """A Rust panic must become an HTTP 500, not a closed connection.
+@pytest.mark.parametrize("fmt", ["csv", "jsonl", "parquet", "xlsx"])
+async def test_download_wide_decimal_exports_as_text(jp_fetch, jp_root_dir, fmt):
+    """A decimal wider than 38 digits exports, every digit intact.
 
-    `PanicException` is a direct BaseException subclass, so `except Exception`
-    alone let it escape the handler and the client got no status and no body -
-    nothing the frontend could report. A decimal256 column panics inside
-    `pl.from_arrow`, before any format branch, so it takes every format with it
-    including parquet (DEF-8).
+    `pl.from_arrow` panics in Rust on decimal256 before any format branch, so
+    every export of a table holding one died - first as a closed connection,
+    then as a 500 once the panic was caught (DEF-EXPORT-8). Precision above 38
+    fits no decimal128, so the column is cast to text on the arrow side; pandas
+    wrote it as the float `1.25`.
     """
+    import io
     from decimal import Decimal
 
+    import openpyxl
     import pyarrow as pa
     import pyarrow.parquet as pq
 
@@ -1844,14 +1943,30 @@ async def test_download_panicking_column_returns_500_not_a_dead_socket(
     target_dir.mkdir(exist_ok=True)
     pq.write_table(
         pa.table(
-            {"amount": pa.array([Decimal("1.25")], pa.decimal256(40, 2))}
+            {"amount": pa.array([Decimal("1.25"), None], pa.decimal256(40, 2))}
         ),
         target_dir / "wide_decimal.parquet",
     )
 
-    with pytest.raises(Exception) as excinfo:
-        await _download(jp_fetch, path="data/wide_decimal.parquet", format=fmt)
-    assert "500" in str(excinfo.value)
+    response, _, _ = await _download(
+        jp_fetch, path="data/wide_decimal.parquet", format=fmt
+    )
+    assert response.code == 200
+    if fmt == "csv":
+        # A one-column export quotes its null, so the line is not blank
+        assert response.body.decode("utf-8") == 'amount\n1.25\n""\n'
+    elif fmt == "jsonl":
+        assert response.body.decode("utf-8").splitlines()[0] == '{"amount":"1.25"}'
+    elif fmt == "parquet":
+        table = pq.read_table(io.BytesIO(response.body))
+        assert table.column("amount").to_pylist() == ["1.25", None]
+    else:
+        sheet = openpyxl.load_workbook(io.BytesIO(response.body)).active
+        assert [row[0] for row in sheet.iter_rows(values_only=True)] == [
+            "amount",
+            "1.25",
+            None,
+        ]
 
 
 async def test_download_filename_no_sheet_no_filter(jp_fetch, jp_root_dir):
@@ -3306,3 +3421,510 @@ def test_cache_byte_counter_tracks_contents_and_recency_is_lru(tmp_path):
     )
     assert "customers" not in resident
     assert readers._CACHE_BYTES == sum(t.nbytes for t in readers._CACHE.values())
+
+
+# ---------------------------------------------------------------------------
+# Defects fixed in the goal sweep: one regression test per closed defect
+# ---------------------------------------------------------------------------
+
+
+async def test_clock_time_and_elapsed_time_columns_reach_the_grid(jp_fetch, jp_root_dir):
+    """arrow time64 and duration must serialise, not 500 the rows request.
+
+    Neither datetime.time nor datetime.timedelta subclasses date, so both fell
+    through `convert_to_json_serializable` to json.dumps and raised TypeError -
+    a 500 on the rows request while statistics on the same column answered 200
+    (DEF-LOAD-20). A cell formatted as a clock time or an elapsed [h]:mm is how
+    they arrive from a worksheet; the parquet fixture carries both types
+    directly.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "typed_columns.parquet", target_dir / "typed_columns.parquet")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {"path": "data/typed_columns.parquet", "offset": 0, "limit": 3, "filters": {}}
+        ),
+    )
+    assert response.code == 200
+    rows = json.loads(response.body)["data"]
+    assert rows[1]["clock"] == "09:01:00"
+    assert rows[1]["elapsed"] == "0:05:00"
+
+
+async def test_dictionary_column_sorts_and_reports_statistics(jp_fetch, jp_root_dir):
+    """A parquet column written from a pandas Categorical is an ordinary column.
+
+    Stored as dictionary<values=string, indices=int32>, it browsed but 500d on
+    statistics, a header sort and a numeric filter - count_distinct,
+    sort_indices and equal have no dictionary kernel - and the frontend's
+    numeric-type test matched the `int32` inside the type name and offered a
+    number filter on a string column (DEF-LOAD-24). Decoded on read it is a
+    string column everywhere downstream.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "typed_columns.parquet", target_dir / "typed_columns.parquet")
+
+    metadata = await _metadata(jp_fetch, jp_root_dir, "typed_columns.parquet")
+    types = {column["name"]: column["type"] for column in metadata["columns"]}
+    assert types["category"] == "string"
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps({"path": "data/typed_columns.parquet", "columnName": "category"}),
+    )
+    assert response.code == 200
+    assert json.loads(response.body)["unique_count"] == 3
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "data/typed_columns.parquet",
+                "offset": 0,
+                "limit": 12,
+                "filters": {},
+                "sortBy": "category",
+                "sortOrder": "asc",
+            }
+        ),
+    )
+    assert response.code == 200
+    categories = [row["category"] for row in json.loads(response.body)["data"]]
+    assert categories == sorted(categories)
+    assert categories[0] == "blue"
+
+
+def test_sqlite_blank_column_name_does_not_collide_with_column_0(tmp_path):
+    """A column declared with an empty name is numbered by position.
+
+    Left to polars, an unnamed result column becomes `column_0`, which collided
+    with a real column of that name inside `read_database`, before any of this
+    code saw the names, and the table returned 400 'column with name column_0
+    has more than one occurrence' (DEF-SQLITE-13). The alias is set in the
+    select list instead, the same `Unnamed: N` the other readers give a blank
+    header.
+    """
+    import sqlite3
+
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    db = tmp_path / "blank.db"
+    with sqlite3.connect(db) as conn:
+        conn.execute('CREATE TABLE t ("" TEXT, column_0 TEXT)')
+        conn.execute("INSERT INTO t VALUES ('x', 'y')")
+
+    table = read_as_arrow_table(str(db), "t")
+    assert table.column_names == ["Unnamed: 0", "column_0"]
+    assert table.to_pylist() == [{"Unnamed: 0": "x", "column_0": "y"}]
+
+
+@pytest.mark.parametrize(
+    "header,expected",
+    [
+        ("a,,,d", ["a", "Unnamed: 1", "Unnamed: 2", "d"]),
+        ("a,a,b", ["a", "a.1", "b"]),
+        (",Unnamed: 0,a", ["Unnamed: 0", "Unnamed: 0.1", "a"]),
+    ],
+)
+def test_csv_headers_are_named_as_pandas_named_them(tmp_path, header, expected):
+    """Blank and repeated csv headers get the names the Excel reader gives them.
+
+    Polars leaves only the first blank header empty and names the rest
+    `_duplicated_0`, `_duplicated_1`, and suffixes a repeat `a_duplicated_0`
+    (DEF-EXCEL-7). Reading the header row raw and naming it through
+    `_header_names` gives `Unnamed: <position>` and `.1`, as pandas did, and
+    the third case is the shape two default `to_csv` round-trips produce.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    width = len(expected)
+    target = tmp_path / "headers.csv"
+    target.write_text(header + "\n" + ",".join(str(i) for i in range(width)) + "\n")
+
+    assert read_as_arrow_table(str(target)).column_names == expected
+
+
+@pytest.mark.parametrize(
+    "label,name,body,rows",
+    [
+        ("empty line", "blanks.csv", "a,b\n1,2\n\n3,4\n", 2),
+        ("whitespace-only line", "blanks.csv", "a,b\n1,2\n   \n3,4\n", 2),
+        ("trailing empty line", "blanks.csv", "a,b\n1,2\n\n", 1),
+        ("a row of empty fields is a row", "blanks.csv", "a,b\n1,2\n,\n", 2),
+        ("a tab-only line in a csv is blank", "blanks.csv", "a,b\n1,2\n\t\n3,4\n", 2),
+        # Excel's tab-delimited export writes an empty row as tabs alone.
+        ("a row of empty tsv fields is a row", "blanks.tsv", "a\tb\n1\t2\n\t\n", 2),
+        ("and survives a skipped blank line", "blanks.tsv", "a\tb\n1\t2\n\n\t\n3\t4\n", 3),
+    ],
+)
+def test_csv_blank_lines_are_skipped_as_pandas_skipped_them(
+    tmp_path, label, name, body, rows
+):
+    """A blank line is not a row; a line of empty fields is (DEF-DELIM-10)."""
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / name
+    target.write_text(body)
+
+    table = read_as_arrow_table(str(target))
+    assert table.num_rows == rows, label
+    assert str(table.column("a").type) == "int64"
+
+
+def test_csv_blank_line_inside_a_quoted_field_is_content(tmp_path):
+    """The blank-line skip must not reach into a quoted cell.
+
+    A file holding any quote character is left exactly as polars parses it:
+    telling a blank line between records from one inside a quoted field is a
+    full parse, so the skip applies only where no quote can exist.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / "quoted.csv"
+    target.write_text('a,b\n1,"line one\n\nline three"\n')
+
+    table = read_as_arrow_table(str(target))
+    assert table.num_rows == 1
+    assert table.column("b").to_pylist() == ["line one\n\nline three"]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [b"a,b\r1,2\r3,4\r", "a,b\r1,2\r3,4\r".encode("utf-16")],
+    ids=["utf-8", "utf-16"],
+)
+def test_csv_with_bare_cr_line_endings_opens(tmp_path, body):
+    """A classic-Mac csv, terminated by CR alone, reads its rows (DEF-DELIM-11).
+
+    Polars ends a line only at LF, so the whole file read as one header row and
+    no data - 4 columns, 0 rows, with the values inside the column names. The
+    UTF-16 form is Excel 2011 for Mac's "Unicode Text" export.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / "mac.csv"
+    target.write_bytes(body)
+
+    table = read_as_arrow_table(str(target))
+    assert table.column_names == ["a", "b"]
+    assert table.column("a").to_pylist() == [1, 3]
+
+
+def test_csv_integer_wider_than_int128_opens_as_text(tmp_path):
+    """A 39-digit integer no longer keeps the whole file from opening.
+
+    Polars infers Int128 for anything at or above 2**63 and raises inside
+    `read_csv` when a literal exceeds it, so the recast to text that handles
+    Int128 never ran (DEF-DELIM-21). The message names the column; the read is
+    retried with that column typed as text, and every other column keeps its
+    inferred type.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    huge = str(10**40)
+    target = tmp_path / "wide.csv"
+    target.write_text(f"id,v\n{huge},1\n5,2\n")
+
+    table = read_as_arrow_table(str(target))
+    assert table.column("id").to_pylist() == [huge, "5"]
+    assert str(table.column("v").type) == "int64"
+
+
+def test_ragged_csv_error_names_the_problem_not_a_polars_option(tmp_path):
+    """The 400 for a row with too many fields is a message for the user.
+
+    Polars appends a hint addressed to its own caller after a blank line -
+    `Consider setting 'truncate_ragged_lines=True'` - which nobody reading the
+    viewer's error can act on.
+    """
+    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+
+    target = tmp_path / "ragged.csv"
+    target.write_text("a,b\n1,2\n3,4,5\n")
+
+    with pytest.raises(ValueError) as excinfo:
+        read_as_arrow_table(str(target))
+    assert str(excinfo.value) == (
+        "Cannot read csv file: found more fields than defined in 'Schema'"
+    )
+
+
+async def test_csv_export_writes_a_date_only_column_without_a_zero_time(
+    jp_fetch, jp_root_dir
+):
+    """A worksheet date exports as `2023-02-25`, not `2023-02-25T00:00:00.000000`.
+
+    openpyxl returns a datetime for a date-formatted cell and polars' csv writer
+    always writes the full ISO form; pandas dropped a zero time when the whole
+    column carried one (DEF-EXPORT-6). A column holding any real time keeps its
+    timestamps.
+    """
+    from datetime import datetime
+
+    import openpyxl
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    book = openpyxl.Workbook()
+    book.active.append(["when", "stamp"])
+    book.active.append([datetime(2023, 2, 25), datetime(2023, 2, 25, 9, 30)])
+    book.active.append([datetime(2023, 3, 1), None])
+    book.save(target_dir / "dates.xlsx")
+
+    response, _, _ = await _download(jp_fetch, path="data/dates.xlsx", format="csv")
+    assert response.code == 200
+    assert response.body.decode("utf-8") == (
+        "when,stamp\n2023-02-25,2023-02-25T09:30:00.000000\n2023-03-01,\n"
+    )
+
+
+async def test_csv_export_keeps_timestamps_of_a_timezone_aware_midnight_column(
+    jp_fetch, jp_root_dir
+):
+    """A timezone-aware column at local midnight exports timestamps, not dates.
+
+    Cast to Date, polars takes the UTC date, which is the day before in any zone
+    east of UTC: `2024-01-01 00:00+01:00` left the file as `2023-12-31`.
+    """
+    from datetime import datetime
+
+    import polars as pl
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pl.DataFrame({"t": [datetime(2024, 1, 1), datetime(2024, 1, 2)]}).with_columns(
+        pl.col("t").dt.replace_time_zone("Europe/Warsaw")
+    ).write_parquet(target_dir / "local_midnight.parquet")
+
+    response, _, _ = await _download(
+        jp_fetch, path="data/local_midnight.parquet", format="csv"
+    )
+    assert response.code == 200
+    rows = response.body.decode("utf-8").splitlines()[1:]
+    assert [row[:19] for row in rows] == ["2024-01-01T00:00:00", "2024-01-02T00:00:00"]
+
+
+async def test_csv_export_writes_nested_and_duration_columns(jp_fetch, jp_root_dir):
+    """list, struct and duration columns export to csv as text (DEF-EXPORT-9).
+
+    Polars' csv writer raised ComputeError on all of them, where pandas wrote a
+    representation of each. A nested cell is written as JSON, a duration as
+    Python renders it.
+    """
+    from datetime import timedelta
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table(
+            {
+                "tags": pa.array([[1, 2], [3]]),
+                "meta": pa.array([{"k": 1}, {"k": 2}]),
+                "wait": pa.array(
+                    [timedelta(days=1), timedelta(seconds=90)], pa.duration("us")
+                ),
+            }
+        ),
+        target_dir / "nested.parquet",
+    )
+
+    response, _, _ = await _download(jp_fetch, path="data/nested.parquet", format="csv")
+    assert response.code == 200
+    assert response.body.decode("utf-8") == (
+        'tags,meta,wait\n"[1, 2]","{""k"": 1}","1 day, 0:00:00"\n[3],"{""k"": 2}",0:01:30\n'
+    )
+
+
+async def test_jsonl_export_writes_a_nested_binary_as_hex(jp_fetch, jp_root_dir):
+    """A Binary inside a list must not panic write_ndjson.
+
+    The top-level hex cast does not reach a nested binary, and the writer
+    panicked in Rust on it - a closed connection, then a 500 once the panic was
+    caught (DEF-EXPORT-9). Rendered as JSON with the bytes in hex, the same
+    form a top-level binary takes.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table({"blobs": pa.array([[b"\x00\xff"]], pa.list_(pa.binary()))}),
+        target_dir / "nested_binary.parquet",
+    )
+
+    response, _, _ = await _download(
+        jp_fetch, path="data/nested_binary.parquet", format="jsonl"
+    )
+    assert response.code == 200
+    assert response.body.decode("utf-8") == '{"blobs":"[\\"00ff\\"]"}\n'
+
+
+async def test_nested_parquet_columns_sort_filter_and_report_statistics(
+    jp_fetch, jp_root_dir
+):
+    """A list or struct parquet column is served as JSON text.
+
+    Arrow has no sort, cast-to-text or count_distinct kernel for a nested type,
+    so a header sort, a text filter, the statistics and the unique values on
+    such a column each answered 500 with a traceback. Typed as text on read -
+    the form the grid already displayed - every one of them answers.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table(
+            {
+                "tags": pa.array([[3], [1, 2]]),
+                "meta": pa.array([{"k": 2}, {"k": 1}]),
+                "city": pa.array([["Zürich"], ["Oslo"]]),
+            }
+        ),
+        target_dir / "nested_grid.parquet",
+    )
+    path = "data/nested_grid.parquet"
+
+    async def post(endpoint, **body):
+        response = await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            endpoint,
+            method="POST",
+            body=json.dumps({"path": path, **body}),
+        )
+        assert response.code == 200, endpoint
+        return json.loads(response.body)
+
+    metadata = await post("metadata")
+    assert {c["name"]: c["type"] for c in metadata["columns"]} == {
+        "tags": "string",
+        "meta": "string",
+        "city": "string",
+    }
+
+    page = {"offset": 0, "limit": 10}
+    rows = (await post("data", **page, filters={}, sortBy="tags", sortOrder="asc"))["data"]
+    assert [row["tags"] for row in rows] == ["[1, 2]", "[3]"]
+
+    text_filter = {"meta": {"type": "text", "value": "1"}}
+    rows = (await post("data", **page, filters=text_filter))["data"]
+    assert [row["meta"] for row in rows] == ['{"k": 1}']
+
+    # Non-ASCII text in a nested cell is kept as written, so a filter for the
+    # word finds it; json.dumps escapes it by default.
+    city_filter = {"city": {"type": "text", "value": "Zürich"}}
+    rows = (await post("data", **page, filters=city_filter))["data"]
+    assert [row["city"] for row in rows] == ['["Zürich"]']
+
+    for column in ("tags", "meta"):
+        assert (await post("column-stats", columnName=column))["unique_count"] == 2
+        assert (await post("unique-values", columnName=column))["total_count"] == 2
+
+
+async def test_single_column_csv_export_quotes_a_null(jp_fetch, jp_root_dir):
+    """A null in a one-column export is `""`, not a blank line (DEF-EXPORT-15).
+
+    A consumer that skips blank lines read `v\\n1.5\\n\\n` as one row. A wider
+    table has a delimiter on the line, so its empty field stays unquoted.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(pa.table({"v": [1.5, None]}), target_dir / "one.parquet")
+    pq.write_table(
+        pa.table({"v": [1.5, None], "w": [1, 2]}), target_dir / "two.parquet"
+    )
+
+    response, _, _ = await _download(jp_fetch, path="data/one.parquet", format="csv")
+    assert response.body.decode("utf-8") == 'v\n1.5\n""\n'
+
+    response, _, _ = await _download(jp_fetch, path="data/two.parquet", format="csv")
+    assert response.body.decode("utf-8") == "v,w\n1.5,1\n,2\n"
+
+
+
+async def test_offset_past_the_end_returns_an_empty_page(jp_fetch, jp_root_dir):
+    """A window cut past the last row is an empty page, not an error.
+
+    The page is sliced in arrow from the cached full table, so an offset beyond
+    it has nothing to fail on; it answers 200 with no rows and the true total,
+    which is what lets the frontend stop paging.
+    """
+    shutil.copy(DATA_DIR / "sample_database.db", jp_root_dir / "sample_database.db")
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "sample_database.db",
+                "sheet": "orders",
+                "offset": 1_000_000,
+                "limit": 10,
+                "filters": {},
+            }
+        ),
+    )
+    assert response.code == 200
+    payload = json.loads(response.body)
+    assert payload["data"] == []
+    assert payload["totalRows"] > 0
+    assert payload["hasMore"] is False
+
+
+async def test_table_dropped_between_requests_is_a_400(jp_fetch, jp_root_dir):
+    """A table that vanished after the first request answers 400, not 500.
+
+    Dropping the table rewrites the database file, so the cache key misses and
+    the reader looks the name up again; a missing name is a ValueError, which
+    the handler maps to 400 with the message.
+    """
+    import sqlite3
+
+    from tornado.httpclient import HTTPClientError
+
+    db = jp_root_dir / "dropped.db"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE gone (v INTEGER)")
+        conn.execute("CREATE TABLE stays (v INTEGER)")
+        conn.execute("INSERT INTO gone VALUES (1)")
+
+    body = {"path": "dropped.db", "sheet": "gone", "offset": 0, "limit": 10, "filters": {}}
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(body),
+    )
+    assert response.code == 200
+
+    with sqlite3.connect(db) as conn:
+        conn.execute("DROP TABLE gone")
+
+    with pytest.raises(HTTPClientError) as excinfo:
+        await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            "data",
+            method="POST",
+            body=json.dumps(body),
+        )
+    assert excinfo.value.code == 400
+    assert b"Table not found: gone" in excinfo.value.response.body

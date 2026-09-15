@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The tab of an open tabular file shows the spreadsheet icon**, the same icon the file browser shows for the file. JupyterLab copies a file type's icon onto the tab only for its own MIME renderers; a widget factory has to set it, and this one did not
+- **An .xlsx saved under the old `.xls` name opens from the file browser.** The backend has typed `.xls` as excel for a long time, but no frontend file type claimed the extension, so the viewer was never offered for one (DEF-EXCEL-18). A genuine legacy BIFF `.xls` still does not open - openpyxl reads only the zip-based format
+- Fixture `data/typed_columns.parquet` - clock-time, elapsed-time and dictionary-encoded columns for the tests below
+
+### Changed
+
+- **Ctrl+S on a viewer does nothing.** The document model holds no content, so a save had nothing to write; it sent an empty body with no format, which the contents API rejected with a "File Save Error" dialog (DEF-LOAD-5). The file on disk was never touched either way
+- **Blank and repeated CSV headers are named as the Excel reader names them** - `Unnamed: <position>` for every blank, `.1`, `.2` for a repeat - rather than the `_duplicated_0` and `a_duplicated_0` polars gave the second and later ones (DEF-EXCEL-7). The header row is read raw, so a real column named `_duplicated_0` is no longer at risk from a rename
+- **A parquet or JSONL export writes a list, struct or map column as JSON text**, not as a nested column. It follows from reading such a column as text (DEF-LOAD-26); the grid showed the same text before
+- Build: canonical Makefile 1.40 - `yarn.lock` is staged with the post-publish commit, the build asserts a wheel and an sdist before publishing, and `make upgrade` reports advisories instead of force-fixing them
+
+### Fixed
+
+- **A clock-time or elapsed-time column renders** instead of returning a 500 on the rows request. arrow `time64` and `duration` arrive as `datetime.time` and `datetime.timedelta`, neither of which the JSON encoder knew (DEF-LOAD-20). A time renders as `09:01:00`, an elapsed time as `0:05:00`
+- **A parquet column written from a pandas Categorical sorts, filters and reports statistics.** Stored as `dictionary<values=string, indices=int8>`, it browsed but returned 500 on statistics, a header sort and a numeric filter, and the grid offered a number filter on it because the type name contained `int8` (DEF-LOAD-24). It is decoded to a string column on read, and metadata reports it as one
+- **A list, struct or map column in a parquet file sorts, filters and reports statistics.** Arrow has no sort, text-cast or distinct-count kernel for a nested type, so each of those returned 500 with a traceback (DEF-LOAD-26). The column is now read as JSON text, the form the grid already displayed, with non-ASCII characters kept as written
+- **A SQLite column declared with an empty name opens.** polars named the unnamed result column `column_0`, which collided with a real column of that name (DEF-SQLITE-13); it is now `Unnamed: <position>`
+- **A UTF-16 CSV opens** - what Excel's "Unicode Text" export writes. Every such file carries a NUL byte inside its first header name, which polars' arrow layer refuses; the file is decoded on its BOM, or on the NUL in its first two bytes, before polars sees it (DEF-DELIM-16). The 1.7.12 changelog recorded this shape as a 400
+- **A CSV terminated by bare CR opens with its rows**, including a UTF-16 one as Excel 2011 for Mac wrote it. Polars ends a line only at LF, so a classic-Mac file read as one header row and no data (DEF-DELIM-11)
+- **A blank line in a CSV is no longer a row of nulls**, as pandas skipped it (DEF-DELIM-10). A line of empty fields (`,,`, or tabs alone in a TSV) is still a row; in a CSV a line of spaces or tabs is blank. The skip applies only to a file holding no quote character: inside a quoted field a blank line is content
+- **A CSV holding an integer of 39 or more digits opens**, that column as text and every other column with its inferred type (DEF-DELIM-21). Polars raised inside the read before the existing wide-integer handling could run; the read is retried with the column the error names typed as text
+- **The error for a CSV row with too many fields is a message for the user.** It used to end with polars' own hint, `Consider setting 'truncate_ragged_lines=True'`, which nobody using the viewer can act on (DEF-DELIM-30)
+- **A worksheet date exports to CSV and TSV as `2023-02-25`**, not `2023-02-25T00:00:00.000000`, when the whole column is at midnight - as pandas wrote it (DEF-EXPORT-6). A column holding any real time, or carrying a time zone, keeps its timestamps
+- **A decimal column wider than 38 digits exports in every format**, as text with every digit intact; every export of a table holding one used to return 500 (DEF-EXPORT-8)
+- **List, struct, map and duration columns export to CSV and TSV** - a nested cell as JSON, a duration as `1 day, 0:00:00` - where the writer used to refuse (DEF-EXPORT-9). A binary nested inside a list or struct exports with its bytes in hex, where it used to panic the JSONL writer
+- **An export applies a number filter on an integer column holding a value past 9007199254740992.** The download compared the column with a float, pyarrow refused, and the refusal was taken for a non-numeric entry, so the `_filtered` file carried every row (DEF-EXPORT-25). The grid already compared in the column's own type; the export now does the same
+- **A number filter of `1.5`, `-1` or `1e18` on an integer column holding a value past 9007199254740992 answers.** None of these builds an integer comparison value, and the float comparison used instead returned 500 in the grid and the export (DEF-FILTER-28). The entry is now compared as a decimal, which is exact
+- **A null in a one-column CSV or TSV export is written as `""`**, not as a blank line a consumer would skip (DEF-EXPORT-15)
+
+Closed without a code change, each with its reason in `docs/defects.md`: `+inf` and `-inf` both land as `#DIV/0!` in an xlsx export (DEF-EXPORT-14); a cell stored as `1.0` reads as a float (DEF-EXCEL-17); a text cell spelling `#REF!` reads as missing (DEF-EXCEL-19); a CSV opening a quote it never closes opens under a wrong column name (DEF-DELIM-12); a negative elapsed time renders as `-1 day, 23:55:00` (DEF-EXPORT-31); a text filter or the unique values of a binary parquet column holding bytes that are not UTF-8 return 500 (DEF-FILTER-32); a number filter bound with 20 or more decimal places on an int64 column, or 19 or more on a uint64 column, returns 500 (DEF-FILTER-34)
+
 <!-- <START NEW CHANGELOG ENTRY> -->
 
 ## [1.7.13] - 2026-08-11

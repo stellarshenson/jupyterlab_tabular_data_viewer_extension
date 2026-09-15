@@ -109,6 +109,16 @@ async function openInViewer(
 const PAGE_SIZE = 500;
 
 /**
+ * Committed fixtures, uploaded into the test's tmpPath before every test
+ */
+const DATA_DIR = path.resolve(__dirname, '..', '..', 'data');
+
+/**
+ * The settings plugin id, as the schema registers it
+ */
+const PLUGIN_ID = 'jupyterlab_tabular_data_viewer_extension:plugin';
+
+/**
  * Trigger one export from the export popup and save it to a local file.
  *
  * The caller owns the file and must delete it. Two things read the payload back
@@ -187,17 +197,17 @@ test.describe('Tabular Data Viewer Extension', () => {
   test.beforeEach(async ({ page, request, tmpPath }) => {
     // Upload test data files for this test
     const contents = galata.newContentsHelper(request);
-    const dataDir = path.resolve(__dirname, '..', '..', 'data');
     const testFiles = [
       'sample_data.parquet',
       'sample_data.csv',
       'sample_data.xlsx',
-      'sample_database.db'
+      'sample_database.db',
+      'typed_columns.parquet'
     ];
 
     // Upload into tmpPath - that is the directory the galata file browser opens
     for (const filename of testFiles) {
-      const filePath = path.join(dataDir, filename);
+      const filePath = path.join(DATA_DIR, filename);
       await contents.uploadFile(filePath, `${tmpPath}/${filename}`);
     }
 
@@ -810,5 +820,253 @@ test.describe('Tabular Data Viewer Extension', () => {
     // is not mangled into scientific notation on its way through a text column
     expect(cells).toContain('ACCFS-108');
     expect(cells).toContain('43216987345427');
+  });
+
+  test('should show the spreadsheet icon on the tab and in the file browser', async ({
+    page
+  }) => {
+    // Parquet is the type only this extension registers - core JupyterLab
+    // already gives .csv and .tsv a spreadsheet icon, so they cannot tell
+    // whether OUR registration carries one.
+    await openInViewer(page, 'sample_data.parquet');
+
+    // A LabIcon renders an <svg> into the tab's icon slot; the legacy
+    // iconClass renders nothing there.
+    const currentTab = page.locator(
+      '#jp-main-dock-panel .lm-TabBar-tab.lm-mod-current'
+    );
+    await expect(currentTab).toContainText('sample_data.parquet');
+    await expect(currentTab.locator('.lm-TabBar-tabIcon svg')).toHaveCount(1);
+
+    const listingItem = page.locator('.jp-DirListing-item', {
+      hasText: 'sample_data.parquet'
+    });
+    await expect(
+      listingItem.locator('.jp-DirListing-itemIcon svg')
+    ).toHaveCount(1);
+  });
+
+  test('should open an .xlsx saved under the old .xls name', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // The backend has typed .xls as excel for a long time; the file browser
+    // never offered the viewer for one because no frontend file type claimed
+    // the extension (DEF-EXCEL-18). Same bytes, different name.
+    const contents = galata.newContentsHelper(request);
+    await contents.uploadFile(
+      path.join(DATA_DIR, 'sample_data.xlsx'),
+      `${tmpPath}/legacy_book.xls`
+    );
+    await page.filebrowser.refresh();
+
+    const viewer = await openInViewer(page, 'legacy_book.xls');
+    await expect(gridRows(viewer).first()).toBeVisible({
+      timeout: GRID_TIMEOUT
+    });
+    expect((await columnNames(viewer)).length).toBeGreaterThan(0);
+  });
+
+  test('should not raise a save error on Ctrl+S', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // The model holds no content, so there is nothing a save could write. It
+    // used to send an empty body with no format, which the contents API
+    // rejected with a "File Save Error" dialog (DEF-LOAD-5).
+    const contents = galata.newContentsHelper(request);
+    const filePath = `${tmpPath}/sample_data.parquet`;
+    const before = await contents.getContentMetadata(filePath);
+
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    await viewer.click();
+    await page.keyboard.press('Control+s');
+
+    // A negative assertion needs a settle: toHaveCount(0) would pass before
+    // the dialog had a chance to appear.
+    await page.waitForTimeout(2000);
+    expect(await page.locator('.jp-Dialog').count()).toBe(0);
+
+    // And the file on disk was not touched
+    const after = await contents.getContentMetadata(filePath);
+    expect(after?.last_modified).toBe(before?.last_modified);
+  });
+
+  test('should render the next window when scrolled to the bottom', async ({
+    page
+  }) => {
+    // 1500 rows, 500 per window. Paging is scroll-driven: within 200px of the
+    // container's bottom the next window is fetched and appended.
+    const viewer = await openInViewer(
+      page,
+      'sample_data.csv',
+      'Tabular Data Viewer (Text)'
+    );
+    await expect(gridRows(viewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+
+    const container = viewer.locator('.jp-TabularDataViewer-container');
+    const scrollToBottom = () =>
+      container.evaluate((el: HTMLElement) => {
+        el.scrollTop = el.scrollHeight;
+      });
+
+    await scrollToBottom();
+    await expect(gridRows(viewer)).toHaveCount(2 * PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+
+    await scrollToBottom();
+    await expect(gridRows(viewer)).toHaveCount(3 * PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+    await expect(
+      viewer.locator('.jp-TabularDataViewer-statusRight')
+    ).toContainText('Showing 1500 of 1500 rows');
+
+    // Past the end nothing more is fetched and nothing is duplicated
+    await scrollToBottom();
+    await page.waitForTimeout(1500);
+    expect(await gridRows(viewer).count()).toBe(3 * PAGE_SIZE);
+  });
+
+  test('should refresh from disk on reload without fetching content', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // The context loads no file content, so the file-changed signal has to
+    // keep working on metadata alone: `docmanager:reload` reverts the context,
+    // the widget hears fileChanged and re-reads through its own API.
+    const filePath = `${tmpPath}/sample_data.csv`;
+    const viewer = await openInViewer(
+      page,
+      'sample_data.csv',
+      'Tabular Data Viewer (Text)'
+    );
+    await expect(gridRows(viewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+
+    // The file's own contents URL only: the revert also lists its checkpoints
+    // (`.../sample_data.csv/checkpoints`), which carry no content parameter
+    const contentsRequests: string[] = [];
+    page.on('request', (req: any) => {
+      const url = req.url();
+      if (
+        req.method() === 'GET' &&
+        url.includes('/api/contents/') &&
+        url.split('?')[0].endsWith('/sample_data.csv')
+      ) {
+        contentsRequests.push(url);
+      }
+    });
+
+    const contents = galata.newContentsHelper(request);
+    await contents.uploadContent('a,b\n1,2\n3,4\n5,6\n', 'text', filePath);
+    await page.evaluate(() =>
+      (window as any).jupyterapp.commands.execute('docmanager:reload')
+    );
+
+    await expect(gridRows(viewer)).toHaveCount(3, { timeout: GRID_TIMEOUT });
+    expect(await columnNames(viewer)).toEqual(['a', 'b']);
+
+    // The revert re-fetched the contents model, never the bytes
+    expect(contentsRequests.length).toBeGreaterThan(0);
+    expect(contentsRequests.filter(u => !u.includes('content=0'))).toEqual([]);
+  });
+
+  test('should render clock-time and elapsed-time columns', async ({
+    page
+  }) => {
+    // arrow time64 and duration reach the rows request as datetime.time and
+    // datetime.timedelta, neither of which the JSON encoder knew (DEF-LOAD-20)
+    const viewer = await openInViewer(page, 'typed_columns.parquet');
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+    expect(await columnNames(viewer)).toEqual([
+      'id',
+      'clock',
+      'elapsed',
+      'category'
+    ]);
+
+    const cells = await gridRows(viewer).locator('td').allTextContents();
+    expect(cells).toContain('09:01:00');
+    expect(cells).toContain('0:05:00');
+  });
+
+  test('should sort and report statistics on a dictionary-encoded column', async ({
+    page
+  }) => {
+    // A parquet column written from a pandas Categorical is stored as
+    // dictionary<string, int>. Sorting and statistics had no kernel for it and
+    // returned 500 (DEF-LOAD-24); decoded on read it is a string column.
+    const viewer = await openInViewer(page, 'typed_columns.parquet');
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+
+    const header = viewer.locator('.jp-TabularDataViewer-headerCell', {
+      hasText: 'category'
+    });
+    await header.locator('.jp-TabularDataViewer-columnName').click();
+
+    // Ascending: 'blue' sorts first, and only the rows carrying it lead
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+    const firstRow = await gridRows(viewer)
+      .first()
+      .locator('td')
+      .allTextContents();
+    expect(firstRow).toContain('blue');
+    expect(firstRow).not.toContain('red');
+
+    await header.locator('.jp-TabularDataViewer-infoIcon').click();
+    const modal = page.locator('.jp-ColumnStatsModal-content');
+    await expect(modal).toBeVisible({ timeout: GRID_TIMEOUT });
+    await expect(modal).toContainText('Column: category');
+    await expect(modal).toContainText('Unique values: 3');
+  });
+
+  test.describe('with rowsPerPage set to 10', () => {
+    test.use({
+      mockSettings: {
+        ...galata.DEFAULT_SETTINGS,
+        [PLUGIN_ID]: { rowsPerPage: 10 }
+      }
+    });
+
+    test('should bound the rendered window and nothing else', async ({
+      page
+    }) => {
+      // The window is a setting, not a constant. It bounds what is rendered;
+      // the row count, sorting and filtering still see the whole table.
+      const viewer = await openInViewer(
+        page,
+        'sample_data.csv',
+        'Tabular Data Viewer (Text)'
+      );
+      await expect(gridRows(viewer)).toHaveCount(10, {
+        timeout: GRID_TIMEOUT
+      });
+      await expect(
+        viewer.locator('.jp-TabularDataViewer-statusRight')
+      ).toContainText('Showing 10 of 1500 rows');
+      await expect(
+        viewer.locator('.jp-TabularDataViewer-statusLeft')
+      ).toContainText('1500 rows');
+
+      // A sort re-fetches from the top of the whole table, still 10 wide. The
+      // first header cell is the row-number column, whose name is empty and
+      // not clickable; the first data column is the second.
+      const firstHeader = viewer
+        .locator('.jp-TabularDataViewer-headerCell')
+        .nth(1);
+      await firstHeader.locator('.jp-TabularDataViewer-columnName').click();
+      await expect(
+        viewer.locator('.jp-TabularDataViewer-statusRight')
+      ).toContainText('Showing 10 of 1500 rows');
+      expect(await gridRows(viewer).count()).toBe(10);
+    });
   });
 });
