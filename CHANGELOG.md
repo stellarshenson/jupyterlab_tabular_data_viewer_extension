@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+<!-- <START NEW CHANGELOG ENTRY> -->
+
+## [1.7.14] - 2026-09-15
 
 ### Added
 
@@ -19,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Blank and repeated CSV headers are named as the Excel reader names them** - `Unnamed: <position>` for every blank, `.1`, `.2` for a repeat - rather than the `_duplicated_0` and `a_duplicated_0` polars gave the second and later ones (DEF-EXCEL-7). The header row is read raw, so a real column named `_duplicated_0` is no longer at risk from a rename
 - **A parquet or JSONL export writes a list, struct or map column as JSON text**, not as a nested column. It follows from reading such a column as text (DEF-LOAD-26); the grid showed the same text before
 - Build: canonical Makefile 1.40 - `yarn.lock` is staged with the post-publish commit, the build asserts a wheel and an sdist before publishing, and `make upgrade` reports advisories instead of force-fixing them
+- Build: CI installs `tornado<6.5.9`. tornado 6.5.9 reads `allowed_symlink_directory` in `StaticFileHandler`, which jupyter_server 2.21.0 never sets, so every JupyterLab static file answered 500 and `jupyterlab.browser_check` timed out. The cap is on the three workflow install lines only; the package's own dependencies are unchanged, and the comment there says to remove all three once either project ships a fix
 
 ### Fixed
 
@@ -39,8 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A null in a one-column CSV or TSV export is written as `""`**, not as a blank line a consumer would skip (DEF-EXPORT-15)
 
 Closed without a code change, each with its reason in `docs/defects.md`: `+inf` and `-inf` both land as `#DIV/0!` in an xlsx export (DEF-EXPORT-14); a cell stored as `1.0` reads as a float (DEF-EXCEL-17); a text cell spelling `#REF!` reads as missing (DEF-EXCEL-19); a CSV opening a quote it never closes opens under a wrong column name (DEF-DELIM-12); a negative elapsed time renders as `-1 day, 23:55:00` (DEF-EXPORT-31); a text filter or the unique values of a binary parquet column holding bytes that are not UTF-8 return 500 (DEF-FILTER-32); a number filter bound with 20 or more decimal places on an int64 column, or 19 or more on a uint64 column, returns 500 (DEF-FILTER-34)
-
-<!-- <START NEW CHANGELOG ENTRY> -->
 
 ## [1.7.13] - 2026-08-11
 
