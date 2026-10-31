@@ -1,6 +1,6 @@
 {
     "name": "@stellarshenson/jupyterlab-tabular-data-viewer-extension",
-    "version": "1.7.16",
+    "version": "1.7.17",
     "description": "Jupyterlab extension to browse tabular data files (Parquet, Excel, CSV, TSV, SQLite) with filtering and sorting capabilities",
     "keywords": [
         "jupyter",
@@ -67,6 +67,7 @@
         "@jupyterlab/coreutils": "^6.6.0",
         "@jupyterlab/docregistry": "^4.6.0",
         "@jupyterlab/services": "^7.6.0",
+        "@jupyterlab/settingregistry": "^4.6.0",
         "@jupyterlab/ui-components": "^4.6.0",
         "@lumino/widgets": "^2.10.0",
         "rimraf": "^6.1.2"
@@ -88,7 +89,7 @@
         "mkdirp": "^1.0.3",
         "npm-run-all2": "^7.0.1",
         "prettier": "^3.9.0",
-        "rimraf": "^5.0.1",
+        "rimraf": "^6.1.2",
         "stylelint": "^15.11.0",
         "stylelint-config-recommended": "^13.0.0",
         "stylelint-config-standard": "^34.0.0",

@@ -9,3 +9,4 @@ jupyterlab_tabular_data_viewer_extension
 eslint.config.mjs
 .venv
 .agents
+package-lock.json

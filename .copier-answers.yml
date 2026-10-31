@@ -12,6 +12,6 @@ labextension_name: '@stellarshenson/jupyterlab-tabular-data-viewer-extension'
 project_short_description: Jupyterlab extension to browse tabular data files (Parquet,
     Excel) with filtering and sorting capabilities
 python_name: jupyterlab_tabular_data_viewer_extension
-repository: https://github.com/stellarshenson/jupyterlab_tabular_data_viewer_extension.git
+repository: https://github.com/stellarshenson/jupyterlab_tabular_data_viewer_extension
 test: true
 
