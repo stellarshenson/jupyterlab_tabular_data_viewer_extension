@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.7.18] - 2026-10-31
+
+### Changed
+
+- Apply the template files and packages the upgrade left out
+- Ignore youtube links in check links
+
 ## [1.7.16] - 2026-10-31
 
 ### Changed
