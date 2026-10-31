@@ -1,11 +1,12 @@
 [build-system]
-requires = ["hatchling>=1.5.0", "jupyterlab>=4.0.0,<5", "hatch-nodejs-version>=0.3.2"]
+requires = ["hatchling>=1.5.0", "hatch-nodejs-version>=0.3.2", "jupyter-builder>=1.2.0,<2"]
 build-backend = "hatchling.build"
 
 [project]
 name = "jupyterlab_tabular_data_viewer_extension"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 # Floor set by polars, not by this code: every polars from 1.37.0 declares
 # Requires-Python >=3.10, so on 3.9 pip resolves this wheel and then fails to
 # find polars at all. pandas ran on 3.9; polars does not.
@@ -16,41 +17,43 @@ classifiers = [
     "Framework :: Jupyter :: JupyterLab :: 4",
     "Framework :: Jupyter :: JupyterLab :: Extensions",
     "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "pyarrow>=10.0.0",
+    "pyarrow>=26.0,<27",
     # Floor is the series this was verified against, not a researched minimum.
     # The readers pass `infer_schema_length` to `read_database`, which an older
     # polars would reject with a TypeError at read time rather than at install
     # time; the earliest version accepting it was not established.
-    "polars>=1.43.0",
+    "polars>=2.1,<3",
     # Excel: openpyxl reads the worksheet rows directly (polars' default
     # calamine engine would pull in fastexcel), xlsxwriter is what polars writes
     # .xlsx through. This floor is this code's own, not polars' - the reader
     # calls `ReadOnlyWorksheet.reset_dimensions()`, which was verified at 3.1.5
     # and not below it. Pandas declares the same floor for its excel extra.
-    "openpyxl>=3.1.5",
-    "xlsxwriter"
+    "openpyxl>=3.1.5,<4",
+    "xlsxwriter",
+    "jupyter_server>=2.21,<3",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
 [project.optional-dependencies]
 dev = [
-    "jupyterlab>=4",
+    "jupyterlab>=4.6,<5",
+    "jupyter-builder>=1.2.0,<2",
 ]
 test = [
     "coverage",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
-    "pytest-jupyter[server]>=0.6.0"
+    "pytest-jupyter[server]>=0.11,<1"
 ]
 
 [tool.hatch.version]
@@ -95,7 +98,7 @@ version_cmd = "hatch version"
 
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
-    "python -m pip install 'jupyterlab>=4.0.0,<5'",
+    "python -m pip install 'jupyter-builder>=1.2.0,<2'",
     "jlpm",
     "jlpm build:prod"
 ]

@@ -5,3 +5,7 @@ node_modules
 !/package.json
 jupyterlab_basic_parquet_viewer_extension
 .claude
+jupyterlab_tabular_data_viewer_extension
+eslint.config.mjs
+.venv
+.agents
