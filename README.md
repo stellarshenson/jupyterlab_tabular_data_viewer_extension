@@ -82,7 +82,7 @@ View and browse Parquet, Excel, CSV, TSV, and SQLite files directly in JupyterLa
 
 ## Installation
 
-Requires JupyterLab 4.6.0 or higher and Python 3.10 or higher.
+Requires JupyterLab 4.6.0 or higher and Python 3.12 or higher.
 
 ```bash
 pip install jupyterlab_tabular_data_viewer_extension
