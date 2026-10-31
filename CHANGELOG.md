@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.7.19] - 2026-10-31
+
+### Changed
+
+- Require Python 3.12
+
 ## [1.7.18] - 2026-10-31
 
 ### Changed
