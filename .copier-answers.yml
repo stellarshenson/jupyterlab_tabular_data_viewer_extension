@@ -8,7 +8,7 @@ has_ai_rules: false
 has_binder: false
 has_settings: true
 kind: frontend-and-server
-labextension_name: jupyterlab_tabular_data_viewer_extension
+labextension_name: '@stellarshenson/jupyterlab-tabular-data-viewer-extension'
 project_short_description: Jupyterlab extension to browse tabular data files (Parquet,
     Excel) with filtering and sorting capabilities
 python_name: jupyterlab_tabular_data_viewer_extension

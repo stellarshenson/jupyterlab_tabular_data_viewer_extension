@@ -131,17 +131,17 @@ interface ISettings {
 }
 
 /**
- * Initialization data for the jupyterlab_tabular_data_viewer_extension extension.
+ * Initialization data for the @stellarshenson/jupyterlab-tabular-data-viewer-extension extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: 'jupyterlab_tabular_data_viewer_extension:plugin',
+  id: '@stellarshenson/jupyterlab-tabular-data-viewer-extension:plugin',
   description:
     'Jupyterlab extension to allow simple browsing of tabular data files (Parquet, Excel, CSV, TSV, SQLite) with filtering and sorting capabilities',
   autoStart: true,
   requires: [ISettingRegistry],
   activate: async (app: JupyterFrontEnd, settingRegistry: ISettingRegistry) => {
     console.log(
-      'JupyterLab extension jupyterlab_tabular_data_viewer_extension is activated!'
+      'JupyterLab extension @stellarshenson/jupyterlab-tabular-data-viewer-extension is activated!'
     );
 
     const { docRegistry, commands, contextMenu } = app;

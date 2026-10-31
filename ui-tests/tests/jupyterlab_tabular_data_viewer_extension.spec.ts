@@ -116,7 +116,8 @@ const DATA_DIR = path.resolve(__dirname, '..', '..', 'data');
 /**
  * The settings plugin id, as the schema registers it
  */
-const PLUGIN_ID = 'jupyterlab_tabular_data_viewer_extension:plugin';
+const PLUGIN_ID =
+  '@stellarshenson/jupyterlab-tabular-data-viewer-extension:plugin';
 
 /**
  * Trigger one export from the export popup and save it to a local file.
@@ -257,7 +258,7 @@ test.describe('Tabular Data Viewer Extension', () => {
       logs.filter(
         s =>
           s ===
-          'JupyterLab extension jupyterlab_tabular_data_viewer_extension is activated!'
+          'JupyterLab extension @stellarshenson/jupyterlab-tabular-data-viewer-extension is activated!'
       )
     ).toHaveLength(1);
   });

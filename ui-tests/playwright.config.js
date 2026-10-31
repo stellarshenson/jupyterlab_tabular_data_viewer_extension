@@ -4,7 +4,8 @@
 const baseConfig = require('@jupyterlab/galata/lib/playwright-config');
 
 // JUPYTER_TEST_PORT wins; else 8889 for local development to avoid conflicts, 8888 for CI
-const port = process.env.JUPYTER_TEST_PORT || (process.env.CI ? '8888' : '8889');
+const port =
+  process.env.JUPYTER_TEST_PORT || (process.env.CI ? '8888' : '8889');
 
 module.exports = {
   ...baseConfig,

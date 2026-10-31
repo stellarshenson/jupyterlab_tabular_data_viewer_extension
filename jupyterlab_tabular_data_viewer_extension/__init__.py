@@ -14,7 +14,7 @@ from .routes import setup_route_handlers
 
 
 def _jupyter_labextension_paths():
-    return [{"src": "labextension", "dest": "jupyterlab_tabular_data_viewer_extension"}]
+    return [{"src": "labextension", "dest": "@stellarshenson/jupyterlab-tabular-data-viewer-extension"}]
 
 
 def _jupyter_server_extension_points():
