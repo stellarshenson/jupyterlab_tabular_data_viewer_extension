@@ -306,19 +306,11 @@ test.describe('Tabular Data Viewer Extension', () => {
   });
 
   test('should open and display Excel file', async ({ page }) => {
-    // Wait for file to be visible in file browser
-    await page.waitForSelector('text=sample_data.xlsx', { timeout: 30000 });
-
-    // Open the Excel file
-    await page.dblclick('text=sample_data.xlsx');
-
-    // Verify the viewer opens and is visible in the main area
-    await page.waitForSelector(
-      '.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-TabularDataViewer',
-      {
-        state: 'visible',
-        timeout: GRID_TIMEOUT
-      }
+    // Another installed viewer claims .xlsx by default, so name this one.
+    await openInViewer(
+      page,
+      'sample_data.xlsx',
+      'Tabular Data Viewer (Binary)'
     );
   });
 
@@ -333,16 +325,21 @@ test.describe('Tabular Data Viewer Extension', () => {
       // Wait for file to be visible in file browser
       await page.waitForSelector(`text=${fileName}`, { timeout: 30000 });
 
-      // Open the file - use explicit "Open With" for CSV
-      if (fileName.includes('.csv')) {
+      // Open the file - use explicit "Open With" where another factory owns
+      // the format by default: core JupyterLab for CSV, another installed
+      // viewer for XLSX.
+      if (fileName.endsWith('.csv') || fileName.endsWith('.xlsx')) {
+        const factory = fileName.endsWith('.csv')
+          ? 'Tabular Data Viewer (Text)'
+          : 'Tabular Data Viewer (Binary)';
         // Right-click to open context menu
         await page.click(`text=${fileName}`, { button: 'right' });
         await page.waitForSelector('.lm-Menu-content', { timeout: 15000 });
         await page.click('text=Open With');
-        await page.waitForSelector('text=Tabular Data Viewer (Text)', {
+        await page.waitForSelector(`text=${factory}`, {
           timeout: 15000
         });
-        await page.click('text=Tabular Data Viewer (Text)');
+        await page.click(`text=${factory}`);
       } else {
         // Double-click for other file types
         await page.dblclick(`text=${fileName}`);
@@ -712,7 +709,11 @@ test.describe('Tabular Data Viewer Extension', () => {
     expect(csvAsParquet.filename).toBe('sample_data.parquet');
     expect(csvAsParquet.rows).toBe(1500);
 
-    const xlsxViewer = await openInViewer(page, 'sample_data.xlsx');
+    const xlsxViewer = await openInViewer(
+      page,
+      'sample_data.xlsx',
+      'Tabular Data Viewer (Binary)'
+    );
     await expect(gridRows(xlsxViewer)).toHaveCount(PAGE_SIZE, {
       timeout: GRID_TIMEOUT
     });
@@ -810,7 +811,11 @@ test.describe('Tabular Data Viewer Extension', () => {
     await contents.uploadFile(source, `${tmpPath}/multi_sheet.xlsx`);
     await page.filebrowser.refresh();
 
-    const viewer = await openInViewer(page, 'multi_sheet.xlsx');
+    const viewer = await openInViewer(
+      page,
+      'multi_sheet.xlsx',
+      'Tabular Data Viewer (Binary)'
+    );
     await sheetTab(viewer, 'MixedTypes').click();
     await expect(gridRows(viewer).first()).toBeVisible({
       timeout: GRID_TIMEOUT
