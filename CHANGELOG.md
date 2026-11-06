@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.8.2] - 2026-11-06
+
+### Fixed
+
+- **The type chip fills its background with the type's tint** at 14 percent, matching the approved design, instead of leaving it the neutral layout colour with only the border tinted
+
 ## [1.8.1] - 2026-11-06
 
 ### Added
