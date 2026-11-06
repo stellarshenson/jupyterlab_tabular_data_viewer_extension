@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.8.3] - 2026-11-06
+
+### Changed
+
+- **The statistics dialog is at most three quarters of the window height** and stays centred, instead of spanning almost the full height
+
+### Fixed
+
+- **A short window scrolls the statistics column instead of cutting off its lower panels** - the column scrolls only when its content does not fit, so at normal sizes only the unique-values list scrolls
+
 ## [1.8.2] - 2026-11-06
 
 ### Fixed
