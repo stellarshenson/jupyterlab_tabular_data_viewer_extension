@@ -358,3 +358,10 @@ The column statistics dialog and its payload.
   - root-cause: 2026-11-06T12:46:02Z @kj pyarrow's DurationScalar.as_py converts only through pandas; the runtime dependencies no longer listed pandas, so rows, unique values and filter raised for duration[ns]
   - log: 2026-11-06T12:46:02Z @kj added
   - log: 2026-11-06T13:08:15Z @kj closed: fixed: pandas is a runtime dependency in [project].dependencies; the wheel installs it and pyarrow's duration[ns] conversion works
+- [x] `DEF-STATS-45-CHIP-BG` **Type chip background is not tinted** - MINOR; the type chip paints the per-type tint on its border only, while the approved design fills the background with a 14 percent tint; fix background-color on .jp-ColumnStatsModal-chip to color-mix(in srgb, var(--columnstats-tint) 14%, transparent); `style/base.css`
+  - evidence: galata 'should size the dialog from the pane and tint the chip by type' resolves the int chip background to rgb(100, 181, 246) at alpha 0.14 and fails on the old layout colour; pytest 208 and Galata 68 green at 1.8.1
+  - repro: open a column statistics dialog and compare the chip background with docs/design/statistics-dialog.html
+  - test-tags: FUNCTIONAL, E2E
+  - root-cause: 2026-11-06T15:16:27Z @kj the live chip rule sets background-color to var(--jp-layout-color2); the design page line 233 sets a 14 percent color-mix of the tint
+  - log: 2026-11-06T15:16:27Z @kj added
+  - log: 2026-11-06T15:40:28Z @kj closed: fixed: .jp-ColumnStatsModal-chip background-color is color-mix(in srgb, var(--columnstats-tint) 14%, transparent)

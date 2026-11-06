@@ -49,6 +49,32 @@ async function waitForGridReady(viewer: any): Promise<void> {
 }
 
 /**
+ * Channel bytes and alpha of a computed CSS colour.
+ *
+ * Chromium serializes a resolved color-mix() as color(srgb ...); older engines
+ * return the rgb()/rgba() form. Both parse to the same channel bytes.
+ */
+function splitColor(value: string): { rgb: number[]; alpha: number } {
+  const srgb = value.match(
+    /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+) \/ ([\d.]+)\)$/
+  );
+  if (srgb) {
+    return {
+      rgb: srgb.slice(1, 4).map(channel => Math.round(Number(channel) * 255)),
+      alpha: Number(srgb[4])
+    };
+  }
+  const rgb = value.match(/^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/);
+  if (!rgb) {
+    throw new Error(`unexpected colour serialization: ${value}`);
+  }
+  return {
+    rgb: rgb.slice(1, 4).map(Number),
+    alpha: rgb[4] === undefined ? 1 : Number(rgb[4])
+  };
+}
+
+/**
  * Sheet/table tab with an exact label
  */
 const sheetTab = (viewer: any, name: string) =>
@@ -1317,6 +1343,9 @@ test.describe('Tabular Data Viewer Extension', () => {
     const intChip = await ageDialog
       .locator('.jp-ColumnStatsModal-chip')
       .evaluate((node: HTMLElement) => getComputedStyle(node).borderTopColor);
+    const intChipBackground = await ageDialog
+      .locator('.jp-ColumnStatsModal-chip')
+      .evaluate((node: HTMLElement) => getComputedStyle(node).backgroundColor);
     await ageDialog.locator('[data-testid="close-stats"]').click();
 
     // salary repeats no value: 720px and no pane.
@@ -1347,6 +1376,13 @@ test.describe('Tabular Data Viewer Extension', () => {
     expect(intChip).toBe('rgb(100, 181, 246)');
     expect(stringChip).toBe('rgb(255, 183, 77)');
     expect(stringChip).not.toBe(intChip);
+
+    // The chip background is the int tint (#64b5f6) at 14 percent, not the
+    // layout colour the old rule painted.
+    expect(splitColor(intChipBackground)).toEqual({
+      rgb: [100, 181, 246],
+      alpha: 0.14
+    });
   });
 
   test('should put the age histogram beside the box plot', async ({ page }) => {
