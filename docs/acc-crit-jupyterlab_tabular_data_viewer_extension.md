@@ -492,3 +492,11 @@ The column statistics dialog: overview tiles, statistics chosen by the column ty
   - mechanism: 2026-11-06T12:46:05Z @kj pyarrow's DurationScalar.as_py converts a duration[ns] scalar to Timedelta only through pandas; pandas sits in [project].dependencies, so every install carries the conversion and no pandas-free fallback path remains
   - log: 2026-11-06T12:46:05Z @kj added
   - log: 2026-11-06T13:08:15Z @kj closed: closed: verified on the built wheel and a fresh venv
+- [x] `ACC-STATS-74-HEIGHT` **Dialog at most three quarters of the window height** - MEDIUM; the statistics dialog is never taller than 75 percent of the window height and stays centred; when the statistics column does not fit in that height it scrolls instead of being clipped, otherwise only the values pane scrolls
+  - evidence: galata 'should cap the dialog at three quarters of the window height': age 933 px at 2089x1244 and 495 px at 1280x660, centred, no statistics scroll; salary 337.5 px at 1280x450 scrolls to its last block; old rule fails at 1228 px; Galata 69, pytest 208 at 1.8.2
+  - mechanism: 2026-11-06T16:30:54Z @kj max-height: 75vh on .jp-ColumnStatsModal-content, centred by the overlay flex; overflow-y: auto on .jp-ColumnStatsModal-stats, whose min-height: 0 lets the body bound it, so it scrolls only when its content is taller
+  - related: ACC-STATS-48-DIALOG - its only-the-values-pane-scrolls rule now holds while the statistics column fits in 75 percent of the window
+  - test: galata: at 2089x1244 and 1280x660 open age, assert the dialog height is at most 0.75 of window.innerHeight and the statistics column's last block can be scrolled into view
+  - test-tags: FUNCTIONAL, E2E
+  - log: 2026-11-06T15:56:42Z @kj added
+  - log: 2026-11-06T16:30:58Z @kj closed: closed: 75vh cap, statistics column scrolls only on overflow

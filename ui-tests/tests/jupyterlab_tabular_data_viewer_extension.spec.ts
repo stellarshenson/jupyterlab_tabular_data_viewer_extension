@@ -1249,7 +1249,8 @@ test.describe('Tabular Data Viewer Extension', () => {
       plotBox!.y
     );
 
-    // Only the stats column scrolls, and the dialog itself does not
+    // The stats column fits, so it does not scroll, and neither the body nor
+    // the dialog itself is a scroll region
     const overflow = await dialog.evaluate((node: HTMLElement) => {
       const stats = node.querySelector(
         '.jp-ColumnStatsModal-stats'
@@ -1258,12 +1259,12 @@ test.describe('Tabular Data Viewer Extension', () => {
         '.jp-ColumnStatsModal-body'
       ) as HTMLElement;
       return {
-        stats: getComputedStyle(stats).overflowY,
+        stats: stats.scrollHeight - stats.clientHeight,
         body: getComputedStyle(body).overflowY,
         dialog: getComputedStyle(node).overflowY
       };
     });
-    expect(overflow.stats).not.toBe('auto');
+    expect(overflow.stats).toBeLessThanOrEqual(1);
     expect(overflow.body).not.toBe('auto');
     expect(overflow.dialog).toBe('hidden');
 
@@ -1531,14 +1532,58 @@ test.describe('Tabular Data Viewer Extension', () => {
       expect(item!.y + item!.height).toBeLessThanOrEqual(box!.y + box!.height);
     }
 
-    // Still no second scroll region
+    // Still no second scroll region: the column fits the 75vh dialog
     const statsOverflow = await dialog.evaluate((node: HTMLElement) => {
       const stats = node.querySelector(
         '.jp-ColumnStatsModal-stats'
       ) as HTMLElement;
-      return getComputedStyle(stats).overflowY;
+      return stats.scrollHeight - stats.clientHeight;
     });
-    expect(statsOverflow).not.toBe('auto');
+    expect(statsOverflow).toBeLessThanOrEqual(1);
+  });
+
+  test('should cap the dialog at three quarters of the window height', async ({
+    page
+  }) => {
+    // The dialog stays centred and at most 75vh tall. A statistics column that
+    // fits does not scroll; one taller than the space left scrolls, and its
+    // last block can be scrolled into view rather than being clipped. At
+    // 1280x660 every column fits, so 1280x450 is the case that must scroll.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const cases: [number, number, string, boolean][] = [
+      [2089, 1244, 'age', false],
+      [1280, 660, 'age', false],
+      [1280, 660, 'salary', false],
+      [1280, 450, 'salary', true]
+    ];
+    for (const [width, height, column, scrolls] of cases) {
+      await page.setViewportSize({ width, height });
+      const dialog = await openStatsDialog(page, viewer, column);
+      const innerHeight = await page.evaluate(() => window.innerHeight);
+      const box = await dialog.boundingBox();
+      expect(box!.height).toBeLessThanOrEqual(0.75 * innerHeight + 1);
+      expect(
+        Math.abs(box!.y + box!.height / 2 - innerHeight / 2)
+      ).toBeLessThanOrEqual(2);
+
+      const stats = await dialog
+        .locator('.jp-ColumnStatsModal-stats')
+        .evaluate((node: HTMLElement) => {
+          const scrollable = node.scrollHeight > node.clientHeight + 1;
+          node.scrollTop = node.scrollHeight;
+          const area = node.getBoundingClientRect();
+          const last = node.lastElementChild!.getBoundingClientRect();
+          return {
+            scrollable,
+            lastVisible:
+              last.top >= area.top - 1 && last.bottom <= area.bottom + 1
+          };
+        });
+      expect(stats).toEqual({ scrollable: scrolls, lastVisible: true });
+
+      await dialog.locator('[data-testid="close-stats"]').click();
+      await expect(dialog).toBeHidden();
+    }
   });
 
   test('should format sub-second and negative durations like the grid', async ({
