@@ -68,8 +68,11 @@ export class TabularDataViewer extends Widget {
     startWidth: number;
   } | null = null;
 
+  private _headerStrip: HTMLDivElement;
+  private _headerTable: HTMLTableElement;
   private _tableContainer: HTMLDivElement;
   private _table: HTMLTableElement;
+  private _colgroup: HTMLTableColElement;
   private _thead: HTMLTableSectionElement;
   private _tbody: HTMLTableSectionElement;
   private _filterRow: HTMLTableRowElement;
@@ -113,13 +116,22 @@ export class TabularDataViewer extends Widget {
     this._limit = rowsPerPage;
     this.addClass('jp-TabularDataViewer');
 
-    // Create table container (scrollable)
+    // The header rows sit in a strip outside the body's scroller, so the
+    // vertical scrollbar track starts below them. The strip follows the body's
+    // scrollLeft, and both tables carry the same column widths.
+    this._headerStrip = document.createElement('div');
+    this._headerStrip.className = 'jp-TabularDataViewer-headerStrip';
+    this._headerTable = document.createElement('table');
+    this._headerTable.className = 'jp-TabularDataViewer-table';
+
+    // Create table container (scrollable, carries both scrollbars)
     this._tableContainer = document.createElement('div');
     this._tableContainer.className = 'jp-TabularDataViewer-container';
 
     // Create table
     this._table = document.createElement('table');
     this._table.className = 'jp-TabularDataViewer-table';
+    this._colgroup = document.createElement('colgroup');
 
     this._thead = document.createElement('thead');
     this._thead.className = 'jp-TabularDataViewer-thead';
@@ -138,7 +150,9 @@ export class TabularDataViewer extends Widget {
     this._thead.appendChild(this._filterRow);
     this._thead.appendChild(this._headerRow);
 
-    this._table.appendChild(this._thead);
+    this._headerTable.appendChild(this._thead);
+    this._headerStrip.appendChild(this._headerTable);
+    this._table.appendChild(this._colgroup);
     this._table.appendChild(this._tbody);
     this._tableContainer.appendChild(this._table);
 
@@ -221,7 +235,8 @@ export class TabularDataViewer extends Widget {
     spinner.className = 'jp-TabularDataViewer-spinner';
     this._loadingOverlay.appendChild(spinner);
 
-    // Append table container, sheet bar, status bar directly to widget node
+    // Append header strip, table container, sheet bar, status bar directly to widget node
+    this.node.appendChild(this._headerStrip);
     this.node.appendChild(this._tableContainer);
     // The overlay belongs to the widget, not the scroll container: an
     // absolutely positioned child of an `overflow: auto` box scrolls with the
@@ -232,8 +247,26 @@ export class TabularDataViewer extends Widget {
     this.node.appendChild(this._statusBar);
 
     // Set up scroll listener for progressive loading
+    let stripLeft = 0;
     this._tableContainer.addEventListener('scroll', () => {
+      this._headerStrip.scrollLeft = this._tableContainer.scrollLeft;
+      stripLeft = this._headerStrip.scrollLeft;
       this._onScroll();
+    });
+    // Focus on an off-screen filter input or info icon scrolls the strip
+    this._headerStrip.addEventListener('scroll', () => {
+      // The body's own write echoes back a frame late, and copying it back would cancel the body's animated scroll
+      if (this._headerStrip.scrollLeft !== stripLeft) {
+        this._tableContainer.scrollLeft = this._headerStrip.scrollLeft;
+      }
+    });
+    // The strip does not scroll on its own: a wheel over the header scrolls
+    // the body, as it did when the header sat inside the body's scroller
+    this._headerStrip.addEventListener('wheel', (e: WheelEvent) => {
+      // shortcut: a line-mode delta (Firefox mouse wheel) counts as 16px, read
+      // the row height instead if header wheel steps feel off against the body
+      const scale = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : 1;
+      this._tableContainer.scrollBy(e.deltaX * scale, e.deltaY * scale);
     });
 
     // Remove context-active class when clicking anywhere or dismissing context menu
@@ -778,10 +811,19 @@ export class TabularDataViewer extends Widget {
       this._headerRow.appendChild(headerCell);
     });
 
+    // The body table takes the header's column widths through its colgroup
+    this._colgroup.innerHTML = '';
+    Array.from(this._headerRow.children).forEach(cell => {
+      const col = document.createElement('col');
+      col.style.width = (cell as HTMLElement).style.width;
+      this._colgroup.appendChild(col);
+    });
+
     // Set table width to sum of all column widths plus row number column (60px)
     const totalWidth =
       Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0) +
       60;
+    this._headerTable.style.width = `${totalWidth}px`;
     this._table.style.width = `${totalWidth}px`;
   }
 
@@ -919,7 +961,7 @@ export class TabularDataViewer extends Widget {
     // Store the new width
     this._columnWidths.set(this._resizing.columnName, newWidth);
 
-    // Apply the new width to the column header and filter cell only
+    // Apply the new width to the column header, filter cell and body col only
     // With table-layout: fixed, this automatically applies to all cells in the column
     const columnIndex = this._columns.findIndex(
       col => col.name === this._resizing!.columnName
@@ -932,6 +974,7 @@ export class TabularDataViewer extends Widget {
       const filterCell = this._filterRow.children[
         columnIndex + 1
       ] as HTMLElement;
+      const bodyCol = this._colgroup.children[columnIndex + 1] as HTMLElement;
 
       if (headerCell) {
         headerCell.style.width = `${newWidth}px`;
@@ -939,11 +982,15 @@ export class TabularDataViewer extends Widget {
       if (filterCell) {
         filterCell.style.width = `${newWidth}px`;
       }
+      if (bodyCol) {
+        bodyCol.style.width = `${newWidth}px`;
+      }
 
       // Update table width to sum of all column widths plus row number column (60px)
       const totalWidth =
         Array.from(this._columnWidths.values()).reduce((sum, w) => sum + w, 0) +
         60;
+      this._headerTable.style.width = `${totalWidth}px`;
       this._table.style.width = `${totalWidth}px`;
     }
   };

@@ -1097,6 +1097,107 @@ test.describe('Tabular Data Viewer Extension', () => {
     expect(await gridRows(viewer).count()).toBe(3 * PAGE_SIZE);
   });
 
+  test('should start the vertical scrollbar below the header rows', async ({
+    page
+  }) => {
+    // A scrollbar track spans the whole element that scrolls, so that element
+    // has to start under the filter row and the column-name/type row. CSS
+    // cannot offset the track portably: a theme's `scrollbar-width` makes
+    // Chrome ignore ::-webkit-scrollbar rules, and Firefox has no offset.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const body = viewer.locator('.jp-TabularDataViewer-container');
+    await body.evaluate((el: HTMLElement) => {
+      el.scrollTop = 400;
+    });
+
+    // (a) Every vertical scroller in the viewer starts at or below the header
+    const layout = await viewer.evaluate((root: HTMLElement) => ({
+      headerBottom: root
+        .querySelector('.jp-TabularDataViewer-thead')!
+        .getBoundingClientRect().bottom,
+      scrollerTops: Array.from(root.querySelectorAll('*'))
+        .filter(el => {
+          const overflowY = getComputedStyle(el).overflowY;
+          return (
+            (overflowY === 'auto' || overflowY === 'scroll') &&
+            el.scrollHeight > el.clientHeight + 1
+          );
+        })
+        .map(el => el.getBoundingClientRect().top)
+    }));
+    expect(layout.scrollerTops.length).toBeGreaterThan(0);
+    for (const top of layout.scrollerTops) {
+      expect(top).toBeGreaterThanOrEqual(layout.headerBottom - 1);
+    }
+
+    // (b) After a horizontal scroll every visible header cell keeps the left
+    // and right edges of its body column
+    const strip = viewer.locator('.jp-TabularDataViewer-headerStrip');
+    await body.evaluate((el: HTMLElement) => {
+      el.scrollLeft = 0;
+      el.scrollTo({ left: 300, behavior: 'smooth' });
+    });
+    await expect
+      .poll(() => body.evaluate((el: HTMLElement) => el.scrollLeft))
+      .toBe(300);
+    await expect
+      .poll(() => strip.evaluate((el: HTMLElement) => el.scrollLeft))
+      .toBe(300);
+    await body.evaluate((el: HTMLElement) => {
+      el.scrollLeft = 300;
+    });
+    expect(await body.evaluate((el: HTMLElement) => el.scrollLeft)).toBe(300);
+    await expect
+      .poll(() => strip.evaluate((el: HTMLElement) => el.scrollLeft))
+      .toBe(300);
+    const offsets = await viewer.evaluate((root: HTMLElement) => {
+      const area = root
+        .querySelector('.jp-TabularDataViewer-headerStrip')!
+        .getBoundingClientRect();
+      const bodyCells = Array.from(
+        root.querySelector('.jp-TabularDataViewer-tbody tr')!.children
+      );
+      const result: number[] = [];
+      root.querySelectorAll('.jp-TabularDataViewer-thead tr').forEach(tr => {
+        Array.from(tr.children).forEach((cell, i) => {
+          const head = cell.getBoundingClientRect();
+          if (head.right <= area.left || head.left >= area.right) {
+            return;
+          }
+          const column = bodyCells[i].getBoundingClientRect();
+          result.push(
+            Math.abs(head.left - column.left),
+            Math.abs(head.right - column.right)
+          );
+        });
+      });
+      return result;
+    });
+    expect(offsets.length).toBeGreaterThan(0);
+    expect(Math.max(...offsets)).toBeLessThanOrEqual(1);
+    // Every 'Filter by values' button stays inside its filter cell
+    const buttonOverflow = await viewer.evaluate((root: HTMLElement) =>
+      Array.from(
+        root.querySelectorAll('.jp-TabularDataViewer-filterButton')
+      ).map(
+        button =>
+          button.getBoundingClientRect().right -
+          button
+            .closest('.jp-TabularDataViewer-filterCell')!
+            .getBoundingClientRect().right
+      )
+    );
+    expect(buttonOverflow.length).toBeGreaterThan(0);
+    expect(Math.max(...buttonOverflow)).toBeLessThanOrEqual(1);
+
+    // (c) The header strip itself never scrolls vertically
+    const extent = await strip.evaluate((el: HTMLElement) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight
+    }));
+    expect(extent.scrollHeight).toBeLessThanOrEqual(extent.clientHeight + 1);
+  });
+
   test('should refresh from disk on reload without fetching content', async ({
     page,
     request,

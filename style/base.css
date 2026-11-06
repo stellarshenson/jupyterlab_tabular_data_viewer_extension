@@ -15,9 +15,24 @@
   position: relative;
 }
 
+/* Header rows, outside the body's scroller so its vertical scrollbar starts
+   below them. widget.ts keeps scrollLeft in step with the body; the stable
+   gutter on both gives them the same client width in every theme, so the
+   header can follow the body to its last column. */
+.jp-TabularDataViewer-headerStrip {
+  flex-shrink: 0;
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  position: relative;
+  z-index: 10;
+  background-color: var(--jp-layout-color2);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
+}
+
 .jp-TabularDataViewer-container {
   flex: 1;
   overflow: auto;
+  scrollbar-gutter: stable;
   position: relative;
   background-color: var(--jp-layout-color1);
 }
@@ -34,11 +49,7 @@
 
 /* Table Header */
 .jp-TabularDataViewer-thead {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   background-color: var(--jp-layout-color2);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
 }
 
 /* Filter Row */
@@ -68,6 +79,7 @@
 
 .jp-TabularDataViewer-filterInput {
   flex: 1;
+  min-width: 0;
   padding: 4px 6px;
   border: 1px solid var(--jp-border-color2);
   border-radius: 2px;
@@ -249,7 +261,7 @@
   box-shadow: 2px 0 4px rgb(0 0 0 / 10%);
 }
 
-/* Row number cells in header (thead) need higher z-index to appear above sticky header */
+/* Row number cells in header (thead) stay above the header cells that scroll under them */
 .jp-TabularDataViewer-thead .jp-TabularDataViewer-rowNumberCell {
   z-index: 15;
 }
@@ -482,7 +494,8 @@
   color: var(--jp-ui-font-color0);
 }
 
-/* Scrollbar styling for webkit browsers */
+/* Scrollbar styling for webkit browsers; the header strip's gutter matches */
+.jp-TabularDataViewer-headerStrip::-webkit-scrollbar,
 .jp-TabularDataViewer-container::-webkit-scrollbar {
   width: 10px;
   height: 10px;

@@ -500,3 +500,42 @@ The column statistics dialog: overview tiles, statistics chosen by the column ty
   - test-tags: FUNCTIONAL, E2E
   - log: 2026-11-06T15:56:42Z @kj added
   - log: 2026-11-06T16:30:58Z @kj closed: closed: 75vh cap, statistics column scrolls only on overflow
+
+## Grid display `GRID`
+
+Layout, scrolling and alignment of the table grid
+
+- log: 2026-11-06T17:27:42Z @kj category created
+
+- [x] `ACC-GRID-75-SCROLLBAR` **Vertical scrollbar starts below the header rows** - MEDIUM; the grid's vertical scrollbar starts below the filter row and the column-name row and never runs beside them, in every browser and theme
+  - evidence: galata 'should start the vertical scrollbar below the header rows': scroller top 156.69 px equals header bottom, 67 px before the fix; verified with real scrollbars and with scrollbar-width: thin
+  - related: DEF-GRID-46-SCROLL-HEAD - the defect this criterion closes
+  - test: galata: open sample_data.parquet, scroll down, assert the top of the vertical scroller is at or below the bottom of the header strip
+  - test-tags: FUNCTIONAL, E2E
+  - log: 2026-11-06T17:27:42Z @kj added
+  - log: 2026-11-06T18:07:55Z @kj closed: closed: header strip above the body scroller
+- [x] `ACC-GRID-76-ALIGN` **Header columns line up with body columns** - HIGH; every header cell keeps the left and right edges of its body column at every horizontal scroll position, so a filter or header always sits over its own column
+  - evidence: galata 'should start the vertical scrollbar below the header rows': 0 px edge offset for every visible header cell at scrollLeft 300 and at the maximum; 0 px after a 100 px column resize
+  - test: galata: scroll the body right by 300 px and assert each visible header cell's edges match its body column within 1 px
+  - test-tags: FUNCTIONAL, E2E
+  - log: 2026-11-06T17:27:42Z @kj added
+  - log: 2026-11-06T18:07:55Z @kj closed: closed: shared colgroup widths and synced scrollLeft
+
+## Build and quality `BUILD`
+
+Lint, packaging and the quality gates every release passes
+
+- log: 2026-11-06T17:27:42Z @kj category created
+
+- [x] `ACC-BUILD-77-LINT` **Lint reports no warnings** - MEDIUM; jlpm run lint:check reports 0 errors and 0 warnings with no eslint-disable comment and no change to the lint rules
+  - evidence: jlpm run lint:check exit 0, eslint --max-warnings=0 and stylelint --max-warnings=0 exit 0; no eslint-disable in src, style or ui-tests; eslint.config.mjs unchanged
+  - test: run jlpm run lint:check and grep src for eslint-disable
+  - test-tags: MANUAL
+  - log: 2026-11-06T17:27:42Z @kj added
+  - log: 2026-11-06T18:07:55Z @kj closed: closed: 36 warnings fixed at their causes in commit e02481e
+- [x] `ACC-BUILD-78-TRANSLATE` **User-facing strings are translatable** - LOW; every user-facing string of the grid and the three dialogs goes through the JupyterLab translator when one is installed and reads the same English when none is
+  - evidence: 27 literals wrapped with trans.__() in commit e02481e; Galata 70 green with no translator installed, every English label assertion unchanged
+  - test: galata: open the grid and the statistics, filter and export dialogs and assert their English labels
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-06T17:27:42Z @kj added
+  - log: 2026-11-06T18:07:55Z @kj closed: closed: optional ITranslator, one bundle passed to the viewer and the three dialogs

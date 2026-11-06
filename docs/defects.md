@@ -365,3 +365,17 @@ The column statistics dialog and its payload.
   - root-cause: 2026-11-06T15:16:27Z @kj the live chip rule sets background-color to var(--jp-layout-color2); the design page line 233 sets a 14 percent color-mix of the tint
   - log: 2026-11-06T15:16:27Z @kj added
   - log: 2026-11-06T15:40:28Z @kj closed: fixed: .jp-ColumnStatsModal-chip background-color is color-mix(in srgb, var(--columnstats-tint) 14%, transparent)
+
+## Grid display `GRID`
+
+Layout, scrolling and rendering of the table grid
+
+- log: 2026-11-06T16:49:53Z @kj category created
+
+- [x] `DEF-GRID-46-SCROLL-HEAD` **Grid scrollbar runs beside the header rows** - MINOR; the grid's vertical scrollbar starts at the top of the filter row and runs beside the column headers instead of starting below them; cause the scroll container holds the whole table including the sticky thead; `style/base.css`, `src/widget.ts`
+  - evidence: galata 'should start the vertical scrollbar below the header rows': scroller top 156.69 px = header bottom, failed before at 67 px; screenshot logs/fix-scroll-head-verify.png; Galata 70, pytest 208, lint 0 warnings at 1.8.3
+  - repro: open data/sample_data.parquet, scroll the grid down, look at the scrollbar beside the filter and header rows
+  - test-tags: FUNCTIONAL, E2E
+  - root-cause: 2026-11-06T16:49:53Z @kj one .jp-TabularDataViewer-container scrolls the whole table with a sticky thead, so its track spans the headers; its ::-webkit-scrollbar rules are inactive because the GalaxaLab theme sets * { scrollbar-width: thin }, which makes Chrome ignore webkit scrollbar styling
+  - log: 2026-11-06T16:49:53Z @kj added
+  - log: 2026-11-06T18:07:54Z @kj closed: fixed: filter and header rows moved into a header strip above the body scroller, scrollLeft kept in step, columns share widths
