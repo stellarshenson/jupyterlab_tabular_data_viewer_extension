@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.8.1] - 2026-11-06
+
+### Added
+
+- **Binary (BLOB) columns show size statistics** - a Size block with min, Q1, median, Q3, max, mean, standard deviation and total bytes, plus a size histogram; sizes come from `length()` and the contents are never read; a binary column shows no unique count
+- **Numeric columns draw a 12-bin histogram above the box plot**, and **temporal columns replace the range bar with a span-based histogram** whose bins run from year to second as the span requires
+- **Every data type carries its own tint** on the type chip, the histogram bars and the box plot, so a dialog's type reads at a glance
+
+### Changed
+
+- **The dialog is 980 px wide only when the unique-values pane is shown and 720 px otherwise**; the pane appears only when a value repeats and the distinct count is within the unique-values limit, and a binary column always opens at 720 px
+- **Each unique-value bar is that value's share of all rows**, matching the percentage beside it, with Value, Share of rows, Count and % headers
+- **pandas is now a runtime dependency** because pyarrow converts a duration[ns] scalar to the grid text only through it; a duration[ns] column renders in the grid, the filter and the statistics on every install
+
+### Fixed
+
+- **A mixed BLOB and text column counts only blob cells in its size statistics**, so a text value stored in a blob-typed SQLite column no longer adds its character count
+- **Date and timestamp histogram labels no longer collide** - a date axis shows dates and a sub-day timestamp bin carries its clock time
+- **The type chip keeps the standard text colour**, so it stays readable on every per-type tint
+
 ## [1.7.21] - 2026-11-06
 
 ### Added
