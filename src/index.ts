@@ -103,10 +103,18 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
     // "File Save Error" dialog (DEF-LOAD-5). Ctrl+S is a no-op here.
     context.save = () => Promise.resolve();
 
-    // Listen to context fileChanged signal to refresh data when file is reverted
-    context.fileChanged.connect(() => {
-      console.log('[Tabular Data Viewer] File changed, refreshing data');
-      content.refresh();
+    // Listen to context fileChanged signal to refresh data when file is reverted.
+    // The initial population of the contents model emits fileChanged too - it
+    // has no previous hash to compare - and the widget has just loaded the file
+    // itself, so connect after ready to skip that duplicate metadata+data load.
+    void context.ready.then(() => {
+      if (content.isDisposed) {
+        return;
+      }
+      context.fileChanged.connect(() => {
+        console.log('[Tabular Data Viewer] File changed, refreshing data');
+        content.refresh();
+      });
     });
 
     // Track this as the active widget when context menu is used

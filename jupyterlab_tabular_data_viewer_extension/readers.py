@@ -615,6 +615,17 @@ def _quote_ident(name):
     return '"' + name.replace('"', '""') + '"'
 
 
+# Field metadata marking a SQLite column that holds BLOBs. The column is
+# served as '<BLOB size>' text, so its Arrow type is string and nothing in the
+# values says the cells stand for bytes; this marker is the only record of it.
+BINARY_PLACEHOLDER_KEY = b"jl_tabular_binary_placeholder"
+
+
+def is_binary_placeholder(field):
+    """True when a reader served this field as '<BLOB size>' placeholder text."""
+    return (field.metadata or {}).get(BINARY_PLACEHOLDER_KEY) == b"1"
+
+
 def _blob_placeholder_sql(name, alias=None):
     """SQL yielding '<BLOB size>' for BLOB cells and the value for everything else.
 
@@ -694,6 +705,14 @@ def _read_sqlite(file_path, table=None):
         # position as the other readers number a blank header; a table cannot
         # repeat a name, so the suffix branch of `_header_names` never fires.
         names = _header_names(columns, len(columns))
+        # typeof() answers from the value's storage class without reading the
+        # BLOB payload off its overflow pages, so every column is probed in one
+        # pass here and the bytes are never materialised.
+        probes = ", ".join(
+            f"max(typeof({_quote_ident(column)}) = 'blob')" for column in columns
+        )
+        row = conn.execute(f"SELECT {probes} FROM {ident}").fetchone()
+        blob_columns = {name for name, flag in zip(names, row) if flag}
         select_list = ", ".join(
             _blob_placeholder_sql(column, name)
             for column, name in zip(columns, names)
@@ -710,7 +729,19 @@ def _read_sqlite(file_path, table=None):
     # arrow kernels - column statistics raise ArrowNotImplementedError, not a
     # ValueError, so the request 500s. SQLite is where a wholly-NULL column is
     # most common, so the same cast the two text readers apply belongs here.
-    return _cast_unsupported_columns_to_string(df).to_arrow()
+    table = _cast_unsupported_columns_to_string(df).to_arrow()
+    if blob_columns:
+        schema = table.schema
+        for index, field in enumerate(schema):
+            if field.name in blob_columns:
+                schema = schema.set(
+                    index,
+                    field.with_metadata(
+                        {**(field.metadata or {}), BINARY_PLACEHOLDER_KEY: b"1"}
+                    ),
+                )
+        table = table.cast(schema)
+    return table
 
 
 # ---------------------------------------------------------------------------

@@ -298,6 +298,87 @@ async def test_string_view_unique_values(jp_fetch, jp_root_dir):
     assert result["total_count"] > 0
 
 
+async def test_fixed_size_binary_unique_values_decode_with_replacement(
+    jp_fetch, jp_root_dir
+):
+    """A fixed-size binary column decodes, not casts, in unique values.
+
+    `pc.cast` to string on non-UTF-8 bytes raised ArrowInvalid, so the request
+    500d. The text must equal what the rows endpoint serves, so a value picked
+    in the filter dialog builds a matching regex.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    raw = b"\xff\xfe" + b"0123456789abcd"
+    assert len(raw) == 16
+    pq.write_table(
+        pa.table({"digest": pa.array([raw, b"0123456789abcdef"], pa.binary(16))}),
+        target_dir / "fixed_binary.parquet",
+    )
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "unique-values",
+        method="POST",
+        body=json.dumps(
+            {"path": "data/fixed_binary.parquet", "columnName": "digest"}
+        ),
+    )
+    assert response.code == 200
+    payload = json.loads(response.body)
+
+    rows = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps({"path": "data/fixed_binary.parquet", "limit": 10}),
+    )
+    assert rows.code == 200
+    row_texts = [row["digest"] for row in json.loads(rows.body)["data"]]
+
+    assert sorted(payload["values"]) == sorted(row_texts)
+    assert raw.decode("utf-8", errors="replace") in payload["values"]
+
+
+async def test_binary_view_unique_values_decode_with_replacement(
+    jp_fetch, jp_root_dir
+):
+    """A binary_view column decodes in unique values like a binary column.
+
+    `column_as_text` recognised the view through a string comparison while the
+    handler used `pa.types.is_binary_view`; the predicate keeps the helper on
+    the decode branch for the same type the handler branches on.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    raw = b"\xff\xfe\x00png"
+    pq.write_table(
+        pa.table({"blob": pa.array([raw, b"ok"], pa.binary_view())}),
+        target_dir / "binary_view.parquet",
+    )
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "unique-values",
+        method="POST",
+        body=json.dumps(
+            {"path": "data/binary_view.parquet", "columnName": "blob"}
+        ),
+    )
+    assert response.code == 200
+    payload = json.loads(response.body)
+
+    decoded = raw.decode("utf-8", errors="replace")
+    assert sorted(payload["values"]) == sorted([decoded, "ok"])
+    assert all(isinstance(value, str) for value in payload["values"])
+
+
 async def test_column_stats_all_types(jp_fetch, jp_root_dir):
     """Test column stats for string_view and double columns in activity_stats"""
     source_file = (
@@ -2618,6 +2699,95 @@ async def test_metadata_with_sqlite_table_param(jp_fetch, jp_root_dir):
     ]
 
 
+async def test_sqlite_blob_column_reports_binary_with_counts_only(
+    jp_fetch, jp_root_dir
+):
+    """A BLOB column keeps its placeholder text but is served as binary.
+
+    The values stay '<BLOB size>' strings; the reader's field marker is what
+    tells the metadata payload and the statistics payload that the column
+    holds bytes, so the panel reports counts only rather than lengths or a
+    most-common placeholder.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "blob_sample.db", target_dir / "blob_sample.db")
+
+    metadata_response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "metadata",
+        method="POST",
+        body=json.dumps({"path": "data/blob_sample.db"}),
+    )
+    assert metadata_response.code == 200
+    metadata = json.loads(metadata_response.body)
+    type_by_name = {c["name"]: c["type"] for c in metadata["columns"]}
+    assert type_by_name == {"id": "int64", "content": "binary"}
+    assert metadata["totalRows"] == 3
+
+    stats_response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps({"path": "data/blob_sample.db", "columnName": "content"}),
+    )
+    assert stats_response.code == 200
+    stats = json.loads(stats_response.body)
+
+    assert stats["data_type"] == "binary"
+    assert stats["binary_placeholder"] is True
+    assert stats["total_rows"] == 3
+    assert stats["non_null_count"] == 3
+    assert stats["null_count"] == 0
+    assert stats["unique_count"] == 3
+    assert not {
+        "min_length",
+        "max_length",
+        "avg_length",
+        "most_common_value",
+        "most_common_count",
+        "top_share",
+        "min_value",
+        "max_value",
+        "mean",
+        "median",
+        "std_dev",
+    } & stats.keys()
+
+
+async def test_genuine_binary_column_has_no_placeholder_flag(jp_fetch, jp_root_dir):
+    """A real binary column carries no binary_placeholder marker.
+
+    The flag belongs only to a SQLite column served as placeholder text; a
+    parquet column of real bytes reports a unique count over the bytes
+    themselves, so the dialog must keep the ordinary tile label.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table({"payload": pa.array([b"a", b"b", b"a"], pa.binary())}),
+        target_dir / "genuine_binary.parquet",
+    )
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps(
+            {"path": "data/genuine_binary.parquet", "columnName": "payload"}
+        ),
+    )
+    assert response.code == 200
+    stats = json.loads(response.body)
+
+    assert stats["data_type"] == "binary"
+    assert stats["unique_count"] == 2
+    assert "binary_placeholder" not in stats
+
+
 async def test_metadata_unknown_sqlite_table_is_400(jp_fetch, jp_root_dir):
     """An unknown table name surfaces as HTTP 400 with the ValueError message"""
     import pytest
@@ -3456,6 +3626,53 @@ async def test_clock_time_and_elapsed_time_columns_reach_the_grid(jp_fetch, jp_r
     assert rows[1]["elapsed"] == "0:05:00"
 
 
+async def test_duration_text_filter_matches_the_value_the_dialog_shows(
+    jp_fetch, jp_root_dir
+):
+    """A duration filter built from a listed unique value matches its row.
+
+    The filter dialog builds `^(value)$` from a unique-values entry, so the
+    rows filter and the endpoint must use the same text. The endpoint answers
+    with str(timedelta), the grid's form; a filter on the raw microsecond count
+    matched nothing.
+    """
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "typed_columns.parquet", target_dir / "typed_columns.parquet")
+
+    unique = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "unique-values",
+        method="POST",
+        body=json.dumps(
+            {"path": "data/typed_columns.parquet", "columnName": "elapsed"}
+        ),
+    )
+    assert unique.code == 200
+    displayed = json.loads(unique.body)["values"]
+    assert "0:05:00" in displayed
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "data",
+        method="POST",
+        body=json.dumps(
+            {
+                "path": "data/typed_columns.parquet",
+                "offset": 0,
+                "limit": 100,
+                "filters": {"elapsed": {"type": "text", "value": "^(0:05:00)$"}},
+                "useRegex": True,
+                "caseInsensitive": False,
+            }
+        ),
+    )
+    assert response.code == 200
+    result = json.loads(response.body)
+    assert result["totalRows"] == 1
+    assert result["data"][0]["elapsed"] == "0:05:00"
+
+
 async def test_dictionary_column_sorts_and_reports_statistics(jp_fetch, jp_root_dir):
     """A parquet column written from a pandas Categorical is an ordinary column.
 
@@ -3928,3 +4145,246 @@ async def test_table_dropped_between_requests_is_a_400(jp_fetch, jp_root_dir):
         )
     assert excinfo.value.code == 400
     assert b"Table not found: gone" in excinfo.value.response.body
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: extended column statistics
+# ---------------------------------------------------------------------------
+
+
+def test_numeric_column_stats_include_q1_and_q3():
+    """The quartiles are their own fields, rounded to two decimals."""
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table({"v": pa.array([0.1, 0.2, 0.4], pa.float64())})
+
+    stats = calculate_column_stats(table, "v")
+
+    assert stats["median"] == 0.2
+    assert stats["q1"] == 0.15
+    assert stats["q3"] == 0.3
+
+
+def test_decimal_column_reports_numeric_statistics():
+    """A decimal column reports the numeric aggregates on a float view."""
+    from decimal import Decimal
+
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table(
+        {
+            "amount": pa.array(
+                [Decimal("1.25"), Decimal("2.25"), Decimal("3.25"), None],
+                pa.decimal128(10, 2),
+            )
+        }
+    )
+
+    stats = calculate_column_stats(table, "amount")
+
+    assert stats["data_type"] == "decimal128(10, 2)"
+    assert stats["min_value"] == 1.25
+    assert stats["max_value"] == 3.25
+    assert stats["mean"] == 2.25
+    assert stats["median"] == 2.25
+    assert stats["q1"] == 1.75
+    assert stats["q3"] == 2.75
+    assert stats["std_dev"] == 0.82
+    assert stats["outlier_count"] == 0
+    assert stats["outlier_lower_bound"] == 0.25
+    assert stats["outlier_upper_bound"] == 4.25
+
+
+def test_duration_column_reports_numeric_statistics_in_its_unit():
+    """A duration column reports the numeric aggregates in its own unit."""
+    import datetime as dt
+
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table(
+        {
+            "elapsed": pa.array(
+                [
+                    dt.timedelta(seconds=10),
+                    dt.timedelta(seconds=20),
+                    dt.timedelta(seconds=30),
+                    None,
+                ],
+                pa.duration("us"),
+            )
+        }
+    )
+
+    stats = calculate_column_stats(table, "elapsed")
+
+    assert stats["data_type"] == "duration[us]"
+    assert stats["min_value"] == 10_000_000.0
+    assert stats["max_value"] == 30_000_000.0
+    assert stats["mean"] == 20_000_000.0
+    assert stats["median"] == 20_000_000.0
+    assert stats["q1"] == 15_000_000.0
+    assert stats["q3"] == 25_000_000.0
+    assert stats["std_dev"] == 8_164_965.81
+    assert stats["outlier_count"] == 0
+
+
+async def test_duration_ns_statistics_keep_sub_microsecond_digits(
+    jp_fetch, jp_root_dir
+):
+    """A duration[ns] column reports its aggregates in nanoseconds.
+
+    stats.py casts duration to its integer count in the column unit, so the
+    payload carries the exact nanosecond count and the dialog's nanosecond
+    formatter renders the same text the grid shows. A payload rounded to
+    microseconds would render '0 days 00:00:00' here.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from jupyterlab_tabular_data_viewer_extension.routes import (
+        convert_to_json_serializable,
+    )
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    values = [100, 250, 501, 750]
+    pq.write_table(
+        pa.table({"span": pa.array(values, pa.duration("ns"))}),
+        target_dir / "nanosecond_stats.parquet",
+    )
+
+    response = await jp_fetch(
+        "jupyterlab-tabular-data-viewer-extension",
+        "column-stats",
+        method="POST",
+        body=json.dumps(
+            {"path": "data/nanosecond_stats.parquet", "columnName": "span"}
+        ),
+    )
+    assert response.code == 200
+    stats = json.loads(response.body)
+
+    assert stats["data_type"] == "duration[ns]"
+    assert stats["min_value"] == 100
+    assert stats["max_value"] == 750
+
+    # The same renderer the rows endpoint uses turns the payload count into the
+    # grid's text, all nine fractional digits included.
+    rendered_min = convert_to_json_serializable(
+        pa.scalar(int(stats["min_value"]), pa.duration("ns")).as_py()
+    )
+    rendered_max = convert_to_json_serializable(
+        pa.scalar(int(stats["max_value"]), pa.duration("ns")).as_py()
+    )
+    assert rendered_min == "0 days 00:00:00.000000100"
+    assert rendered_max == "0 days 00:00:00.000000750"
+
+
+def test_time_column_reports_earliest_latest_and_range():
+    """A time column reports its earliest and latest clock times and span,
+    keeping the fractional seconds the values carry."""
+    import datetime as dt
+
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table(
+        {
+            "clock": pa.array(
+                [
+                    dt.time(9, 30, 0, 500000),
+                    dt.time(8, 15, 30, 250000),
+                    None,
+                    dt.time(17, 45, 0, 125000),
+                ],
+                pa.time64("us"),
+            )
+        }
+    )
+
+    stats = calculate_column_stats(table, "clock")
+
+    assert stats["data_type"] == "time64[us]"
+    assert stats["earliest_time"] == "08:15:30.250000"
+    assert stats["latest_time"] == "17:45:00.125000"
+    assert stats["time_range_seconds"] == 34169.875
+
+
+def test_datetime_time_of_day_range_uses_the_clock_not_the_dates():
+    """The earliest datetime need not hold the earliest time of day.
+
+    The earliest value here is 18:00, the latest is 07:30 the following June,
+    so a range taken from earliest_date and latest_date would report the
+    opposite order. The fields come from each value's time-of-day component.
+    """
+    import datetime as dt
+
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table(
+        {
+            "ts": pa.array(
+                [
+                    dt.datetime(2024, 1, 1, 18, 0, 0),
+                    dt.datetime(2024, 6, 1, 7, 30, 0),
+                    dt.datetime(2024, 3, 1, 12, 0, 0),
+                ],
+                pa.timestamp("us"),
+            )
+        }
+    )
+
+    stats = calculate_column_stats(table, "ts")
+
+    assert stats["earliest_date"] == "2024-01-01T18:00:00"
+    assert stats["latest_date"] == "2024-06-01T07:30:00"
+    assert stats["time_of_day_min"] == "07:30:00"
+    assert stats["time_of_day_max"] == "18:00:00"
+
+
+def test_boolean_column_reports_true_and_false_counts_only():
+    """A boolean column reports its counts and no numeric or text statistics."""
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table({"flag": pa.array([True, False, True, None, True], pa.bool_())})
+
+    stats = calculate_column_stats(table, "flag")
+
+    assert stats["data_type"] == "boolean"
+    assert stats["true_count"] == 3
+    assert stats["false_count"] == 1
+    assert "min_value" not in stats
+    assert "mean" not in stats
+    assert "most_common_value" not in stats
+
+
+def test_string_column_top_share_is_share_of_all_rows():
+    """top_share is the most common count over total rows, nulls included."""
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table(
+        {
+            "word": pa.array(
+                ["a", "a", "a", "b", "b", "c", "d", None], pa.string()
+            )
+        }
+    )
+
+    stats = calculate_column_stats(table, "word")
+
+    assert stats["most_common_value"] == "a"
+    assert stats["most_common_count"] == 3
+    assert stats["top_share"] == 37.5

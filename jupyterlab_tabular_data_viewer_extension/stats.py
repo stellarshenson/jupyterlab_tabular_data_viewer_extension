@@ -8,6 +8,8 @@ import pyarrow as pa
 import pyarrow.compute as pc
 from typing import Dict, Any
 
+from .readers import is_binary_placeholder
+
 
 def simplify_type(arrow_type: pa.DataType) -> str:
     """
@@ -101,7 +103,8 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
         column_name: Name of column to analyze
 
     Returns:
-        Dictionary with statistics appropriate for the column type
+        Dictionary with statistics appropriate for the column type. A BLOB
+        column served as placeholder text gets counts only.
     """
     if column_name not in table.column_names:
         raise ValueError(f"Column '{column_name}' not found in table")
@@ -109,6 +112,12 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
     column = table.column(column_name)
     column_type = column.type
     simplified_type = simplify_type(column_type)
+    # The reader marks a column served as '<BLOB size>' text. Its values are
+    # placeholders, so length and most-common statistics would describe the
+    # placeholder rather than the bytes.
+    placeholder = is_binary_placeholder(table.schema.field(column_name))
+    if placeholder:
+        simplified_type = "binary"
 
     # Cast view types to their base equivalents for compute compatibility
     view_type_cast = {
@@ -146,14 +155,32 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
         "unique_percentage": round(unique_percentage, 1),
     }
 
+    # unique_count for a placeholder column counts distinct displayed
+    # placeholder texts, not distinct blobs.
+    if placeholder:
+        stats["binary_placeholder"] = True
+    # Counts only for a BLOB placeholder column: no length, top-share or
+    # numeric fields, since none of them would describe the bytes.
+    if simplified_type == "binary":
+        return stats
+
     # Skip further statistics if all nulls
     if non_null_count == 0:
         return stats
 
     # Numeric statistics. A text column whose every value is a number gets them
     # too, computed on a numeric view - the reported data_type stays "string",
-    # and the stored values are untouched.
-    numeric_column = column if simplified_type in ("int", "float") else numeric_view(column)
+    # and the stored values are untouched. A decimal reports them from a float
+    # view and a duration from its integer count of the duration unit; both keep
+    # the arrow type string as data_type.
+    if pa.types.is_decimal(column_type):
+        numeric_column = pc.cast(column, pa.float64())
+    elif pa.types.is_duration(column_type):
+        numeric_column = pc.cast(column, pa.int64())
+    elif simplified_type in ("int", "float"):
+        numeric_column = column
+    else:
+        numeric_column = numeric_view(column)
     if numeric_column is not None:
         try:
             min_max = pc.min_max(numeric_column)
@@ -201,6 +228,9 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
             else:
                 q3_val = float(q3.as_py()) if q3.is_valid else None
 
+            stats["q1"] = round(q1_val, 2) if q1_val is not None else None
+            stats["q3"] = round(q3_val, 2) if q3_val is not None else None
+
             if q1_val is not None and q3_val is not None:
                 iqr = q3_val - q1_val
                 lower_bound = q1_val - 1.5 * iqr
@@ -223,6 +253,12 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
             # Log but don't fail - return partial stats
             print(f"Warning: Could not compute numeric stats for {column_name}: {e}")
 
+    # Boolean statistics - counts only, from the non-null values
+    if pa.types.is_boolean(column_type):
+        true_count = int(pc.sum(pc.cast(column, pa.int64())).as_py())
+        stats["true_count"] = true_count
+        stats["false_count"] = non_null_count - true_count
+
     # String statistics - also for a numeric-text column, which is a string
     if simplified_type == "string":
         try:
@@ -230,15 +266,20 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
             non_null_column = pc.drop_null(column)
 
             if len(non_null_column) > 0:
-                # Most common value (mode)
+                # Most common value (mode). `pc.mode` has no kernel for any
+                # string type, so the counts come from `value_counts`.
                 try:
-                    mode_result = pc.mode(non_null_column)
-                    if len(mode_result) > 0:
-                        mode_struct = mode_result[0]
-                        most_common = mode_struct["mode"].as_py()
-                        most_common_count = int(mode_struct["count"].as_py())
+                    value_counts = pc.value_counts(non_null_column)
+                    if len(value_counts) > 0:
+                        counts = value_counts.field("counts")
+                        top = pc.index(counts, pc.max(counts)).as_py()
+                        most_common = value_counts.field("values")[top].as_py()
+                        most_common_count = int(counts[top].as_py())
                         stats["most_common_value"] = most_common
                         stats["most_common_count"] = most_common_count
+                        stats["top_share"] = round(
+                            most_common_count / total_count * 100, 1
+                        )
                 except Exception as e:
                     print(f"Warning: Could not compute mode for {column_name}: {e}")
 
@@ -264,14 +305,46 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
             min_date = pc.min(column).as_py()
             max_date = pc.max(column).as_py()
 
-            stats["earliest_date"] = str(min_date)
-            stats["latest_date"] = str(max_date)
+            stats["earliest_date"] = min_date.isoformat()
+            stats["latest_date"] = max_date.isoformat()
 
             # Calculate span
             if min_date and max_date:
                 span = max_date - min_date
                 stats["date_range_days"] = span.days if hasattr(span, "days") else None
+
+            # Time-of-day range, from each timestamp's clock component rather
+            # than from the earliest and latest datetimes.
+            if pa.types.is_timestamp(column_type):
+                time_of_day = pc.cast(pc.drop_null(column), pa.time64("us"))
+                stats["time_of_day_min"] = pc.min(time_of_day).as_py().isoformat()
+                stats["time_of_day_max"] = pc.max(time_of_day).as_py().isoformat()
         except Exception as e:
             print(f"Warning: Could not compute date stats for {column_name}: {e}")
+
+    # Time-of-day statistics
+    elif pa.types.is_time(column_type):
+        try:
+            earliest = pc.min(column).as_py()
+            latest = pc.max(column).as_py()
+            stats["earliest_time"] = earliest.isoformat()
+            stats["latest_time"] = latest.isoformat()
+            stats["time_range_seconds"] = round(
+                (
+                    latest.hour * 3600
+                    + latest.minute * 60
+                    + latest.second
+                    + latest.microsecond / 1_000_000
+                )
+                - (
+                    earliest.hour * 3600
+                    + earliest.minute * 60
+                    + earliest.second
+                    + earliest.microsecond / 1_000_000
+                ),
+                6,
+            )
+        except Exception as e:
+            print(f"Warning: Could not compute time stats for {column_name}: {e}")
 
     return stats

@@ -101,6 +101,70 @@ async function openInViewer(
 }
 
 /**
+ * Open the statistics dialog for a column and return it.
+ *
+ * The info icon sits in the column header; the dialog renders under
+ * `document.body`, outside the viewer, so it is looked up on the page.
+ */
+async function openStatsDialog(
+  page: any,
+  viewer: any,
+  column: string
+): Promise<any> {
+  const header = viewer.locator('.jp-TabularDataViewer-headerCell', {
+    hasText: column
+  });
+  await header.locator('.jp-TabularDataViewer-infoIcon').click();
+  const dialog = page.locator('[data-testid="stats-dialog"]');
+  await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+  return dialog;
+}
+
+/**
+ * The keyboard-focusable statistics control in a column header
+ */
+const statsControl = (viewer: any, column: string) =>
+  viewer
+    .locator('.jp-TabularDataViewer-headerCell', { hasText: column })
+    .locator('.jp-TabularDataViewer-infoIcon');
+
+/**
+ * Open the committed adaptive-types fixture and the statistics dialog for one
+ * of its columns.
+ */
+async function openAdaptiveStats(page: any, column: string): Promise<any> {
+  const viewer = await openInViewer(page, 'adaptive_types.parquet');
+  return openStatsDialog(page, viewer, column);
+}
+
+/**
+ * The value cell of one statistics panel row
+ */
+const panelValue = (panel: any, key: string) =>
+  panel.locator(
+    `[data-testid="stats-panel-row-${key}"] .jp-ColumnStatsModal-rowValue`
+  );
+
+/**
+ * Assert the four summary tiles, in order, as [label, value] pairs
+ */
+async function expectTiles(
+  dialog: any,
+  expected: [string, string][]
+): Promise<void> {
+  const tiles = dialog.locator('.jp-ColumnStatsModal-tile');
+  await expect(tiles).toHaveCount(expected.length);
+  for (let i = 0; i < expected.length; i++) {
+    await expect(
+      tiles.nth(i).locator('.jp-ColumnStatsModal-tileLabel')
+    ).toHaveText(expected[i][0]);
+    await expect(
+      tiles.nth(i).locator('.jp-ColumnStatsModal-tileValue')
+    ).toHaveText(expected[i][1]);
+  }
+}
+
+/**
  * One page of rows, as shipped: the `rowsPerPage` setting's default.
  *
  * Every export assertion below is a comparison against this - an export that
@@ -203,7 +267,10 @@ test.describe('Tabular Data Viewer Extension', () => {
       'sample_data.csv',
       'sample_data.xlsx',
       'sample_database.db',
-      'typed_columns.parquet'
+      'blob_sample.db',
+      'typed_columns.parquet',
+      'adaptive_types.parquet',
+      'activity_stats.parquet'
     ];
 
     // Upload into tmpPath - that is the directory the galata file browser opens
@@ -477,6 +544,55 @@ test.describe('Tabular Data Viewer Extension', () => {
     );
     await expect(blobCells).toHaveCount(4);
     await expect(blobCells.first()).toHaveText('<BLOB 256 B>');
+  });
+
+  test('should report a BLOB column as binary with no statistics', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'blob_sample.db');
+    await expect(gridRows(viewer)).toHaveCount(3, { timeout: GRID_TIMEOUT });
+
+    // The SQL still serves the placeholder text, and the header calls the
+    // column what it holds rather than what it renders.
+    const contentHeader = viewer.locator('.jp-TabularDataViewer-headerCell', {
+      hasText: 'content'
+    });
+    await expect(
+      contentHeader.locator('.jp-TabularDataViewer-columnType')
+    ).toHaveText('binary');
+    const blobCells = viewer.locator(
+      '.jp-TabularDataViewer-tbody .jp-TabularDataViewer-cell',
+      { hasText: '<BLOB' }
+    );
+    await expect(blobCells).toHaveCount(3);
+    await expect(blobCells.first()).toHaveText('<BLOB 512 B>');
+
+    const dialog = await openStatsDialog(page, viewer, 'content');
+    await expect(dialog.locator('.jp-ColumnStatsModal-chip')).toHaveText(
+      'binary'
+    );
+    await expectTiles(dialog, [
+      ['Total rows', '3'],
+      ['Non-null', '3'],
+      ['Null', '0'],
+      ['Unique (as shown)', '3']
+    ]);
+
+    // Counts only: no length or most-common rows over the placeholder text
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel.locator('.jp-ColumnStatsModal-note')).toHaveText(
+      'No statistics are computed for this column.'
+    );
+    await expect(panel).not.toContainText('Most common');
+    await expect(panel).not.toContainText('Length');
+
+    const values = dialog.locator(
+      '[data-testid="unique-value-row"] .jp-ColumnStatsModal-value'
+    );
+    await expect(values).toHaveCount(3);
+    expect((await values.allTextContents()).sort()).toEqual(
+      ['<BLOB 1 KB>', '<BLOB 2 KB>', '<BLOB 512 B>'].sort()
+    );
   });
 
   test('should open the export popup from the status bar', async ({ page }) => {
@@ -999,9 +1115,18 @@ test.describe('Tabular Data Viewer Extension', () => {
       'category'
     ]);
 
-    const cells = await gridRows(viewer).locator('td').allTextContents();
-    expect(cells).toContain('09:01:00');
-    expect(cells).toContain('0:05:00');
+    // The grid fills asynchronously as the first page arrives, so poll the
+    // cells instead of sampling them the moment the row count settles.
+    await expect
+      .poll(async () => gridRows(viewer).locator('td').allTextContents(), {
+        timeout: GRID_TIMEOUT
+      })
+      .toContain('09:01:00');
+    await expect
+      .poll(async () => gridRows(viewer).locator('td').allTextContents(), {
+        timeout: GRID_TIMEOUT
+      })
+      .toContain('0:05:00');
   });
 
   test('should sort and report statistics on a dictionary-encoded column', async ({
@@ -1028,10 +1153,916 @@ test.describe('Tabular Data Viewer Extension', () => {
     expect(firstRow).not.toContain('red');
 
     await header.locator('.jp-TabularDataViewer-infoIcon').click();
-    const modal = page.locator('.jp-ColumnStatsModal-content');
-    await expect(modal).toBeVisible({ timeout: GRID_TIMEOUT });
-    await expect(modal).toContainText('Column: category');
-    await expect(modal).toContainText('Unique values: 3');
+    const dialog = page.locator('[data-testid="stats-dialog"]');
+    await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+    await expect(dialog.locator('h3')).toHaveText('category');
+    await expect(
+      dialog.locator('[data-testid="unique-value-row"]')
+    ).toHaveCount(3);
+  });
+
+  test('should render the adaptive statistics dialog for a duration column', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'typed_columns.parquet');
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+    const dialog = await openStatsDialog(page, viewer, 'elapsed');
+
+    // The dialog spans the viewer width rather than the old 500px card
+    const box = await dialog.boundingBox();
+    expect(box!.width).toBeGreaterThan(700);
+
+    // Distribution rows carry the quartiles the backend now reports
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Distribution');
+    await expect(
+      panel.locator('[data-testid="stats-panel-row-q1"]')
+    ).toBeVisible();
+    await expect(
+      panel.locator('[data-testid="stats-panel-row-q3"]')
+    ).toBeVisible();
+    await expect(dialog.locator('[data-testid="boxplot"]')).toBeVisible();
+
+    // Unique duration values are formatted from their raw unit count
+    const unique = dialog.locator('[data-testid="unique-values"]');
+    await expect(unique).toContainText('0:05:00');
+    await expect(unique).not.toContainText('300000000');
+
+    // Only the values pane scrolls; the dialog and statistics column do not
+    const overflow = await dialog.evaluate((node: HTMLElement) => {
+      const pane = node.querySelector(
+        '[data-testid="unique-values"]'
+      ) as HTMLElement;
+      const stats = node.querySelector(
+        '.jp-ColumnStatsModal-stats'
+      ) as HTMLElement;
+      const body = node.querySelector(
+        '.jp-ColumnStatsModal-body'
+      ) as HTMLElement;
+      return {
+        pane: getComputedStyle(pane).overflowY,
+        stats: getComputedStyle(stats).overflowY,
+        body: getComputedStyle(body).overflowY,
+        dialog: getComputedStyle(node).overflowY
+      };
+    });
+    expect(overflow.pane).toBe('auto');
+    expect(overflow.stats).not.toBe('auto');
+    expect(overflow.body).not.toBe('auto');
+    expect(overflow.dialog).toBe('hidden');
+
+    // A chip is a small-radius tag, never a fully rounded pill
+    const chipRadius = await dialog
+      .locator('.jp-ColumnStatsModal-chip')
+      .evaluate((node: HTMLElement) => getComputedStyle(node).borderRadius);
+    expect(chipRadius).toBe('2px');
+  });
+
+  test('should cap and center the dialog on a wide window', async ({
+    page
+  }) => {
+    // The dialog filled the window (DEF-STATS-40-WIDTH), stranding a row's
+    // count far to the right of its value.
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    await page.setViewportSize({ width: 2100, height: 1000 });
+    const dialog = await openStatsDialog(page, viewer, 'price');
+
+    const box = await dialog.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeLessThanOrEqual(1100);
+    // The cap is what constrains it, not the window
+    expect(box!.width).toBeGreaterThan(1000);
+
+    const overlay = await page.locator('.jp-ColumnStatsModal').boundingBox();
+    const windowCentre = overlay!.x + overlay!.width / 2;
+    expect(
+      Math.abs(box!.x + box!.width / 2 - windowCentre)
+    ).toBeLessThanOrEqual(2);
+
+    // Value, bar, count and percentage stay within 500px of each other
+    const row = dialog.locator('[data-testid="unique-value-row"]').first();
+    const value = await row.locator('.jp-ColumnStatsModal-value').boundingBox();
+    const count = await row
+      .locator('.jp-ColumnStatsModal-valueCount')
+      .boundingBox();
+    expect(count!.x - value!.x).toBeLessThan(500);
+  });
+
+  test('should fit the tile labels and value headers at 2089x1244', async ({
+    page
+  }) => {
+    // 'UNIQUE (NON-NULL)' ellipsized to 'UNIQUE (NON-NU...' in the 268px
+    // statistics column; the label wraps to two lines instead.
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    await page.setViewportSize({ width: 2089, height: 1244 });
+    const uniqueResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/unique-values') &&
+        response.request().method() === 'POST'
+    );
+    const dialog = await openStatsDialog(page, viewer, 'price');
+    const payload = await (await uniqueResponse).json();
+
+    for (const selector of [
+      '.jp-ColumnStatsModal-tileLabel',
+      '.jp-ColumnStatsModal-valueCols span'
+    ]) {
+      const elements = dialog.locator(selector);
+      await expect(elements).toHaveCount(4);
+      const clipped = await elements.evaluateAll((nodes: HTMLElement[]) =>
+        nodes
+          .filter(
+            node =>
+              node.scrollWidth > node.clientWidth + 1 ||
+              node.scrollHeight > node.clientHeight + 1
+          )
+          .map(node => node.textContent)
+      );
+      expect(clipped).toEqual([]);
+    }
+
+    // The share bar track is capped at 200px, so a wide dialog does not
+    // stretch it (DEF-STATS-41-BARS).
+    const track = dialog
+      .locator('[data-testid="unique-value-row"]')
+      .first()
+      .locator('.jp-ColumnStatsModal-track');
+    const trackBox = await track.boundingBox();
+    expect(trackBox).not.toBeNull();
+    expect(trackBox!.width).toBeLessThanOrEqual(201);
+
+    // A faint line every ten percent of the track (ACC-STATS-68-TICKS): one
+    // repeating gradient with a 10% period gives ten equal stops, and the
+    // track height is unchanged.
+    const ticks = await track.evaluate((node: HTMLElement) => ({
+      image: getComputedStyle(node).backgroundImage,
+      height: node.getBoundingClientRect().height
+    }));
+    expect(ticks.image).toContain('repeating-linear-gradient');
+    const period = parseFloat(ticks.image.match(/([\d.]+)%/)![1]);
+    expect(100 / period).toBe(10);
+    expect(ticks.height).toBe(14);
+
+    // The ticks sit under the fill, which still reports the count's share of
+    // the largest count in its style and in its rendered width.
+    const maxCount = Math.max(...payload.counts, 1);
+    const bars = await dialog
+      .locator('[data-testid="unique-value-row"]')
+      .evaluateAll((nodes: HTMLElement[]) =>
+        nodes.map(node => {
+          const fill = node.querySelector(
+            '.jp-ColumnStatsModal-fill'
+          ) as HTMLElement;
+          const rowTrack = node.querySelector(
+            '.jp-ColumnStatsModal-track'
+          ) as HTMLElement;
+          return {
+            share: parseFloat(fill.style.width),
+            rendered:
+              (fill.getBoundingClientRect().width /
+                rowTrack.getBoundingClientRect().width) *
+              100
+          };
+        })
+      );
+    expect(bars).toHaveLength(payload.counts.length);
+    bars.forEach((bar, index) => {
+      const share = (payload.counts[index] / maxCount) * 100;
+      expect(bar.share).toBeCloseTo(share, 2);
+      expect(bar.rendered).toBeCloseTo(share, 0);
+    });
+  });
+
+  test('should not overflow horizontally in a narrow window', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    await page.setViewportSize({ width: 600, height: 900 });
+    const dialog = await openStatsDialog(page, viewer, 'price');
+
+    const overflow = await dialog.evaluate((node: HTMLElement) => ({
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth
+    }));
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+
+    // The values pane scrolls vertically and never sideways
+    const scroll = await dialog
+      .locator('[data-testid="unique-values"]')
+      .evaluate((node: HTMLElement) => ({
+        scrollWidth: node.scrollWidth,
+        clientWidth: node.clientWidth
+      }));
+    expect(scroll.scrollWidth).toBe(scroll.clientWidth);
+
+    // Every track keeps a share of the row; a zero-width bar track hid the
+    // fill and a zero-width value track hid the value.
+    const tracks = await dialog
+      .locator('[data-testid="unique-value-row"]')
+      .first()
+      .evaluate((node: HTMLElement) =>
+        getComputedStyle(node)
+          .gridTemplateColumns.split(' ')
+          .map(track => parseFloat(track))
+      );
+    expect(tracks).toHaveLength(4);
+    for (const track of tracks) {
+      expect(track).toBeGreaterThan(0);
+    }
+  });
+
+  test('should keep the distribution and legend inside a short dialog', async ({
+    page
+  }) => {
+    // Below about 620px of viewport height the statistics column was clipped
+    // with no scroll region of its own.
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    await page.setViewportSize({ width: 1280, height: 660 });
+    const dialog = await openStatsDialog(page, viewer, 'price');
+
+    const box = await dialog.boundingBox();
+    expect(box).not.toBeNull();
+    for (const locator of [
+      dialog.locator('[data-testid="stats-panel-row-outliers"]'),
+      dialog.locator('.jp-ColumnStatsModal-boxlegend')
+    ]) {
+      const item = await locator.boundingBox();
+      expect(item).not.toBeNull();
+      expect(item!.y + item!.height).toBeLessThanOrEqual(box!.y + box!.height);
+    }
+
+    // Still no second scroll region
+    const statsOverflow = await dialog.evaluate((node: HTMLElement) => {
+      const stats = node.querySelector(
+        '.jp-ColumnStatsModal-stats'
+      ) as HTMLElement;
+      return getComputedStyle(stats).overflowY;
+    });
+    expect(statsOverflow).not.toBe('auto');
+  });
+
+  test('should format sub-second and negative durations like the grid', async ({
+    page
+  }) => {
+    // Whole-second rounding turned 1500000 us into 0:00:02 and -300000000 us
+    // into -0:05:00 where the grid shows str(timedelta) (DEF-STATS-36-DURATION,
+    // DEF-STATS-39-NEGDUR)
+    const dialog = await openAdaptiveStats(page, 'short');
+    const unique = dialog.locator('[data-testid="unique-values"]');
+    await expect(unique).toContainText('0:00:01.500000');
+    await expect(unique).toContainText('-1 day, 23:55:00');
+  });
+
+  test('should render duration[ns] statistics with nanosecond precision', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    // A duration[ns] cannot be committed as text, so the fixture is generated
+    // here. Its sub-microsecond digits are what the old microsecond formatter
+    // dropped from the distribution rows.
+    const localPath = path.join(
+      os.tmpdir(),
+      `ns_durations_${process.pid}.parquet`
+    );
+    const generator = [
+      'import sys',
+      'import pyarrow as pa',
+      'import pyarrow.parquet as pq',
+      'table = pa.table({',
+      "    'span_ns': pa.array([1500000001, 2000000002, 2500000003, 3000000004, 3500000005, 4000000006], pa.duration('ns')),",
+      "    'span_us': pa.array([1500000, 2000000, 2500000, 3000000, 3500000, 4000001], pa.duration('us')),",
+      "    'span_ms': pa.array([1500, 2000, 2500, 3000, 3500, 4000], pa.duration('ms')),",
+      "    'span_s': pa.array([2, 3, 4, 5, 6, 7], pa.duration('s')),",
+      '})',
+      'pq.write_table(table, sys.argv[1])'
+    ].join('\n');
+    execFileSync('python3', ['-c', generator, localPath]);
+    const contents = galata.newContentsHelper(request);
+    await contents.uploadFile(localPath, `${tmpPath}/nanoseconds.parquet`);
+    fs.unlinkSync(localPath);
+    await page.filebrowser.refresh();
+
+    const viewer = await openInViewer(page, 'nanoseconds.parquet');
+    await expect(gridRows(viewer)).toHaveCount(6, { timeout: GRID_TIMEOUT });
+    // The grid fills asynchronously as the first page arrives, so poll the
+    // cells instead of sampling them the moment the row count settles.
+    await expect
+      .poll(async () => gridRows(viewer).locator('td').allTextContents(), {
+        timeout: GRID_TIMEOUT
+      })
+      .toContain('0 days 00:00:01.500000001');
+
+    const nsDialog = await openStatsDialog(page, viewer, 'span_ns');
+    const nsPanel = nsDialog.locator('[data-testid="stats-panel"]');
+    await expect(panelValue(nsPanel, 'min')).toHaveText(
+      '0 days 00:00:01.500000001'
+    );
+    await expect(panelValue(nsPanel, 'max')).toHaveText(
+      '0 days 00:00:04.000000006'
+    );
+    await nsDialog.locator('[data-testid="close-stats"]').click();
+    await expect(nsDialog).toBeHidden();
+
+    // The coarser units keep the Python timedelta form
+    const usDialog = await openStatsDialog(page, viewer, 'span_us');
+    await expect(
+      panelValue(usDialog.locator('[data-testid="stats-panel"]'), 'min')
+    ).toHaveText('0:00:01.500000');
+    await usDialog.locator('[data-testid="close-stats"]').click();
+
+    const msDialog = await openStatsDialog(page, viewer, 'span_ms');
+    await expect(
+      panelValue(msDialog.locator('[data-testid="stats-panel"]'), 'min')
+    ).toHaveText('0:00:01.500000');
+    await msDialog.locator('[data-testid="close-stats"]').click();
+
+    const sDialog = await openStatsDialog(page, viewer, 'span_s');
+    await expect(
+      panelValue(sDialog.locator('[data-testid="stats-panel"]'), 'min')
+    ).toHaveText('0:00:02');
+  });
+
+  test('should not draw a box plot for a constant column', async ({ page }) => {
+    // min equals max put every box position at 0 (DEF-STATS-38-CONSTPLOT)
+    const dialog = await openAdaptiveStats(page, 'same');
+    await expect(dialog.locator('[data-testid="stats-panel"]')).toContainText(
+      'Distribution'
+    );
+    await expect(dialog.locator('[data-testid="boxplot"]')).toHaveCount(0);
+  });
+
+  test('should move keyboard focus into the statistics dialog', async ({
+    page
+  }) => {
+    // Focus stayed on the grid behind the overlay (DEF-STATS-35-FOCUS)
+    await openAdaptiveStats(page, 'price');
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            !!document.activeElement?.closest('[data-testid="stats-dialog"]')
+        )
+      )
+      .toBe(true);
+  });
+
+  test('should render the text and time-range statistics blocks', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'typed_columns.parquet');
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+
+    const categoryDialog = await openStatsDialog(page, viewer, 'category');
+    const textPanel = categoryDialog.locator('[data-testid="stats-panel"]');
+    await expect(textPanel).toContainText('Text');
+    await expect(
+      textPanel.locator('[data-testid="stats-panel-row-most_common"]')
+    ).toContainText('green');
+    await expect(
+      textPanel.locator('[data-testid="stats-panel-row-top_share"]')
+    ).toContainText('50.0%');
+    await categoryDialog.locator('[data-testid="close-stats"]').click();
+    await expect(categoryDialog).toBeHidden();
+
+    const clockDialog = await openStatsDialog(page, viewer, 'clock');
+    const timePanel = clockDialog.locator('[data-testid="stats-panel"]');
+    await expect(timePanel).toContainText('Time range');
+    await expect(
+      timePanel.locator('[data-testid="stats-panel-row-earliest"]')
+    ).toContainText('09:00:00');
+    await expect(
+      timePanel.locator('[data-testid="stats-panel-row-latest"]')
+    ).toContainText('09:11:00');
+    await expect(
+      timePanel.locator('[data-testid="stats-panel-row-span"]')
+    ).toContainText('0:11:00');
+  });
+
+  test('should render the summary tiles for an integer column', async ({
+    page
+  }) => {
+    const dialog = await openAdaptiveStats(page, 'id');
+    await expectTiles(dialog, [
+      ['Total rows', '12'],
+      ['Non-null', '12'],
+      ['Null', '0'],
+      ['Unique (non-null)', '12']
+    ]);
+  });
+
+  test('should state each tile sublabel as a share of its denominator', async ({
+    page
+  }) => {
+    // One tile read 'all rows' while the others read 'of all rows', so the
+    // four sublabels did not follow one pattern.
+    const dialog = await openAdaptiveStats(page, 'id');
+    const subs = await dialog
+      .locator('.jp-ColumnStatsModal-tileSub')
+      .allTextContents();
+    expect(subs).toEqual([
+      '100.0% of all rows',
+      '100.0% of all rows',
+      '0.0% of all rows',
+      '100.0% of non-null values'
+    ]);
+    await expect(
+      dialog.locator('.jp-ColumnStatsModal-tileLabel').nth(3)
+    ).toHaveText('Unique (non-null)');
+  });
+
+  test('should count non-null distinct values in the Unique tile and null rows in the note', async ({
+    page
+  }) => {
+    // The Unique tile counts distinct non-null values (33 here) while the note
+    // counts every listed row, including the null row (34), so both labels
+    // must name their own population.
+    const viewer = await openInViewer(page, 'activity_stats.parquet');
+    const dialog = await openStatsDialog(page, viewer, 'alarm_rate_trend');
+    const tiles = dialog.locator('.jp-ColumnStatsModal-tile');
+    await expect(
+      tiles.nth(1).locator('.jp-ColumnStatsModal-tileSub')
+    ).toHaveText('57.1% of all rows');
+    await expect(
+      tiles.nth(2).locator('.jp-ColumnStatsModal-tileSub')
+    ).toHaveText('42.9% of all rows');
+    await expect(
+      tiles.nth(3).locator('.jp-ColumnStatsModal-tileLabel')
+    ).toHaveText('Unique (non-null)');
+    await expect(
+      tiles.nth(3).locator('.jp-ColumnStatsModal-tileValue')
+    ).toHaveText('33');
+    await expect(
+      tiles.nth(3).locator('.jp-ColumnStatsModal-tileSub')
+    ).toHaveText('1.6% of non-null values');
+
+    await expect(dialog.locator('.jp-ColumnStatsModal-valuesNote')).toHaveText(
+      '34 of 34 listed rows · ranked by count'
+    );
+    const rows = dialog.locator('[data-testid="unique-value-row"]');
+    await expect(rows).toHaveCount(34);
+    expect(
+      await rows.locator('.jp-ColumnStatsModal-value').allTextContents()
+    ).toContain('(null)');
+  });
+
+  test('should render the date range for a date column', async ({ page }) => {
+    const dialog = await openAdaptiveStats(page, 'day');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Date range');
+    await expect(panelValue(panel, 'earliest')).toHaveText('2026-01-01');
+    await expect(panelValue(panel, 'latest')).toHaveText('2026-01-12');
+    await expect(panelValue(panel, 'span')).toHaveText('11 days');
+  });
+
+  test('should render the date and time range for a timestamp column', async ({
+    page
+  }) => {
+    const dialog = await openAdaptiveStats(page, 'created');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Date and time range');
+    await expect(panelValue(panel, 'earliest')).toHaveText(
+      '2026-01-01T09:00:00'
+    );
+    await expect(panelValue(panel, 'latest')).toHaveText('2026-01-12T09:11:00');
+    await expect(panelValue(panel, 'time_of_day')).toHaveText(
+      '09:00:00 to 09:11:00'
+    );
+  });
+
+  test('should render fractional seconds in the time range', async ({
+    page
+  }) => {
+    const dialog = await openAdaptiveStats(page, 'tick');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Time range');
+    await expect(panelValue(panel, 'earliest')).toHaveText('09:30:00.500000');
+    await expect(panelValue(panel, 'latest')).toHaveText('09:30:10.250000');
+    await expect(panelValue(panel, 'span')).toHaveText('0:00:09.750000');
+  });
+
+  test('should render the boolean counts', async ({ page }) => {
+    const dialog = await openAdaptiveStats(page, 'flag');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Boolean');
+    await expect(panelValue(panel, 'true')).toHaveText('7 (58.3% of non-null)');
+    await expect(panelValue(panel, 'false')).toHaveText(
+      '5 (41.7% of non-null)'
+    );
+  });
+
+  test('should render the distribution for a decimal column', async ({
+    page
+  }) => {
+    const dialog = await openAdaptiveStats(page, 'price');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Distribution');
+    const rows: [string, string][] = [
+      ['q1', 'Q1'],
+      ['q3', 'Q3'],
+      ['mean', 'Mean']
+    ];
+    for (const [key, label] of rows) {
+      await expect(
+        panel.locator(`[data-testid="stats-panel-row-${key}"]`)
+      ).toContainText(label);
+      await expect(panelValue(panel, key)).toHaveText(/[\d.]/);
+    }
+    // The outlier percentage is a share of the non-null values and says so
+    await expect(panelValue(panel, 'outliers')).toHaveText(
+      '1 (8.3% of non-null)'
+    );
+  });
+
+  test('should explain that a binary column has no statistics', async ({
+    page
+  }) => {
+    const dialog = await openAdaptiveStats(page, 'payload');
+    await expectTiles(dialog, [
+      ['Total rows', '12'],
+      ['Non-null', '12'],
+      ['Null', '0'],
+      ['Unique (non-null)', '3']
+    ]);
+    await expect(
+      dialog
+        .locator('[data-testid="stats-panel"]')
+        .locator('.jp-ColumnStatsModal-note')
+    ).toHaveText('No statistics are computed for this column.');
+  });
+
+  test('should render a nested column as a text block', async ({ page }) => {
+    const dialog = await openAdaptiveStats(page, 'tags');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Text');
+    const mostCommon = panel.locator(
+      '[data-testid="stats-panel-row-most_common"]'
+    );
+    await expect(mostCommon).toBeVisible();
+    await expect(
+      mostCommon.locator('.jp-ColumnStatsModal-rowLabel')
+    ).toHaveText('Most common');
+    await expect(panelValue(panel, 'most_common')).toHaveText('["a", "b"] (5)');
+  });
+
+  test('should show text and distribution statistics for a numeric-text column', async ({
+    page
+  }) => {
+    // A column of digit strings stays a string column, but it has the numeric
+    // aggregates too, so the panel carries both blocks.
+    const dialog = await openAdaptiveStats(page, 'zip');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Text');
+    await expect(panel).toContainText('Distribution');
+    await expect(panelValue(panel, 'min')).toHaveText('2');
+    await expect(panelValue(panel, 'max')).toHaveText('10');
+    await expect(panelValue(panel, 'mean')).toHaveText('7.25');
+    await expect(panelValue(panel, 'median')).toHaveText('8.5');
+  });
+
+  test('should report an all-null column as having no values', async ({
+    page
+  }) => {
+    const dialog = await openAdaptiveStats(page, 'blank');
+    await expectTiles(dialog, [
+      ['Total rows', '12'],
+      ['Non-null', '0'],
+      ['Null', '12'],
+      ['Unique (non-null)', '0']
+    ]);
+    await expect(
+      dialog
+        .locator('[data-testid="stats-panel"]')
+        .locator('.jp-ColumnStatsModal-note')
+    ).toHaveText('The column has no values.');
+    await expect(dialog.locator('[data-testid="unique-values"]')).toContainText(
+      'No values to list'
+    );
+  });
+
+  test('should rank unique values by count with a share bar each', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    const header = viewer.locator('.jp-TabularDataViewer-headerCell', {
+      hasText: 'price'
+    });
+
+    // Capture the two payloads the dialog renders from, so the rows below are
+    // compared against what the backend sent rather than against arithmetic
+    // this test repeats back to itself.
+    const statsResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/column-stats') &&
+        response.request().method() === 'POST'
+    );
+    const uniqueResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/unique-values') &&
+        response.request().method() === 'POST'
+    );
+    await header.locator('.jp-TabularDataViewer-infoIcon').click();
+    const dialog = page.locator('[data-testid="stats-dialog"]');
+    await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+    const stats = await (await statsResponse).json();
+    const payload = await (await uniqueResponse).json();
+
+    // The endpoint orders most frequent first
+    expect(payload.counts).toEqual(
+      [...payload.counts].sort((a: number, b: number) => b - a)
+    );
+
+    const rows = dialog.locator('[data-testid="unique-value-row"]');
+    await expect(rows).toHaveCount(payload.values.length);
+
+    const maxCount = Math.max(...payload.counts, 1);
+    for (let i = 0; i < payload.values.length; i++) {
+      const row = rows.nth(i);
+      await expect(row.locator('.jp-ColumnStatsModal-value')).toHaveText(
+        payload.values[i]
+      );
+      await expect(row.locator('.jp-ColumnStatsModal-valueCount')).toHaveText(
+        String(payload.counts[i])
+      );
+      // The bar is the count's share of the largest count
+      const width = await row
+        .locator('.jp-ColumnStatsModal-fill')
+        .evaluate((node: HTMLElement) => parseFloat(node.style.width));
+      expect(width).toBeCloseTo((payload.counts[i] / maxCount) * 100, 2);
+      // The percentage column is the count's share of all rows
+      await expect(row.locator('.jp-ColumnStatsModal-valuePct')).toHaveText(
+        `${((payload.counts[i] / stats.total_rows) * 100).toFixed(2)}%`
+      );
+    }
+  });
+
+  test('should name what the unique-values bar and percentage measure', async ({
+    page
+  }) => {
+    // 'Share' is the bar normalised to the largest count, and '%' is the
+    // row's count as a percentage of all rows.
+    const dialog = await openAdaptiveStats(page, 'price');
+    const headers = await dialog
+      .locator('.jp-ColumnStatsModal-valueCols span')
+      .allTextContents();
+    expect(headers).toEqual(['Value', 'Share', 'Count', '%']);
+
+    // The bar is normalised to the largest count, so its widest fill is 100%
+    const fills = await dialog
+      .locator('.jp-ColumnStatsModal-fill')
+      .evaluateAll((nodes: HTMLElement[]) =>
+        nodes.map(node => parseFloat(node.style.width))
+      );
+    expect(Math.max(...fills)).toBeCloseTo(100, 2);
+  });
+
+  test('should wrap a long unique value', async ({ page }) => {
+    // The activity_stats ids are 48 characters and the values column is at
+    // most 150px wide, so an ellipsis hid the value; the span wraps instead.
+    const viewer = await openInViewer(page, 'activity_stats.parquet');
+    const header = viewer.locator('.jp-TabularDataViewer-headerCell').filter({
+      has: page.locator('.jp-TabularDataViewer-columnName', {
+        hasText: /^id$/
+      })
+    });
+    await header.locator('.jp-TabularDataViewer-infoIcon').click();
+    const dialog = page.locator('[data-testid="stats-dialog"]');
+    await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+
+    const value = dialog
+      .locator('[data-testid="unique-value-row"] .jp-ColumnStatsModal-value')
+      .first();
+    await expect(value).toBeVisible();
+    const metrics = await value.evaluate((node: HTMLElement) => ({
+      text: node.textContent,
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth
+    }));
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
+  });
+
+  test('should plot the mean line apart from the median line', async ({
+    page
+  }) => {
+    const dialog = await openAdaptiveStats(page, 'price');
+    const plot = dialog.locator('[data-testid="boxplot"]');
+    await expect(plot).toBeVisible();
+
+    const mean = plot.locator('.jp-ColumnStatsModal-mean');
+    const median = plot.locator('.jp-ColumnStatsModal-median');
+    await expect(mean).toBeVisible();
+    await expect(median).toBeVisible();
+    expect(
+      await mean.evaluate(
+        (node: HTMLElement) => getComputedStyle(node).borderLeftStyle
+      )
+    ).toBe('dotted');
+
+    const meanBox = await mean.boundingBox();
+    const medianBox = await median.boundingBox();
+    expect(meanBox).not.toBeNull();
+    expect(medianBox).not.toBeNull();
+    expect(meanBox!.x).not.toBe(medianBox!.x);
+  });
+
+  test('should style the header chip and expose copy and close actions', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    const dialog = await openStatsDialog(page, viewer, 'price');
+    const chip = dialog.locator('.jp-ColumnStatsModal-chip');
+    await expect(chip).toBeVisible();
+    // The backend reports decimal128(10, 2); the chip shows the same simplified
+    // label the grid header shows.
+    await expect(chip).toHaveText('decimal');
+    await expect(
+      viewer
+        .locator('.jp-TabularDataViewer-headerCell', { hasText: 'price' })
+        .locator('.jp-TabularDataViewer-columnType')
+    ).toHaveText('decimal');
+    const styles = await chip.evaluate((node: HTMLElement) => {
+      const computed = getComputedStyle(node);
+      return { borderRadius: computed.borderRadius, height: computed.height };
+    });
+    expect(styles.borderRadius).toBe('2px');
+    expect(styles.height).toBe('22px');
+    await expect(dialog.locator('[data-testid="copy-stats"]')).toBeVisible();
+    await expect(dialog.locator('[data-testid="close-stats"]')).toBeVisible();
+  });
+
+  test('should copy the statistics as JSON', async ({ page }) => {
+    await page
+      .context()
+      .grantPermissions(['clipboard-read', 'clipboard-write']);
+    const dialog = await openAdaptiveStats(page, 'price');
+    await dialog.locator('[data-testid="copy-stats"]').click();
+
+    // Reading the clipboard is the assertion: a button that only relabels
+    // itself would leave the previous clipboard contents in place.
+    let text = '';
+    await expect
+      .poll(
+        async () => {
+          text = await page.evaluate(() => navigator.clipboard.readText());
+          return text;
+        },
+        { timeout: 10000 }
+      )
+      .toContain('"column_name"');
+    const copied = JSON.parse(text);
+    expect(copied.column_name).toBe('price');
+  });
+
+  test('should report a refused clipboard write', async ({ page }) => {
+    // A denied clipboard left the button unchanged (DEF-STATS-37-COPYFAIL)
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: () => Promise.reject(new Error('clipboard denied'))
+        },
+        configurable: true
+      });
+    });
+    const dialog = await openAdaptiveStats(page, 'price');
+    const copy = dialog.locator('[data-testid="copy-stats"]');
+    await copy.click();
+    await expect(copy).toHaveText('Copy failed');
+  });
+
+  test('should close the dialog on Escape and leave the grid intact', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    const dialog = await openStatsDialog(page, viewer, 'id');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(gridRows(viewer)).toHaveCount(12);
+  });
+
+  test.describe('keyboard access to the statistics dialog', () => {
+    test('should open the dialog from the header control with Enter and Space', async ({
+      page
+    }) => {
+      // The info icon was a hover-only <i> with a click handler, so the dialog
+      // could not be opened without a mouse.
+      const viewer = await openInViewer(page, 'adaptive_types.parquet');
+      const control = statsControl(viewer, 'price');
+      await expect(control).toHaveAttribute('role', 'button');
+      await expect(control).toHaveAttribute(
+        'aria-label',
+        'Show statistics for column price'
+      );
+      expect(await control.evaluate((node: HTMLElement) => node.tabIndex)).toBe(
+        0
+      );
+
+      const dialog = page.locator('[data-testid="stats-dialog"]');
+      await control.focus();
+      await page.keyboard.press('Enter');
+      await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+
+      await control.focus();
+      await page.keyboard.press('Space');
+      await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+    });
+
+    test('should focus and keyboard-scroll the unique values pane', async ({
+      page
+    }) => {
+      // The values pane was the only scroll region and could not take focus.
+      const viewer = await openInViewer(
+        page,
+        'sample_data.csv',
+        'Tabular Data Viewer (Text)'
+      );
+      const dialog = await openStatsDialog(page, viewer, 'name');
+      const pane = dialog.locator('[data-testid="unique-values"]');
+      await expect(pane).toHaveAttribute('aria-label', 'Unique values');
+      await pane.focus();
+      await expect
+        .poll(() =>
+          pane.evaluate((node: HTMLElement) => document.activeElement === node)
+        )
+        .toBe(true);
+
+      const before = await pane.evaluate((node: HTMLElement) => node.scrollTop);
+      await page.keyboard.press('PageDown');
+      await expect
+        .poll(() => pane.evaluate((node: HTMLElement) => node.scrollTop))
+        .toBeGreaterThan(before);
+    });
+
+    test('should return focus to the header control on Escape', async ({
+      page
+    }) => {
+      const viewer = await openInViewer(page, 'adaptive_types.parquet');
+      const control = statsControl(viewer, 'price');
+      await control.focus();
+      await page.keyboard.press('Enter');
+      const dialog = page.locator('[data-testid="stats-dialog"]');
+      await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect
+        .poll(() =>
+          control.evaluate(
+            (node: HTMLElement) => document.activeElement === node
+          )
+        )
+        .toBe(true);
+    });
+
+    test('should open exactly one dialog when activated twice while loading', async ({
+      page
+    }) => {
+      // A second activation while the first request was in flight stacked a
+      // second dialog when both requests resolved. The glob would not match:
+      // ServerConnection appends a cache-buster query to every request.
+      let statsRequests = 0;
+      await page.route(/\/column-stats(?:\?|$)/, async route => {
+        statsRequests += 1;
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await route.continue();
+      });
+
+      const viewer = await openInViewer(page, 'adaptive_types.parquet');
+      const control = statsControl(viewer, 'price');
+      await control.focus();
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+
+      const dialogs = page.locator('[data-testid="stats-dialog"]');
+      await expect(dialogs).toBeVisible({ timeout: GRID_TIMEOUT });
+      // A second dialog would open once the shared load completed.
+      await page.waitForTimeout(500);
+      await expect(dialogs).toHaveCount(1);
+      expect(statsRequests).toBe(1);
+    });
+  });
+
+  test.describe('with maxUniqueValues set to 5', () => {
+    test.use({
+      mockSettings: {
+        ...galata.DEFAULT_SETTINGS,
+        [PLUGIN_ID]: { maxUniqueValues: 5 }
+      }
+    });
+
+    test('should limit the unique values list to the setting', async ({
+      page
+    }) => {
+      const dialog = await openAdaptiveStats(page, 'id');
+      await expect(
+        dialog.locator('.jp-ColumnStatsModal-valuesNote')
+      ).toContainText('5 of 12 listed rows');
+      await expect(
+        dialog.locator('[data-testid="unique-value-row"]')
+      ).toHaveCount(5);
+    });
   });
 
   test.describe('with rowsPerPage set to 10', () => {

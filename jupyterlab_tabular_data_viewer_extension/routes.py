@@ -23,11 +23,24 @@ import pyarrow as pa
 from .readers import (
     _served_type,
     get_file_type,
+    is_binary_placeholder,
     list_excel_sheets,
     list_sqlite_tables,
     read_as_arrow_table,
 )
 from .stats import calculate_column_stats, json_safe, numeric_view
+
+
+def _served_field_type(field):
+    """The type a column is served as, for a field of the reader's schema.
+
+    A SQLite BLOB column is served as '<BLOB size>' text and keeps string
+    values, so the reader's field marker - not the arrow type - says it holds
+    binary data.
+    """
+    if is_binary_placeholder(field):
+        return pa.binary()
+    return _served_type(field.type)
 
 
 def slugify(s):
@@ -223,6 +236,43 @@ def convert_to_json_serializable(value):
         return value
 
 
+def column_as_text(column):
+    """Text form of a column for filtering and unique values.
+
+    The text has to equal what the grid shows, because a value picked in the
+    filter dialog builds a regex from the unique-values payload. Binary cells
+    are decoded with replacement rather than cast - `pc.cast` raises on invalid
+    UTF-8 and aborted the whole request - and temporal cells use the ISO form
+    the rows response emits, not the space-separated form `pc.cast` produces.
+    Every other type keeps the plain cast, whose text is `String(value)`.
+    """
+    column_type = column.type
+    if (
+        pa.types.is_binary(column_type)
+        or pa.types.is_large_binary(column_type)
+        or pa.types.is_fixed_size_binary(column_type)
+        or pa.types.is_binary_view(column_type)
+    ):
+        return pa.array(
+            [
+                None if value is None else value.decode("utf-8", errors="replace")
+                for value in column.to_pylist()
+            ],
+            pa.string(),
+        )
+    if (
+        pa.types.is_date(column_type)
+        or pa.types.is_time(column_type)
+        or pa.types.is_timestamp(column_type)
+        or pa.types.is_duration(column_type)
+    ):
+        return pa.array(
+            [convert_to_json_serializable(value) for value in column.to_pylist()],
+            pa.string(),
+        )
+    return pc.cast(column, pa.string())
+
+
 def normalize_arrow_type(arrow_type_str):
     """Normalize PyArrow type strings for user-friendly display.
 
@@ -326,16 +376,16 @@ class ParquetMetadataHandler(APIHandler):
                 return
 
             # Extract column information. The parquet fast path reports the
-            # FILE's schema, so each type goes through the reader's
-            # `_served_type` and the type answered here is the one the rows
-            # carry (DEF-LOAD-24).
+            # FILE's schema, so each type goes through `_served_field_type`
+            # and the type answered here is the one the rows carry
+            # (DEF-LOAD-24).
             columns = []
             for i in range(len(schema)):
                 field = schema.field(i)
                 columns.append(
                     {
                         "name": field.name,
-                        "type": normalize_arrow_type(str(_served_type(field.type))),
+                        "type": normalize_arrow_type(str(_served_field_type(field))),
                     }
                 )
 
@@ -457,8 +507,8 @@ class ParquetDataHandler(APIHandler):
                     column = table.column(col_name)
 
                     if filter_type == "text":
-                        # Cast column to string for text filtering (handles both string and numeric columns)
-                        column_str = pc.cast(column, pa.string())
+                        # Text form shared with the grid and the filter dialog
+                        column_str = column_as_text(column)
 
                         # Replace null values with "(null)" for consistent filtering
                         column_str = pc.fill_null(column_str, "(null)")
@@ -697,38 +747,37 @@ class UniqueValuesHandler(APIHandler):
             # Get column
             column = table.column(column_name)
 
-            # Cast to string to handle all types uniformly
-            column_str = pc.cast(column, pa.string())
-
-            # Replace null values with the string "(null)" for consistent handling
-            column_str = pc.fill_null(column_str, "(null)")
-
             # Get limit from request (default to 100 if not provided)
             limit = input_data.get("limit", 100)
 
-            # Get value counts
-            value_counts = pc.value_counts(column_str)
+            # value_counts and take have no kernel for views, and a view null
+            # counts as ''; the base type keeps both correct.
+            if pa.types.is_string_view(column.type):
+                column = pc.cast(column, pa.string())
+            elif pa.types.is_binary_view(column.type):
+                column = pc.cast(column, pa.binary())
+
+            # Count raw values. Casting the whole column to text first cost
+            # seconds and hundreds of megabytes per request on wide data.
+            value_counts = pc.value_counts(column)
 
             # value_counts returns a StructArray with 'values' and 'counts' fields
             values_array = value_counts.field("values")
             counts_array = value_counts.field("counts")
 
-            # Combine into list of tuples
-            value_count_pairs = list(
-                zip(values_array.to_pylist(), counts_array.to_pylist())
-            )
-
-            # Sort by count (frequency) descending - most frequent first
-            value_count_pairs.sort(key=lambda x: x[1], reverse=True)
-
-            # Limit the results
-            total_unique = len(value_count_pairs)
+            # Stable descending sort, so ties keep the value_counts order
+            order = pc.sort_indices(counts_array, sort_keys=[("", "descending")])
+            total_unique = len(value_counts)
             if limit > 0:
-                value_count_pairs = value_count_pairs[:limit]
+                order = order.slice(0, limit)
+            values_array = pc.take(values_array, order)
+            counts_array = pc.take(counts_array, order)
 
-            # Separate back into values and counts
-            values_list = [v for v, c in value_count_pairs]
-            counts_list = [c for v, c in value_count_pairs]
+            # Only the returned rows need the text form
+            values_array = pc.fill_null(column_as_text(values_array), "(null)")
+
+            values_list = values_array.to_pylist()
+            counts_list = counts_array.to_pylist()
 
             result = {
                 "values": values_list,
@@ -847,7 +896,7 @@ class DownloadHandler(APIHandler):
                     column = table.column(col_name)
 
                     if filter_type == "text":
-                        column_str = pc.cast(column, pa.string())
+                        column_str = column_as_text(column)
                         column_str = pc.fill_null(column_str, "(null)")
 
                         if use_regex:

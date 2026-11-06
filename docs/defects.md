@@ -289,3 +289,59 @@ sort, filter and statistics requests on an open table
   - log: 2026-09-14T23:40:27Z @kj added
   - log: 2026-09-14T23:40:28Z @kj closed: wontfix: nobody filtering integer ids or counts types a bound with 20 decimal places; capping the entry's scale correctly needs rounding in a direction chosen per operator, a branch no realistic entry needs
   - log: 2026-09-14T23:48:47Z @kj edited title and text
+
+## Column statistics `STATS`
+
+The column statistics dialog and its payload.
+
+- log: 2026-11-05T15:09:44Z @kj category created
+
+- [x] `DEF-STATS-35-FOCUS` **dialog never takes keyboard focus** - MAJOR; opening the statistics dialog leaves keyboard focus on the grid behind the overlay; cause `show()` focuses a div with no tabIndex; fix focus the dialog and give it tabIndex -1; `src/modal.ts`
+  - evidence: galata 'should move keyboard focus into the statistics dialog': document.activeElement sits inside [data-testid=stats-dialog] after open
+  - repro: open a column statistics dialog and press Tab
+  - test-tags: FUNCTIONAL, E2E
+  - log: 2026-11-05T15:09:44Z @kj added
+  - log: 2026-11-05T15:42:12Z @kj closed
+- [x] `DEF-STATS-36-DURATION` **sub-second durations round to whole seconds** - MEDIUM; a duration of 1500000 us shows 0:00:02 where the grid shows 0:00:01.500000; cause the formatter rounds to whole seconds; fix render fractional seconds when the value has them; `src/modal.ts`
+  - evidence: galata 'should format sub-second and negative durations like the grid': 1500000 us renders 0:00:01.500000
+  - repro: open a duration column holding 1500000 and open its statistics
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T15:09:44Z @kj added
+  - log: 2026-11-05T15:42:12Z @kj closed
+- [x] `DEF-STATS-37-COPYFAIL` **clipboard refusal is silent** - MEDIUM; when the clipboard write rejects the Copy stats as JSON button keeps its label and shows no failure; cause the catch only logs to the console; fix set a failure state on the button; `src/modal.ts`
+  - evidence: galata 'should report a refused clipboard write': a rejecting writeText leaves the button reading Copy failed
+  - repro: deny clipboard permission in the browser and click Copy stats as JSON
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-05T15:09:44Z @kj added
+  - log: 2026-11-05T15:42:12Z @kj closed
+- [x] `DEF-STATS-38-CONSTPLOT` **constant column draws an empty box plot** - MINOR; a column of twelve rows all holding 5 draws an empty box plot; cause min equals max makes every position 0; fix draw no plot when min equals max; `src/modal.ts`
+  - evidence: galata 'should not draw a box plot for a constant column': no [data-testid=boxplot] on the twelve-5s column
+  - repro: open a column of twelve identical values and open its statistics
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-05T15:09:44Z @kj added
+  - log: 2026-11-05T15:42:12Z @kj closed
+- [x] `DEF-STATS-39-NEGDUR` **negative durations differ from the grid** - MINOR; a duration of -300000000 us shows -0:05:00 where the grid shows -1 day, 23:55:00; cause the dialog formats seconds directly; fix use the grid timedelta form for negative values; `src/modal.ts`
+  - evidence: galata 'should format sub-second and negative durations like the grid': -300000000 us renders -1 day, 23:55:00 as the grid does
+  - repro: open a duration column holding -300000000 and open its statistics
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T15:09:44Z @kj added
+  - log: 2026-11-05T15:42:12Z @kj closed
+- [x] `DEF-STATS-40-WIDTH` **Dialog fills a wide window and strands the counts** - MEDIUM; on a 2100 px window the dialog is about 2050 px wide; the value, its bar and the count and % columns spread across the pane, so a row cannot be read as one line
+  - evidence: galata 'should cap and center the dialog on a wide window': at a 2100 px viewport the dialog is at most 1100 px wide, centered within 2 px, and the count cell starts less than 760 px right of the value cell
+  - repro: open the statistics dialog for any column in a window about 2100 px wide
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-05T17:57:24Z @kj added
+  - log: 2026-11-05T18:42:06Z @kj closed
+- [x] `DEF-STATS-41-BARS` **Share bars fill almost the whole row** - MEDIUM; the bar track takes all leftover width in a 760 px row, so a bar is about 490 px and reads as a full bar even when every value occurs once
+  - evidence: galata 'should fit the tile labels and value headers at 2089x1244': the bar track measures at most 201 px and the fill still equals the count's share of the largest count
+  - repro: open the statistics dialog for a column whose values each occur once, such as a time column with 12 distinct values
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-05T20:57:54Z @kj added
+  - log: 2026-11-05T21:24:54Z @kj closed
+- [x] `DEF-STATS-42-BLOB` **BLOB column is served as string and gets text statistics** - MAJOR; the sqlite reader renders BLOBs as '<BLOB 256 B>' placeholders in a text column, so the grid header reads string and the dialog computes lengths and counts over the placeholder text instead of the blob
+  - evidence: pytest test_sqlite_blob_column_reports_binary_with_counts_only and Galata 'should report a BLOB column as binary with no statistics' pass; metadata reports pa.binary() via the jl_tabular_binary_placeholder field marker; 201 pytest and 64 Galata green at 1.7.20
+  - repro: open the attachments table of a sqlite file with a blob content column, then open its statistics
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-05T20:59:58Z @kj added
+  - log: 2026-11-05T21:56:11Z @kj closed
+  - log: 2026-11-05T22:34:50Z @kj round 6 found the unique count counted placeholder sizes; the binary_placeholder flag and 'Unique (as shown)' label fix it; pytest 202, Galata 64

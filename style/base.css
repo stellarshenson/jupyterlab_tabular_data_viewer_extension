@@ -538,47 +538,90 @@
 }
 
 .jp-ColumnStatsModal-content {
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  max-width: 1100px;
+  margin: 0 auto;
+  max-height: calc(100vh - 16px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background-color: var(--jp-layout-color1);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  padding: 20px;
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 10px;
+  box-shadow: 0 12px 34px rgb(0 0 0 / 25%);
   color: var(--jp-ui-font-color1);
   font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
 }
 
 .jp-ColumnStatsModal-header {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--jp-border-color1);
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 14px 18px 11px;
+  border-bottom: 1px solid var(--jp-border-color1);
 }
 
 .jp-ColumnStatsModal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--jp-ui-font-size2);
   font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.jp-ColumnStatsModal-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 2px;
+  background-color: var(--jp-layout-color2);
+  color: var(--jp-ui-font-color2);
+  font-family: var(--jp-ui-font-family);
+  font-size: 11px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.jp-ColumnStatsModal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.jp-ColumnStatsModal-copy {
+  padding: 5px 10px;
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 6px;
+  background: transparent;
   color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.jp-ColumnStatsModal-copy:hover {
+  background-color: var(--jp-layout-color2);
 }
 
 .jp-ColumnStatsModal-close {
-  background: none;
-  border: none;
-  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--jp-ui-font-color2);
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
-  color: var(--jp-ui-font-color2);
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
 }
 
 .jp-ColumnStatsModal-close:hover {
@@ -586,95 +629,332 @@
   color: var(--jp-ui-font-color1);
 }
 
-.jp-ColumnStatsModal-copy {
-  margin-bottom: 16px;
-  text-align: center;
+.jp-ColumnStatsModal-body {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 18px 16px;
 }
 
-.jp-ColumnStatsModal-copyButton {
-  background-color: var(--jp-brand-color1);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--jp-ui-font-family);
-  transition: background-color 0.2s ease;
+.jp-ColumnStatsModal-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
 }
 
-.jp-ColumnStatsModal-copyButton:hover {
-  background-color: var(--jp-brand-color2);
+.jp-ColumnStatsModal-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.jp-ColumnStatsModal-copyButton:active {
-  background-color: var(--jp-brand-color3);
+.jp-ColumnStatsModal-tile {
+  min-width: 0;
+  min-height: 78px;
+  padding: 8px 10px;
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 8px;
+  background-color: var(--jp-layout-color2);
 }
 
-.jp-ColumnStatsModal-type {
-  font-size: 14px;
+.jp-ColumnStatsModal-tileLabel {
+  overflow: hidden;
   color: var(--jp-ui-font-color2);
-  margin-bottom: 20px;
-  font-style: italic;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: normal;
 }
 
-.jp-ColumnStatsModal-section {
-  margin-bottom: 20px;
-}
-
-.jp-ColumnStatsModal-section h4 {
-  margin: 0 0 8px;
-  font-size: 15px;
+.jp-ColumnStatsModal-tileValue {
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--jp-ui-font-color1);
+  line-height: 1.25;
 }
 
-.jp-ColumnStatsModal-section ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.jp-ColumnStatsModal-section li {
-  padding: 4px 0;
-  font-size: 14px;
-  color: var(--jp-ui-font-color1);
-}
-
-.jp-ColumnStatsModal-section li::before {
-  content: '• ';
-  color: var(--jp-brand-color1);
-  font-weight: bold;
-  margin-right: 8px;
-}
-
-.jp-ColumnStatsModal-info {
-  font-size: 13px;
+.jp-ColumnStatsModal-tileSub {
   color: var(--jp-ui-font-color2);
-  margin-bottom: 8px;
-  font-style: italic;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
 }
 
-.jp-ColumnStatsModal-uniqueValuesList {
-  list-style: none;
-  padding: 0;
+.jp-ColumnStatsModal-panel {
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--jp-border-color1);
+}
+
+.jp-ColumnStatsModal-panel h4 {
+  margin: 0 0 6px;
+  color: var(--jp-ui-font-color2);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.jp-ColumnStatsModal-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 24px;
+  font-size: 12.5px;
+}
+
+.jp-ColumnStatsModal-rowLabel {
+  color: var(--jp-ui-font-color2);
+  white-space: nowrap;
+}
+
+.jp-ColumnStatsModal-rowValue {
+  margin-left: auto;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-ColumnStatsModal-note {
+  margin: 6px 0 0;
+  color: var(--jp-ui-font-color2);
+  font-size: 12px;
+}
+
+.jp-ColumnStatsModal-boxplot {
+  position: relative;
+  height: 26px;
+  margin: 8px 0 2px;
+}
+
+.jp-ColumnStatsModal-axis {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--jp-layout-color3);
+}
+
+.jp-ColumnStatsModal-box {
+  position: absolute;
+  top: 6px;
+  height: 14px;
+  border-radius: 3px;
+  background-color: var(--jp-brand-color1);
+  opacity: 0.38;
+}
+
+.jp-ColumnStatsModal-median {
+  position: absolute;
+  top: 3px;
+  width: 2px;
+  height: 20px;
+  border-radius: 1px;
+  background-color: var(--jp-ui-font-color1);
+}
+
+.jp-ColumnStatsModal-mean {
+  position: absolute;
+  top: 1px;
+  height: 24px;
+  border-left: 2px dotted var(--jp-ui-font-color2);
+}
+
+.jp-ColumnStatsModal-boxlegend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+  color: var(--jp-ui-font-color2);
+  font-size: 10.5px;
+}
+
+.jp-ColumnStatsModal-key {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  margin-right: 5px;
+  border-top: 2px solid var(--jp-ui-font-color1);
+  vertical-align: middle;
+}
+
+.jp-ColumnStatsModal-keyMean {
+  border-top: 2px dotted var(--jp-ui-font-color2);
+}
+
+.jp-ColumnStatsModal-values {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.jp-ColumnStatsModal-valuesHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.jp-ColumnStatsModal-valuesHead h4 {
   margin: 0;
-  max-height: 300px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jp-ColumnStatsModal-valuesNote {
+  margin-left: auto;
+  color: var(--jp-ui-font-color2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.jp-ColumnStatsModal-valueCols,
+.jp-ColumnStatsModal-valueRow {
+  display: grid;
+  grid-template-columns: minmax(60px, 150px) minmax(24px, 200px) 56px 54px;
+  gap: 12px;
+  align-items: center;
+  max-width: 500px;
+}
+
+.jp-ColumnStatsModal-valueCols {
+  flex: 0 0 auto;
+  padding: 6px 2px 5px;
+  color: var(--jp-ui-font-color2);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A narrow dialog shortens a header label rather than widening the pane */
+.jp-ColumnStatsModal-valueCols span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-ColumnStatsModal-valueCols span:nth-child(3),
+.jp-ColumnStatsModal-valueCols span:nth-child(4) {
+  text-align: right;
+}
+
+.jp-ColumnStatsModal-valuesScroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  border-top: 1px solid var(--jp-border-color1);
 }
 
-.jp-ColumnStatsModal-uniqueValueItem {
-  padding: 4px 0;
-  font-size: 14px;
-  color: var(--jp-ui-font-color1);
+.jp-ColumnStatsModal-empty {
+  margin: 10px 2px;
+  color: var(--jp-ui-font-color2);
+  font-size: 12px;
 }
 
-.jp-ColumnStatsModal-uniqueValueItem::before {
-  content: '• ';
-  color: var(--jp-brand-color1);
-  font-weight: bold;
-  margin-right: 8px;
+.jp-ColumnStatsModal-valueRow {
+  min-height: 30px;
+  padding: 0 2px;
+  border-bottom: 1px solid var(--jp-border-color1);
+  font-size: 12.5px;
+}
+
+.jp-ColumnStatsModal-value {
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.jp-ColumnStatsModal-track {
+  height: 14px;
+  overflow: hidden;
+  border-radius: 3px;
+  background-color: var(--jp-layout-color2);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--jp-border-color2) 0 1px,
+    transparent 1px 10%
+  );
+}
+
+.jp-ColumnStatsModal-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--jp-brand-color1);
+  opacity: 0.38;
+}
+
+.jp-ColumnStatsModal-valueCount {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.jp-ColumnStatsModal-valuePct {
+  color: var(--jp-ui-font-color2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Short viewports: compact the statistics column so the distribution block and
+   its legend stay inside the dialog. Only the values pane keeps scrolling. */
+@media (height <= 700px) {
+  .jp-ColumnStatsModal-tile {
+    padding: 5px 8px;
+  }
+
+  .jp-ColumnStatsModal-tiles {
+    gap: 6px;
+  }
+
+  .jp-ColumnStatsModal-stats {
+    gap: 8px;
+  }
+
+  .jp-ColumnStatsModal-panel {
+    padding-top: 6px;
+  }
+
+  .jp-ColumnStatsModal-row {
+    min-height: 20px;
+  }
+
+  .jp-ColumnStatsModal-boxplot {
+    height: 18px;
+    margin: 6px 0 0;
+  }
+
+  .jp-ColumnStatsModal-axis {
+    top: 8px;
+  }
+
+  .jp-ColumnStatsModal-box {
+    top: 4px;
+    height: 10px;
+  }
+
+  .jp-ColumnStatsModal-median {
+    top: 2px;
+    height: 14px;
+  }
+
+  .jp-ColumnStatsModal-mean {
+    top: 1px;
+    height: 16px;
+  }
+
+  .jp-ColumnStatsModal-boxlegend {
+    margin-top: 0;
+  }
 }
 
 /* Filter Modal Styles */

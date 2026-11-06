@@ -10,3 +10,5 @@ eslint.config.mjs
 .venv
 .agents
 package-lock.json
+tmp
+graphify-out/

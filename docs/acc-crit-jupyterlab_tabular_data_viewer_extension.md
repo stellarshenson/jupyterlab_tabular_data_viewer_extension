@@ -313,3 +313,148 @@ what the tab of an open tabular file shows - label and icon
   - mechanism: 2026-09-14T20:20:39Z @kj TabularDataWidgetFactory.createNewWidget sets only title.label (src/index.ts:94); nothing assigns title.icon - only MimeDocument does that in core. Fix: factory sets widget.title.icon from the registered file type, and the five addFileType calls (src/index.ts:244-341) carry icon: spreadsheetIcon beside the legacy iconClass 'jp-MaterialIcon jp-SpreadsheetIcon', which JupyterLab 4 keeps only in ui-components/style/deprecated.css. @jupyterlab/ui-components is not yet a declared dependency
   - log: 2026-09-14T20:20:39Z @kj added
   - log: 2026-09-14T20:50:34Z @kj closed: closed: widget.title.icon set from spreadsheetIcon in the factory, icon on every registered file type
+
+## Column statistics `STATS`
+
+The column statistics dialog: overview tiles, statistics chosen by the column type, and unique value counts.
+
+- log: 2026-11-05T14:29:12Z @kj category created
+
+- [x] `ACC-STATS-48-DIALOG` **Dialog fills the viewer** - HIGH; the dialog spans the viewer width up to 1100 px and centers above it, keeping a 16 px margin; the header and statistics column stay fixed and only the values pane scrolls; a value row keeps its value, bar, count and percentage within 760 px
+  - evidence: galata 'should render the adaptive statistics dialog for a duration column': width > 700 and only the values pane scrolls
+  - test: open a fixture column and measure the dialog against the viewer width; count the scroll containers
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:12Z @kj added
+  - log: 2026-11-05T14:59:23Z @kj closed
+  - log: 2026-11-05T17:57:33Z @kj amended text "the dialog spans the viewer width with a 16 px margin; the header and the statistics column stay fixed and only the unique values pane scrolls" -> "the dialog spans the viewer width up to 1100 px and centers above it, keeping a 16 px margin; the header and statistics column stay fixed and only the values pane scrolls; a value row keeps its value, bar, count and percentage within 760 px"
+- [x] `ACC-STATS-49-TILES` **Overview tiles** - HIGH; four tiles show Total rows, Non-null, Null and Unique; each carries the count and its percentage of total rows to one decimal
+  - evidence: galata 'should render the summary tiles for an integer column': Total rows 12, Non-null 12, Null 0, Unique 12
+  - test: open a column and compare the four tile values with the stats payload
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:12Z @kj added
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-50-DISTRIBUTION` **Numeric distribution block** - HIGH; an int, float, decimal or duration column shows Min, Q1, Median, Q3, Max, Mean, Std dev and Outliers; outliers carry the count and the percentage of non-null values
+  - evidence: pytest test_numeric_column_stats_include_q1_and_q3; galata asserts stats-panel-row-q1 and stats-panel-row-q3
+  - test: open an int column and a duration column; assert every distribution row is present and matches the payload
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:12Z @kj added
+  - log: 2026-11-05T14:41:30Z @kj edited text "an int, float or duration column shows Min, Q1, Median, Q3, Max, Mean, Std dev and Outliers; outliers carry the count and the percentage of non-null values" -> "HIGH; an int, float, decimal or duration column shows Min, Q1, Median, Q3, Max, Mean, Std dev and Outliers; outliers carry the count and the percentage of non-null values"
+  - log: 2026-11-05T14:59:23Z @kj closed
+- [x] `ACC-STATS-51-TEXT` **String statistics block** - HIGH; a string column shows the most common value with its count, the top value share, and the minimum, maximum and average length; a list, struct or map column arrives as JSON text and uses the same block
+  - evidence: pytest test_string_column_top_share_is_share_of_all_rows; galata asserts most_common green and top_share 50.0%
+  - test: open a string column and assert the text rows match the payload
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:12Z @kj added
+  - log: 2026-11-05T14:41:30Z @kj edited text "a string column shows the most common value with its count, the top value share, and the minimum, maximum and average length" -> "HIGH; a string column shows the most common value with its count, the top value share, and the minimum, maximum and average length; a list, struct or map column arrives as JSON text and uses the same block"
+  - log: 2026-11-05T14:59:23Z @kj closed
+- [x] `ACC-STATS-52-DATE-TIME` **Date and datetime blocks** - HIGH; a date column shows earliest, latest and span in days; a datetime column shows the same rows plus the time-of-day range
+  - evidence: galata 'should render the date range for a date column' and '... date and time range for a timestamp column': earliest 2026-01-01, latest 2026-01-12, span 11 days, Time of day row
+  - test: open a date column and a datetime column; assert the date rows and the extra datetime row
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:12Z @kj added
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-53-BOOLEAN` **Boolean block** - MEDIUM; a boolean column shows the true count and share and the false count and share
+  - evidence: galata 'should render the boolean counts': true 7 and false 5 on the flag column
+  - test: open a boolean column and assert the true and false rows
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:12Z @kj added
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-54-OTHER` **Binary and undesigned types show tiles only** - MEDIUM; a binary column or any type with no designed block shows the overview tiles and no type-specific block
+  - evidence: galata 'should explain that a binary column has no statistics': tiles plus the no-statistics note for payload
+  - test: open a parquet column of nested type and assert only the tiles render
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:20Z @kj added
+  - log: 2026-11-05T14:41:30Z @kj edited title "Other types show tiles only" -> "Binary and undesigned types show tiles only"; text "a binary, list, struct, map, union or other unsupported type shows the overview tiles and no type-specific block" -> "MEDIUM; a binary column or any type with no designed block shows the overview tiles and no type-specific block"
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-55-BOXPLOT` **Distribution box plot** - MEDIUM; the distribution block draws a horizontal box plot: the axis spans min to max, the box spans Q1 to Q3, a solid line marks the median and a dotted line marks the mean; no plot is drawn when min equals max
+  - evidence: galata 'should plot the mean line apart from the median line': the dotted mean x differs from the solid median x on price
+  - test: open a numeric column and assert the box and median positions follow Q1, Q3 and the median
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:20Z @kj added
+  - log: 2026-11-05T14:31:51Z @kj edited text "the distribution block draws a horizontal box plot: the axis spans min to max, the box spans Q1 to Q3, and a line marks the median" -> "MEDIUM; the distribution block draws a horizontal box plot: the axis spans min to max, the box spans Q1 to Q3, a solid line marks the median and a dotted line marks the mean"
+  - log: 2026-11-05T15:09:50Z @kj edited text "the distribution block draws a horizontal box plot: the axis spans min to max, the box spans Q1 to Q3, a solid line marks the median and a dotted line marks the mean" -> "MEDIUM; the distribution block draws a horizontal box plot: the axis spans min to max, the box spans Q1 to Q3, a solid line marks the median and a dotted line marks the mean; no plot is drawn when min equals max"
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-56-UNIQUE` **Unique values ranked with shares** - HIGH; unique values are listed by count descending; each row shows the value, a bar proportional to the largest count, the count and the percentage of total rows
+  - evidence: galata 'should rank unique values by count with a share bar each': rows ranked by count, bar width is the share of the largest count, counts match the payload
+  - test: open a column with unequal counts and assert the order, bar widths and percentages
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:20Z @kj added
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-57-FORMAT` **Values formatted as the grid shows them** - HIGH; a value is shown as the grid shows it - a duration as H:MM:SS with fractional seconds when it has them and the grid day form when negative, a date or datetime in the grid format - not as raw microseconds or an epoch number
+  - evidence: galata asserts unique values contain 0:05:00 and not 300000000; pytest and galata assert the datetime earliest row reads 2026-01-01T09:00:00
+  - test: open the duration fixture column and assert the values read 0:05:00, not 300000000
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:20Z @kj added
+  - log: 2026-11-05T14:59:23Z @kj closed
+  - log: 2026-11-05T15:09:49Z @kj edited text "a value is shown as the grid shows it - a duration as H:MM:SS, a date or datetime in the grid's format - not as raw microseconds or an epoch number" -> "HIGH; a value is shown as the grid shows it - a duration as H:MM:SS with fractional seconds when it has them and the grid day form when negative, a date or datetime in the grid format - not as raw microseconds or an epoch number"
+  - log: 2026-11-05T16:09:32Z @kj edited evidence "galata asserts unique values contain 0:05:00 and not 300000000" -> "galata asserts unique values contain 0:05:00 and not 300000000; pytest and galata assert the datetime earliest row reads 2026-01-01T09:00:00"
+- [x] `ACC-STATS-58-HEADER` **Header actions** - MEDIUM; the header carries the column name, a type chip, Copy stats as JSON and Close; the chip is 22 px high with 2 px radius, 11 px text and a 1 px border, never a fully rounded pill; the copy action takes no content row
+  - evidence: galata 'should style the header chip and expose copy and close actions': chip radius 2px, height 22px, copy and close present
+  - test: open a column and assert the four header elements are present
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:20Z @kj added
+  - log: 2026-11-05T14:41:53Z @kj edited text "the header carries the column name, a type chip, Copy stats as JSON and Close; the copy action does not occupy a content row" -> "MEDIUM; the header carries the column name, a type chip, Copy stats as JSON and Close; the chip is 22 px high with 2 px radius, 11 px text and a 1 px border, never a fully rounded pill; the copy action takes no content row"
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-59-EMPTY` **Empty and all-null columns** - MEDIUM; an all-null or zero-row column shows the four tiles with zeros and no type-specific block; the values pane states that there are no values
+  - evidence: galata 'should report an all-null column as having no values': Non-null 0, Null 12, the no-values note and 'No values to list'
+  - test: open an all-null column and assert zero tiles and no type block
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:20Z @kj added
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-60-LIMIT` **Limited unique values** - MEDIUM; when the endpoint returns fewer values than the unique count, the pane header reads N of M shown and the list scrolls
+  - evidence: galata 'should limit the unique values list to the setting': with maxUniqueValues 5 the heading reads 5 of 12 shown
+  - test: open a column with more unique values than the limit and assert the N of M text
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:29:21Z @kj added
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-61-TIME` **Time range block** - HIGH; a time column shows earliest, latest and span as H:MM:SS, keeping fractional seconds when the values carry them
+  - evidence: pytest test_time_column_reports_earliest_latest_and_range; galata asserts the Time range earliest, latest and span rows
+  - test: open the clock fixture column and assert the Time range rows
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:41:30Z @kj added
+  - log: 2026-11-05T14:59:23Z @kj closed
+  - log: 2026-11-05T16:09:32Z @kj amended text "a time column shows earliest, latest and span as H:MM:SS" -> "HIGH; a time column shows earliest, latest and span as H:MM:SS, keeping fractional seconds when the values carry them"
+- [x] `ACC-STATS-62-DECIMAL` **Decimal uses the distribution block** - HIGH; a decimal column uses the distribution block, computing its statistics on a float reading of the stored values
+  - evidence: galata 'should render the distribution for a decimal column': Q1, Q3 and Mean rows on the price decimal column
+  - test: open a decimal column and assert Q1, Q3 and the mean
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:41:30Z @kj added
+  - log: 2026-11-05T15:23:30Z @kj closed
+- [x] `ACC-STATS-63-COPY` **Copy stats as JSON** - MEDIUM; Copy stats as JSON writes the statistics payload to the clipboard as JSON, and a refused clipboard write puts the button in a failure state
+  - evidence: galata 'should copy the statistics as JSON': the clipboard parses as JSON with column_name price
+  - test: open a column, click Copy stats as JSON and read the clipboard
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:45:06Z @kj added
+  - log: 2026-11-05T15:09:49Z @kj edited text "Copy stats as JSON writes the statistics payload to the clipboard as JSON" -> "MEDIUM; Copy stats as JSON writes the statistics payload to the clipboard as JSON, and a refused clipboard write puts the button in a failure state"
+  - log: 2026-11-05T15:23:31Z @kj closed
+- [x] `ACC-STATS-64-CLOSE` **Close leaves the grid unchanged** - MEDIUM; the close button closes the dialog; Escape closes it too and leaves the table filters, sort and selection unchanged
+  - evidence: galata 'should close the dialog on Escape and leave the grid intact': dialog hidden, grid still shows 12 rows
+  - test: open a column, press Escape, assert the dialog is removed and the grid state is unchanged
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:45:06Z @kj added
+  - log: 2026-11-05T15:23:31Z @kj closed
+- [x] `ACC-STATS-65-NESTED` **Nested columns use the text block** - HIGH; a list, struct or map column is served as JSON text and uses the Text block
+  - evidence: galata 'should render a nested column as a text block': the tags list column shows the text block with a most-common row
+  - test: open a nested parquet column and assert the Text rows
+  - test-tags: UNIT, FUNCTIONAL
+  - log: 2026-11-05T14:45:06Z @kj added
+  - log: 2026-11-05T15:23:31Z @kj closed
+- [x] `ACC-STATS-66-FOCUS` **Dialog takes keyboard focus** - HIGH; opening the dialog moves keyboard focus into it, so Tab reaches Copy and Close before the page behind the overlay
+  - evidence: galata 'should move keyboard focus into the statistics dialog': document.activeElement is inside [data-testid=stats-dialog]
+  - test: open a column statistics dialog and assert document.activeElement is inside it
+  - test-tags: FUNCTIONAL, E2E
+  - log: 2026-11-05T15:09:49Z @kj added
+  - log: 2026-11-05T15:42:12Z @kj closed
+- [x] `ACC-STATS-67-BLOB` **Binary columns stay binary** - HIGH; a blob or binary column is typed binary in the grid header and chip, the grid shows '<BLOB size>', the dialog shows counts and a binary note only, and a placeholder column's unique count is labelled 'Unique (as shown)' because it counts displayed placeholders, not blobs
+  - evidence: Galata 'should report a BLOB column as binary with no statistics' passes: header and chip read binary, placeholders listed, no-statistics note shown; fixture data/blob_sample.db; 64 Galata green at 1.7.20
+  - test: open a sqlite blob column and a parquet binary column, assert the header and chip read binary and no text statistics render
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-05T20:59:58Z @kj added
+  - log: 2026-11-05T21:56:11Z @kj closed
+  - log: 2026-11-05T22:34:50Z @kj amended text "a blob or binary column is typed binary in the grid header and the dialog chip, the grid keeps showing '<BLOB size>', and the dialog shows no value-derived statistics for it, only the counts and a note that the column holds binary content" -> "HIGH; a blob or binary column is typed binary in the grid header and chip, the grid shows '<BLOB size>', the dialog shows counts and a binary note only, and a placeholder column's unique count is labelled 'Unique (as shown)' because it counts displayed placeholders, not blobs"
+- [x] `ACC-STATS-68-TICKS` **Share bars carry percentage ticks** - MEDIUM; every share bar shows a faint tick at each 10 percent of its length, drawn behind the fill so a bar reads against one scale whatever its value
+  - evidence: galata 'should fit the tile labels and value headers at 2089x1244': the track resolves a repeating-linear-gradient with a 10 percent period at 14 px height, painted under the fill
+  - test: galata: open a column's unique values and assert the bar track paints ten equal stops and the fill stays inside it
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-05T21:00:43Z @kj added
+  - log: 2026-11-05T21:24:54Z @kj closed

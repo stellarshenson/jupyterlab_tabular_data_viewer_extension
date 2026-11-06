@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.7.20] - 2026-11-05
+
+### Added
+
+- **The column statistics dialog fills the viewer width up to 1100 px and centers above it**, keeping a 16 px margin; the header and the statistics column stay fixed and only the values pane scrolls
+- **Four summary tiles state Total rows, Non-null, Null and Unique (non-null)**, each with its count and its share - of all rows for the first three, of non-null values for Unique
+- **An int, float, decimal or duration column shows a distribution block** - Min, Q1, Median, Q3, Max, Mean, Std dev and Outliers, the outliers with their count and share of non-null values - and a horizontal box plot whose axis spans min to max, box spans Q1 to Q3, solid line marks the median and dotted line marks the mean; a constant column draws no plot
+- **Text, boolean, date, datetime and time columns show the statistics of their type** - a text column, including a list, struct or map served as JSON text, shows the most common value, its top share and the minimum, maximum and average length; a boolean column shows true and false counts and shares; a date column shows earliest, latest and span in days; a datetime column adds the time-of-day range; a time column shows earliest, latest and span
+- **An all-null or zero-row column shows the four tiles at zero and no type block**, and the values pane states that there are no values
+- **Unique values are ranked by count with a share bar each** - a row shows the value, a bar proportional to the largest count, the count and the percentage of total rows; the bar is capped at 200 px and carries a faint tick at each 10 percent so every bar reads against one scale
+- **The header carries the column name, a type chip, Copy stats as JSON and Close** - the chip is 22 px high with a 2 px radius and 11 px text, and a refused clipboard write puts the copy button in a failure state
+- **The statistics dialog can be opened and used from the keyboard** - Tab reaches the info icon in a column header, Enter or Space opens the dialog, focus moves into it, Tab cycles within it, the values pane scrolls with the keyboard, and Escape closes it and returns focus to the icon
+
+### Changed
+
+- **Duration, time, date and datetime statistics read as the grid reads the cells** - a duration as H:MM:SS with fractional seconds when it has them and the day form when negative, a time as H:MM:SS, a date or datetime in the grid's ISO form - not as a raw unit count or an epoch number
+- **A SQLite BLOB column is typed binary in the grid header and the dialog chip** while its cells keep the '<BLOB size>' placeholder; the dialog shows counts only and a note that no statistics are computed, and labels the unique count 'Unique (as shown)' because it counts the displayed placeholders, not the blobs
+- **A text filter and the unique values list use the text the grid shows** - a binary cell decodes with replacement, so a UUID, hash or fixed-size binary column lists instead of failing with a 500, and a duration, time, date or datetime cell carries the grid's form
+- **The unique values list of a large column opens at once** - counting the raw values and converting only the returned page replaces casting the whole column to text: five million rows went from 7.67 s and 685 MB to 0.018 s and 1 MB
+
+### Fixed
+
+- **Opening a file loads it once.** The file-changed listener connected before the document context was ready, so the context's first contents update fired it and every open ran a second metadata and data load that reset the grid; it now connects after ready
+
 ## [1.7.19] - 2026-10-31
 
 ### Changed

@@ -90,6 +90,7 @@ export class TabularDataViewer extends Widget {
   private _sheetBar: HTMLDivElement;
   private _loadingOverlay: HTMLDivElement;
   private _loadingTimer: number | null = null;
+  private _statsPending = false;
 
   constructor(
     filePath: string,
@@ -699,10 +700,34 @@ export class TabularDataViewer extends Widget {
       const infoIcon = document.createElement('i');
       infoIcon.className = 'jp-TabularDataViewer-infoIcon fas fa-info-circle';
       infoIcon.title = 'Show column statistics';
+      infoIcon.setAttribute('role', 'button');
+      infoIcon.setAttribute(
+        'aria-label',
+        `Show statistics for column ${col.name}`
+      );
+      infoIcon.tabIndex = 0;
       infoIcon.addEventListener('click', async (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation(); // Prevent sort from triggering
         await this._showColumnStats(col.name);
+      });
+      infoIcon.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          void this._showColumnStats(col.name);
+        }
+      });
+      // The icon is transparent until the header is hovered; a focused control
+      // must be visible, and base.css cannot carry the affordance here.
+      infoIcon.addEventListener('focus', () => {
+        infoIcon.style.opacity = '1';
+        infoIcon.style.color = 'var(--jp-brand-color1)';
+        infoIcon.style.outline = '2px solid var(--jp-brand-color1)';
+      });
+      infoIcon.addEventListener('blur', () => {
+        infoIcon.style.opacity = '';
+        infoIcon.style.color = '';
+        infoIcon.style.outline = '';
       });
       nameSpan.appendChild(infoIcon);
 
@@ -1195,6 +1220,12 @@ export class TabularDataViewer extends Widget {
    * Show column statistics modal
    */
   private async _showColumnStats(columnName: string): Promise<void> {
+    // A second activation while the first request is in flight would stack a
+    // second dialog when both resolve.
+    if (this._statsPending) {
+      return;
+    }
+    this._statsPending = true;
     try {
       // Show loading indicator (we could add a spinner here)
       const stats = await fetchColumnStats(
@@ -1215,6 +1246,8 @@ export class TabularDataViewer extends Widget {
       console.error('Failed to load column statistics:', error);
       // Could show an error message to user
       alert(`Failed to load statistics for column "${columnName}": ${error}`);
+    } finally {
+      this._statsPending = false;
     }
   }
 

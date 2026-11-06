@@ -63,8 +63,11 @@ export interface IColumnStats {
   null_percentage: number;
   unique_count: number;
   unique_percentage: number;
+  binary_placeholder?: boolean;
   // Numeric stats
   min_value?: number;
+  q1?: number;
+  q3?: number;
   max_value?: number;
   mean?: number;
   median?: number;
@@ -73,9 +76,13 @@ export interface IColumnStats {
   outlier_percentage?: number;
   outlier_lower_bound?: number;
   outlier_upper_bound?: number;
+  // Boolean stats
+  true_count?: number;
+  false_count?: number;
   // String stats
   most_common_value?: string;
   most_common_count?: number;
+  top_share?: number;
   min_length?: number;
   max_length?: number;
   avg_length?: number;
@@ -83,6 +90,12 @@ export interface IColumnStats {
   earliest_date?: string;
   latest_date?: string;
   date_range_days?: number;
+  time_of_day_min?: string;
+  time_of_day_max?: string;
+  // Time stats
+  earliest_time?: string;
+  latest_time?: string;
+  time_range_seconds?: number;
 }
 
 /**
