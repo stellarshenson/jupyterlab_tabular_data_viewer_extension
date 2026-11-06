@@ -51,6 +51,21 @@ export async function requestAPI<T>(
 }
 
 /**
+ * One histogram bin: a formatted axis label and the rows that fall in it
+ */
+export interface IHistogramBin {
+  label: string;
+  count: number;
+}
+
+/**
+ * Histogram of a numeric, temporal or blob-size distribution
+ */
+export interface IHistogram {
+  bins: IHistogramBin[];
+}
+
+/**
  * Column statistics interface
  */
 export interface IColumnStats {
@@ -61,9 +76,21 @@ export interface IColumnStats {
   non_null_percentage: number;
   null_count: number;
   null_percentage: number;
-  unique_count: number;
-  unique_percentage: number;
-  binary_placeholder?: boolean;
+  // Absent for a binary placeholder column, whose values are placeholder text
+  unique_count?: number;
+  unique_percentage?: number;
+  // Numeric and temporal distributions
+  histogram?: IHistogram;
+  // Blob size aggregates and their log2 histogram
+  size_min?: number;
+  size_q1?: number;
+  size_median?: number;
+  size_q3?: number;
+  size_max?: number;
+  size_mean?: number;
+  size_std_dev?: number;
+  size_total?: number;
+  size_histogram?: IHistogram;
   // Numeric stats
   min_value?: number;
   q1?: number;

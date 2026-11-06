@@ -345,3 +345,16 @@ The column statistics dialog and its payload.
   - log: 2026-11-05T20:59:58Z @kj added
   - log: 2026-11-05T21:56:11Z @kj closed
   - log: 2026-11-05T22:34:50Z @kj round 6 found the unique count counted placeholder sizes; the binary_placeholder flag and 'Unique (as shown)' label fix it; pytest 202, Galata 64
+- [x] `DEF-STATS-43-BLOB-STATS` **Binary column dialog is too wide and shows no size statistics** - MAJOR; the binary column dialog spans the whole window and lists '<BLOB n B>' placeholders under a unique count that carries no information; it needs a narrow layout and size statistics (min, max, mean, variance, distribution) instead of unique values
+  - evidence: binary dialogs are 720 px with three tiles and a Size block plus size histogram; pytest test_sqlite_blob_column_reports_binary_size_statistics and the Galata blob test; 208 pytest and 68 Galata green at 1.7.21
+  - repro: open data/blob_sample.db and the content column statistics
+  - root-cause: 2026-11-06T07:46:11Z @kj the binary branch adds no size block and the dialog keeps the generic two-column layout; the unique count counts placeholder text
+  - log: 2026-11-06T07:46:11Z @kj added
+  - log: 2026-11-06T10:15:47Z @kj closed
+- [x] `DEF-STATS-44-NS-PANDAS` **duration[ns] column unreadable without pandas** - MAJOR; a pandas-free install cannot read a duration[ns] column: the rows request raises `ValueError` `is not safely convertible to microseconds`, unique values and filter return 400; cause pyarrow converts a duration scalar only through pandas, absent from the dependencies; fix pandas is now a runtime dependency; `routes.py`, `pyproject.toml`
+  - evidence: wheel 1.7.21 METADATA has unconditional Requires-Dist: pandas<3,>=2.3; fresh venv bare install pulled pandas 2.3.3 and as_py() rendered '0 days 00:00:01.500000001'; pytest 209 and Galata 68 green
+  - repro: block the pandas import, open data/nanosecond_stats.parquet, fetch its rows
+  - test-tags: UNIT, FUNCTIONAL, E2E
+  - root-cause: 2026-11-06T12:46:02Z @kj pyarrow's DurationScalar.as_py converts only through pandas; the runtime dependencies no longer listed pandas, so rows, unique values and filter raised for duration[ns]
+  - log: 2026-11-06T12:46:02Z @kj added
+  - log: 2026-11-06T13:08:15Z @kj closed: fixed: pandas is a runtime dependency in [project].dependencies; the wheel installs it and pyarrow's duration[ns] conversion works

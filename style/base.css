@@ -538,9 +538,12 @@
 }
 
 .jp-ColumnStatsModal-content {
+  /* String tint: the fallback for nested and unknown types. */
+  --columnstats-tint: #ffb74d;
+
   box-sizing: border-box;
-  width: calc(100% - 32px);
-  max-width: 1100px;
+  width: 720px;
+  max-width: calc(100% - 32px);
   margin: 0 auto;
   max-height: calc(100vh - 16px);
   display: flex;
@@ -553,6 +556,48 @@
   color: var(--jp-ui-font-color1);
   font-family: var(--jp-ui-font-family);
   font-size: var(--jp-ui-font-size1);
+}
+
+/* One tint per data type: the chip, the histogram and value fills and the box
+   plot read this custom property. */
+.jp-ColumnStatsModal-content[data-tint='int'] {
+  --columnstats-tint: #64b5f6;
+}
+
+.jp-ColumnStatsModal-content[data-tint='float'] {
+  --columnstats-tint: #4dd0e1;
+}
+
+.jp-ColumnStatsModal-content[data-tint='decimal'] {
+  --columnstats-tint: #7986cb;
+}
+
+.jp-ColumnStatsModal-content[data-tint='duration'] {
+  --columnstats-tint: #ba68c8;
+}
+
+.jp-ColumnStatsModal-content[data-tint='time'] {
+  --columnstats-tint: #f06292;
+}
+
+.jp-ColumnStatsModal-content[data-tint='date'] {
+  --columnstats-tint: #81c784;
+}
+
+.jp-ColumnStatsModal-content[data-tint='datetime'] {
+  --columnstats-tint: #aed581;
+}
+
+.jp-ColumnStatsModal-content[data-tint='string'] {
+  --columnstats-tint: #ffb74d;
+}
+
+.jp-ColumnStatsModal-content[data-tint='boolean'] {
+  --columnstats-tint: #ff8a65;
+}
+
+.jp-ColumnStatsModal-content[data-tint='binary'] {
+  --columnstats-tint: #90a4ae;
 }
 
 .jp-ColumnStatsModal-header {
@@ -577,10 +622,10 @@
   align-items: center;
   height: 22px;
   padding: 0 8px;
-  border: 1px solid var(--jp-border-color2);
+  border: 1px solid var(--columnstats-tint);
   border-radius: 2px;
   background-color: var(--jp-layout-color2);
-  color: var(--jp-ui-font-color2);
+  color: var(--jp-ui-font-color1);
   font-family: var(--jp-ui-font-family);
   font-size: 11px;
   line-height: 20px;
@@ -629,14 +674,25 @@
   color: var(--jp-ui-font-color1);
 }
 
+/* A dialog with a unique values pane is 980px wide and puts the pane beside
+   the statistics; every other dialog is a single 720px column. */
+.jp-ColumnStatsModal-contentWide {
+  width: 980px;
+}
+
 .jp-ColumnStatsModal-body {
-  display: grid;
-  grid-template-columns: 268px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   flex: 1 1 auto;
   min-height: 0;
   padding: 14px 18px 16px;
+}
+
+.jp-ColumnStatsModal-bodySplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 18px;
 }
 
 .jp-ColumnStatsModal-stats {
@@ -649,7 +705,7 @@
 
 .jp-ColumnStatsModal-tiles {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -700,14 +756,6 @@
   text-transform: uppercase;
 }
 
-.jp-ColumnStatsModal-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  min-height: 24px;
-  font-size: 12.5px;
-}
-
 .jp-ColumnStatsModal-rowLabel {
   color: var(--jp-ui-font-color2);
   white-space: nowrap;
@@ -720,6 +768,88 @@
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.jp-ColumnStatsModal-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 4px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 8px;
+  background-color: var(--jp-layout-color2);
+}
+
+.jp-ColumnStatsModal-metric {
+  min-width: 0;
+}
+
+.jp-ColumnStatsModal-metric .jp-ColumnStatsModal-rowLabel {
+  display: block;
+  overflow: hidden;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.jp-ColumnStatsModal-metric .jp-ColumnStatsModal-rowValue {
+  display: block;
+  margin-left: 0;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  text-align: left;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.jp-ColumnStatsModal-chart {
+  min-width: 0;
+  margin: 0 0 8px;
+}
+
+.jp-ColumnStatsModal-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 84px;
+  border-bottom: 1px solid var(--jp-border-color2);
+}
+
+.jp-ColumnStatsModal-histBar {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background-color: var(--columnstats-tint);
+  opacity: 0.38;
+}
+
+.jp-ColumnStatsModal-histAxis {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--jp-ui-font-color2);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.jp-ColumnStatsModal-histAxis span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-ColumnStatsModal-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 24px;
+  font-size: 12.5px;
 }
 
 .jp-ColumnStatsModal-note {
@@ -748,9 +878,13 @@
   position: absolute;
   top: 6px;
   height: 14px;
+  border: 1px solid var(--columnstats-tint);
   border-radius: 3px;
-  background-color: var(--jp-brand-color1);
-  opacity: 0.38;
+  background-color: color-mix(
+    in srgb,
+    var(--columnstats-tint) 25%,
+    transparent
+  );
 }
 
 .jp-ColumnStatsModal-median {
@@ -793,9 +927,15 @@
 
 .jp-ColumnStatsModal-values {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+}
+
+.jp-ColumnStatsModal-bodySplit > .jp-ColumnStatsModal-values {
+  padding-left: 16px;
+  border-left: 1px solid var(--jp-border-color1);
 }
 
 .jp-ColumnStatsModal-valuesHead {
@@ -821,10 +961,9 @@
 .jp-ColumnStatsModal-valueCols,
 .jp-ColumnStatsModal-valueRow {
   display: grid;
-  grid-template-columns: minmax(60px, 150px) minmax(24px, 200px) 56px 54px;
-  gap: 12px;
+  grid-template-columns: minmax(64px, 1.4fr) minmax(64px, 1fr) 52px 52px;
+  gap: 10px;
   align-items: center;
-  max-width: 500px;
 }
 
 .jp-ColumnStatsModal-valueCols {
@@ -879,18 +1018,13 @@
   overflow: hidden;
   border-radius: 3px;
   background-color: var(--jp-layout-color2);
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--jp-border-color2) 0 1px,
-    transparent 1px 10%
-  );
 }
 
 .jp-ColumnStatsModal-fill {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background-color: var(--jp-brand-color1);
+  background-color: var(--columnstats-tint);
   opacity: 0.38;
 }
 
@@ -903,6 +1037,22 @@
   color: var(--jp-ui-font-color2);
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* Narrow viewports: stacking the pane under the statistics keeps both usable
+   where a 980px two-column dialog would not fit. */
+@media (width <= 720px) {
+  .jp-ColumnStatsModal-bodySplit {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .jp-ColumnStatsModal-bodySplit > .jp-ColumnStatsModal-values {
+    padding-top: 10px;
+    padding-left: 0;
+    border-top: 1px solid var(--jp-border-color1);
+    border-left: 0;
+  }
 }
 
 /* Short viewports: compact the statistics column so the distribution block and
@@ -926,6 +1076,20 @@
 
   .jp-ColumnStatsModal-row {
     min-height: 20px;
+  }
+
+  .jp-ColumnStatsModal-metrics {
+    gap: 4px 10px;
+    margin: 2px 0 6px;
+    padding: 6px 8px;
+  }
+
+  .jp-ColumnStatsModal-hist {
+    height: 56px;
+  }
+
+  .jp-ColumnStatsModal-chart {
+    margin-bottom: 4px;
   }
 
   .jp-ColumnStatsModal-boxplot {

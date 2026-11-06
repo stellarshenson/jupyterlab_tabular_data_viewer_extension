@@ -546,7 +546,7 @@ test.describe('Tabular Data Viewer Extension', () => {
     await expect(blobCells.first()).toHaveText('<BLOB 256 B>');
   });
 
-  test('should report a BLOB column as binary with no statistics', async ({
+  test('should report a BLOB column as binary with its size statistics', async ({
     page
   }) => {
     const viewer = await openInViewer(page, 'blob_sample.db');
@@ -571,27 +571,43 @@ test.describe('Tabular Data Viewer Extension', () => {
     await expect(dialog.locator('.jp-ColumnStatsModal-chip')).toHaveText(
       'binary'
     );
+    // Binary is always a single 720px column, pane or no pane.
+    expect(Math.round((await dialog.boundingBox())!.width)).toBe(720);
+    // No unique tile and no unique pane: the grid shows one placeholder per
+    // size, so a distinct count would measure sizes, not contents.
     await expectTiles(dialog, [
       ['Total rows', '3'],
       ['Non-null', '3'],
-      ['Null', '0'],
-      ['Unique (as shown)', '3']
+      ['Null', '0']
     ]);
+    await expect(dialog.locator('.jp-ColumnStatsModal-tile')).toHaveCount(3);
+    await expect(dialog.locator('[data-testid="unique-values"]')).toHaveCount(
+      0
+    );
 
-    // Counts only: no length or most-common rows over the placeholder text
+    // The size block reads the bytes the reader measured with length()
     const panel = dialog.locator('[data-testid="stats-panel"]');
-    await expect(panel.locator('.jp-ColumnStatsModal-note')).toHaveText(
-      'No statistics are computed for this column.'
-    );
+    await expect(panel).toContainText('Size');
+    await expect(panelValue(panel, 'size_min')).toHaveText('512 B');
+    await expect(panelValue(panel, 'size_q1')).toHaveText('768 B');
+    await expect(panelValue(panel, 'size_median')).toHaveText('1 KB');
+    await expect(panelValue(panel, 'size_q3')).toHaveText('1.5 KB');
+    await expect(panelValue(panel, 'size_max')).toHaveText('2 KB');
+    await expect(panelValue(panel, 'size_mean')).toHaveText('1.2 KB');
+    await expect(panelValue(panel, 'size_std_dev')).toHaveText('638.576 B');
+    await expect(panelValue(panel, 'size_total')).toHaveText('3.5 KB');
     await expect(panel).not.toContainText('Most common');
-    await expect(panel).not.toContainText('Length');
 
-    const values = dialog.locator(
-      '[data-testid="unique-value-row"] .jp-ColumnStatsModal-value'
-    );
-    await expect(values).toHaveCount(3);
-    expect((await values.allTextContents()).sort()).toEqual(
-      ['<BLOB 1 KB>', '<BLOB 2 KB>', '<BLOB 512 B>'].sort()
+    const histogram = dialog.locator('[data-testid="size-histogram"]');
+    await expect(histogram).toBeVisible();
+    await expect(
+      histogram.locator('[data-testid="histogram-bar"]')
+    ).toHaveCount(3);
+    await expect(
+      histogram.locator('.jp-ColumnStatsModal-histAxis span')
+    ).toHaveText(['<512 B>', '<1 KB>', '<2 KB>']);
+    await expect(panel.locator('.jp-ColumnStatsModal-note')).toHaveText(
+      'Sizes are measured with length(); contents are never decoded.'
     );
   });
 
@@ -1166,11 +1182,21 @@ test.describe('Tabular Data Viewer Extension', () => {
   }) => {
     const viewer = await openInViewer(page, 'typed_columns.parquet');
     await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+    const statsResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/column-stats') &&
+        response.request().method() === 'POST'
+    );
     const dialog = await openStatsDialog(page, viewer, 'elapsed');
+    const payload = await (await statsResponse).json();
 
-    // The dialog spans the viewer width rather than the old 500px card
+    // Every value is distinct, so the unique pane would repeat the grid: the
+    // dialog stays a 720px single column.
     const box = await dialog.boundingBox();
-    expect(box!.width).toBeGreaterThan(700);
+    expect(Math.round(box!.width)).toBe(720);
+    await expect(dialog.locator('[data-testid="unique-values"]')).toHaveCount(
+      0
+    );
 
     // Distribution rows carry the quartiles the backend now reports
     const panel = dialog.locator('[data-testid="stats-panel"]');
@@ -1183,16 +1209,22 @@ test.describe('Tabular Data Viewer Extension', () => {
     ).toBeVisible();
     await expect(dialog.locator('[data-testid="boxplot"]')).toBeVisible();
 
-    // Unique duration values are formatted from their raw unit count
-    const unique = dialog.locator('[data-testid="unique-values"]');
-    await expect(unique).toContainText('0:05:00');
-    await expect(unique).not.toContainText('300000000');
+    // The histogram sits above the box plot and uses every payload bin
+    const histogram = dialog.locator('[data-testid="histogram"]');
+    await expect(histogram).toBeVisible();
+    await expect(
+      histogram.locator('[data-testid="histogram-bar"]')
+    ).toHaveCount(payload.histogram.bins.length);
+    const histogramBox = await histogram.boundingBox();
+    const plotBox = await dialog
+      .locator('[data-testid="boxplot"]')
+      .boundingBox();
+    expect(histogramBox!.y + histogramBox!.height).toBeLessThanOrEqual(
+      plotBox!.y
+    );
 
-    // Only the values pane scrolls; the dialog and statistics column do not
+    // Only the stats column scrolls, and the dialog itself does not
     const overflow = await dialog.evaluate((node: HTMLElement) => {
-      const pane = node.querySelector(
-        '[data-testid="unique-values"]'
-      ) as HTMLElement;
       const stats = node.querySelector(
         '.jp-ColumnStatsModal-stats'
       ) as HTMLElement;
@@ -1200,13 +1232,11 @@ test.describe('Tabular Data Viewer Extension', () => {
         '.jp-ColumnStatsModal-body'
       ) as HTMLElement;
       return {
-        pane: getComputedStyle(pane).overflowY,
         stats: getComputedStyle(stats).overflowY,
         body: getComputedStyle(body).overflowY,
         dialog: getComputedStyle(node).overflowY
       };
     });
-    expect(overflow.pane).toBe('auto');
     expect(overflow.stats).not.toBe('auto');
     expect(overflow.body).not.toBe('auto');
     expect(overflow.dialog).toBe('hidden');
@@ -1221,17 +1251,15 @@ test.describe('Tabular Data Viewer Extension', () => {
   test('should cap and center the dialog on a wide window', async ({
     page
   }) => {
-    // The dialog filled the window (DEF-STATS-40-WIDTH), stranding a row's
-    // count far to the right of its value.
-    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    // A pane dialog is capped at 980px and centred rather than filling the
+    // window, with the statistics left and the pane right.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
     await page.setViewportSize({ width: 2100, height: 1000 });
-    const dialog = await openStatsDialog(page, viewer, 'price');
+    const dialog = await openStatsDialog(page, viewer, 'department');
 
     const box = await dialog.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.width).toBeLessThanOrEqual(1100);
-    // The cap is what constrains it, not the window
-    expect(box!.width).toBeGreaterThan(1000);
+    expect(Math.round(box!.width)).toBe(980);
 
     const overlay = await page.locator('.jp-ColumnStatsModal').boundingBox();
     const windowCentre = overlay!.x + overlay!.width / 2;
@@ -1239,28 +1267,132 @@ test.describe('Tabular Data Viewer Extension', () => {
       Math.abs(box!.x + box!.width / 2 - windowCentre)
     ).toBeLessThanOrEqual(2);
 
-    // Value, bar, count and percentage stay within 500px of each other
-    const row = dialog.locator('[data-testid="unique-value-row"]').first();
-    const value = await row.locator('.jp-ColumnStatsModal-value').boundingBox();
-    const count = await row
-      .locator('.jp-ColumnStatsModal-valueCount')
+    const statsBox = await dialog
+      .locator('.jp-ColumnStatsModal-stats')
       .boundingBox();
-    expect(count!.x - value!.x).toBeLessThan(500);
+    const paneBox = await dialog
+      .locator('.jp-ColumnStatsModal-values')
+      .boundingBox();
+    expect(paneBox!.x).toBeGreaterThanOrEqual(statsBox!.x + statsBox!.width);
+  });
+
+  test('should hide the pane for all-distinct values and show it otherwise', async ({
+    page
+  }) => {
+    // salary repeats no value, so a pane listing it would repeat the grid;
+    // department has five values and earns the pane.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const salaryDialog = await openStatsDialog(page, viewer, 'salary');
+    await expect(
+      salaryDialog.locator('[data-testid="unique-values"]')
+    ).toHaveCount(0);
+    expect(Math.round((await salaryDialog.boundingBox())!.width)).toBe(720);
+    await salaryDialog.locator('[data-testid="close-stats"]').click();
+    await expect(salaryDialog).toBeHidden();
+
+    const departmentDialog = await openStatsDialog(page, viewer, 'department');
+    const pane = departmentDialog.locator('[data-testid="unique-values"]');
+    await expect(pane).toBeVisible();
+    await expect(
+      departmentDialog.locator('.jp-ColumnStatsModal-valueCols span').nth(1)
+    ).toHaveText('Share of rows');
+    await expect(
+      departmentDialog.locator('[data-testid="unique-value-row"]')
+    ).toHaveCount(5);
+  });
+
+  test('should size the dialog from the pane and tint the chip by type', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+
+    // age has 63 distinct values of 1,500 rows, inside the default limit of
+    // 100, so the pane is shown and the dialog widens to 980px.
+    const ageDialog = await openStatsDialog(page, viewer, 'age');
+    const ageBox = await ageDialog.boundingBox();
+    expect(Math.abs(ageBox!.width - 980)).toBeLessThanOrEqual(2);
+    await expect(
+      ageDialog.locator('[data-testid="unique-values"]')
+    ).toBeVisible();
+    const intChip = await ageDialog
+      .locator('.jp-ColumnStatsModal-chip')
+      .evaluate((node: HTMLElement) => getComputedStyle(node).borderTopColor);
+    await ageDialog.locator('[data-testid="close-stats"]').click();
+
+    // salary repeats no value: 720px and no pane.
+    const salaryDialog = await openStatsDialog(page, viewer, 'salary');
+    const salaryBox = await salaryDialog.boundingBox();
+    expect(Math.abs(salaryBox!.width - 720)).toBeLessThanOrEqual(2);
+    await expect(
+      salaryDialog.locator('[data-testid="unique-values"]')
+    ).toHaveCount(0);
+    await salaryDialog.locator('[data-testid="close-stats"]').click();
+
+    // join_date holds 1,028 distinct values of 1,500 rows, more than the fetch
+    // limit can list, so it stays a 720px single column.
+    const joinDialog = await openStatsDialog(page, viewer, 'join_date');
+    const joinBox = await joinDialog.boundingBox();
+    expect(Math.abs(joinBox!.width - 720)).toBeLessThanOrEqual(2);
+    await expect(
+      joinDialog.locator('[data-testid="unique-values"]')
+    ).toHaveCount(0);
+    await joinDialog.locator('[data-testid="close-stats"]').click();
+
+    // department is a string column: its chip carries the string tint, which
+    // differs from the int tint.
+    const departmentDialog = await openStatsDialog(page, viewer, 'department');
+    const stringChip = await departmentDialog
+      .locator('.jp-ColumnStatsModal-chip')
+      .evaluate((node: HTMLElement) => getComputedStyle(node).borderTopColor);
+    expect(intChip).toBe('rgb(100, 181, 246)');
+    expect(stringChip).toBe('rgb(255, 183, 77)');
+    expect(stringChip).not.toBe(intChip);
+  });
+
+  test('should put the age histogram beside the box plot', async ({ page }) => {
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const statsResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/column-stats') &&
+        response.request().method() === 'POST'
+    );
+    const dialog = await openStatsDialog(page, viewer, 'age');
+    const stats = await (await statsResponse).json();
+
+    const histogram = dialog.locator('[data-testid="histogram"]');
+    await expect(histogram).toBeVisible();
+    await expect(
+      histogram.locator('[data-testid="histogram-bar"]')
+    ).toHaveCount(stats.histogram.bins.length);
+    const plot = dialog.locator('[data-testid="boxplot"]');
+    await expect(plot).toBeVisible();
+
+    const histogramBox = await histogram.boundingBox();
+    const plotBox = await plot.boundingBox();
+    expect(histogramBox!.y + histogramBox!.height).toBeLessThanOrEqual(
+      plotBox!.y
+    );
   });
 
   test('should fit the tile labels and value headers at 2089x1244', async ({
     page
   }) => {
-    // 'UNIQUE (NON-NULL)' ellipsized to 'UNIQUE (NON-NU...' in the 268px
-    // statistics column; the label wraps to two lines instead.
-    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    // 'UNIQUE (NON-NULL)' must stay whole in the narrow statistics column of a
+    // pane dialog, and the four value headers must stay legible.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
     await page.setViewportSize({ width: 2089, height: 1244 });
+    const statsResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/column-stats') &&
+        response.request().method() === 'POST'
+    );
     const uniqueResponse = page.waitForResponse(
       (response: any) =>
         response.url().includes('/unique-values') &&
         response.request().method() === 'POST'
     );
-    const dialog = await openStatsDialog(page, viewer, 'price');
+    const dialog = await openStatsDialog(page, viewer, 'age');
+    const stats = await (await statsResponse).json();
     const payload = await (await uniqueResponse).json();
 
     for (const selector of [
@@ -1281,64 +1413,36 @@ test.describe('Tabular Data Viewer Extension', () => {
       expect(clipped).toEqual([]);
     }
 
-    // The share bar track is capped at 200px, so a wide dialog does not
-    // stretch it (DEF-STATS-41-BARS).
-    const track = dialog
-      .locator('[data-testid="unique-value-row"]')
-      .first()
-      .locator('.jp-ColumnStatsModal-track');
-    const trackBox = await track.boundingBox();
-    expect(trackBox).not.toBeNull();
-    expect(trackBox!.width).toBeLessThanOrEqual(201);
-
-    // A faint line every ten percent of the track (ACC-STATS-68-TICKS): one
-    // repeating gradient with a 10% period gives ten equal stops, and the
-    // track height is unchanged.
-    const ticks = await track.evaluate((node: HTMLElement) => ({
-      image: getComputedStyle(node).backgroundImage,
-      height: node.getBoundingClientRect().height
-    }));
-    expect(ticks.image).toContain('repeating-linear-gradient');
-    const period = parseFloat(ticks.image.match(/([\d.]+)%/)![1]);
-    expect(100 / period).toBe(10);
-    expect(ticks.height).toBe(14);
-
-    // The ticks sit under the fill, which still reports the count's share of
-    // the largest count in its style and in its rendered width.
-    const maxCount = Math.max(...payload.counts, 1);
+    // The bar and the percentage both measure the count against all rows, so
+    // the two agree on every row.
     const bars = await dialog
       .locator('[data-testid="unique-value-row"]')
       .evaluateAll((nodes: HTMLElement[]) =>
-        nodes.map(node => {
-          const fill = node.querySelector(
-            '.jp-ColumnStatsModal-fill'
-          ) as HTMLElement;
-          const rowTrack = node.querySelector(
-            '.jp-ColumnStatsModal-track'
-          ) as HTMLElement;
-          return {
-            share: parseFloat(fill.style.width),
-            rendered:
-              (fill.getBoundingClientRect().width /
-                rowTrack.getBoundingClientRect().width) *
-              100
-          };
-        })
+        nodes.map(node => ({
+          share: parseFloat(
+            (node.querySelector('.jp-ColumnStatsModal-fill') as HTMLElement)
+              .style.width
+          ),
+          pct: parseFloat(
+            (node.querySelector('.jp-ColumnStatsModal-valuePct') as HTMLElement)
+              .textContent!
+          )
+        }))
       );
     expect(bars).toHaveLength(payload.counts.length);
     bars.forEach((bar, index) => {
-      const share = (payload.counts[index] / maxCount) * 100;
+      const share = (payload.counts[index] / stats.total_rows) * 100;
       expect(bar.share).toBeCloseTo(share, 2);
-      expect(bar.rendered).toBeCloseTo(share, 0);
+      expect(bar.pct).toBeCloseTo(share, 2);
     });
   });
 
   test('should not overflow horizontally in a narrow window', async ({
     page
   }) => {
-    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    const viewer = await openInViewer(page, 'sample_data.parquet');
     await page.setViewportSize({ width: 600, height: 900 });
-    const dialog = await openStatsDialog(page, viewer, 'price');
+    const dialog = await openStatsDialog(page, viewer, 'age');
 
     const overflow = await dialog.evaluate((node: HTMLElement) => ({
       scrollWidth: node.scrollWidth,
@@ -1406,11 +1510,18 @@ test.describe('Tabular Data Viewer Extension', () => {
   }) => {
     // Whole-second rounding turned 1500000 us into 0:00:02 and -300000000 us
     // into -0:05:00 where the grid shows str(timedelta) (DEF-STATS-36-DURATION,
-    // DEF-STATS-39-NEGDUR)
+    // DEF-STATS-39-NEGDUR). Every short value is distinct, so the formatting
+    // is read from the distribution metrics.
     const dialog = await openAdaptiveStats(page, 'short');
-    const unique = dialog.locator('[data-testid="unique-values"]');
-    await expect(unique).toContainText('0:00:01.500000');
-    await expect(unique).toContainText('-1 day, 23:55:00');
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panelValue(panel, 'min')).toHaveText('-1 day, 23:55:00');
+    await expect(panelValue(panel, 'median')).toHaveText('0:00:01.250000');
+    // The histogram axis keeps the payload's own timedelta labels
+    await expect(
+      dialog
+        .locator('[data-testid="histogram"] .jp-ColumnStatsModal-histAxis span')
+        .first()
+    ).toHaveText('-1 day, 23:55:00');
   });
 
   test('should render duration[ns] statistics with nanosecond precision', async ({
@@ -1525,9 +1636,15 @@ test.describe('Tabular Data Viewer Extension', () => {
     await categoryDialog.locator('[data-testid="close-stats"]').click();
     await expect(categoryDialog).toBeHidden();
 
+    const clockResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/column-stats') &&
+        response.request().method() === 'POST'
+    );
     const clockDialog = await openStatsDialog(page, viewer, 'clock');
+    const clockStats = await (await clockResponse).json();
     const timePanel = clockDialog.locator('[data-testid="stats-panel"]');
-    await expect(timePanel).toContainText('Time range');
+    await expect(timePanel).toContainText('Distribution');
     await expect(
       timePanel.locator('[data-testid="stats-panel-row-earliest"]')
     ).toContainText('09:00:00');
@@ -1537,6 +1654,15 @@ test.describe('Tabular Data Viewer Extension', () => {
     await expect(
       timePanel.locator('[data-testid="stats-panel-row-span"]')
     ).toContainText('0:11:00');
+
+    // The histogram draws every payload bin and keeps its HH:MM labels
+    const clockHistogram = clockDialog.locator('[data-testid="histogram"]');
+    await expect(
+      clockHistogram.locator('[data-testid="histogram-bar"]')
+    ).toHaveCount(clockStats.histogram.bins.length);
+    await expect(
+      clockHistogram.locator('.jp-ColumnStatsModal-histAxis span').first()
+    ).toHaveText(clockStats.histogram.bins[0].label);
   });
 
   test('should render the summary tiles for an integer column', async ({
@@ -1597,7 +1723,7 @@ test.describe('Tabular Data Viewer Extension', () => {
     ).toHaveText('1.6% of non-null values');
 
     await expect(dialog.locator('.jp-ColumnStatsModal-valuesNote')).toHaveText(
-      '34 of 34 listed rows · ranked by count'
+      '34 of 34 listed, ranked by count'
     );
     const rows = dialog.locator('[data-testid="unique-value-row"]');
     await expect(rows).toHaveCount(34);
@@ -1609,7 +1735,7 @@ test.describe('Tabular Data Viewer Extension', () => {
   test('should render the date range for a date column', async ({ page }) => {
     const dialog = await openAdaptiveStats(page, 'day');
     const panel = dialog.locator('[data-testid="stats-panel"]');
-    await expect(panel).toContainText('Date range');
+    await expect(panel).toContainText('Distribution');
     await expect(panelValue(panel, 'earliest')).toHaveText('2026-01-01');
     await expect(panelValue(panel, 'latest')).toHaveText('2026-01-12');
     await expect(panelValue(panel, 'span')).toHaveText('11 days');
@@ -1618,9 +1744,16 @@ test.describe('Tabular Data Viewer Extension', () => {
   test('should render the date and time range for a timestamp column', async ({
     page
   }) => {
-    const dialog = await openAdaptiveStats(page, 'created');
+    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    const statsResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/column-stats') &&
+        response.request().method() === 'POST'
+    );
+    const dialog = await openStatsDialog(page, viewer, 'created');
+    const stats = await (await statsResponse).json();
     const panel = dialog.locator('[data-testid="stats-panel"]');
-    await expect(panel).toContainText('Date and time range');
+    await expect(panel).toContainText('Distribution');
     await expect(panelValue(panel, 'earliest')).toHaveText(
       '2026-01-01T09:00:00'
     );
@@ -1628,6 +1761,49 @@ test.describe('Tabular Data Viewer Extension', () => {
     await expect(panelValue(panel, 'time_of_day')).toHaveText(
       '09:00:00 to 09:11:00'
     );
+
+    // The histogram below the metrics uses every payload bin
+    const histogram = dialog.locator('[data-testid="histogram"]');
+    await expect(histogram).toBeVisible();
+    await expect(
+      histogram.locator('[data-testid="histogram-bar"]')
+    ).toHaveCount(stats.histogram.bins.length);
+    const metricsBox = await dialog
+      .locator('[data-testid="stats-panel-row-earliest"]')
+      .boundingBox();
+    const histogramBox = await histogram.boundingBox();
+    expect(metricsBox!.y + metricsBox!.height).toBeLessThanOrEqual(
+      histogramBox!.y
+    );
+  });
+
+  test('should replace the date range with the join_date histogram', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const statsResponse = page.waitForResponse(
+      (response: any) =>
+        response.url().includes('/column-stats') &&
+        response.request().method() === 'POST'
+    );
+    const dialog = await openStatsDialog(page, viewer, 'join_date');
+    const stats = await (await statsResponse).json();
+    const panel = dialog.locator('[data-testid="stats-panel"]');
+    await expect(panel).toContainText('Distribution');
+    await expect(panelValue(panel, 'earliest')).toHaveText(stats.earliest_date);
+    await expect(panelValue(panel, 'latest')).toHaveText(stats.latest_date);
+
+    const histogram = dialog.locator('[data-testid="histogram"]');
+    await expect(histogram).toBeVisible();
+    await expect(
+      histogram.locator('[data-testid="histogram-bar"]')
+    ).toHaveCount(stats.histogram.bins.length);
+    await expect(
+      histogram.locator('.jp-ColumnStatsModal-histAxis span').first()
+    ).toHaveText(stats.histogram.bins[0].label);
+    await expect(
+      histogram.locator('.jp-ColumnStatsModal-histAxis span').last()
+    ).toHaveText(stats.histogram.bins[stats.histogram.bins.length - 1].label);
   });
 
   test('should render fractional seconds in the time range', async ({
@@ -1635,7 +1811,7 @@ test.describe('Tabular Data Viewer Extension', () => {
   }) => {
     const dialog = await openAdaptiveStats(page, 'tick');
     const panel = dialog.locator('[data-testid="stats-panel"]');
-    await expect(panel).toContainText('Time range');
+    await expect(panel).toContainText('Distribution');
     await expect(panelValue(panel, 'earliest')).toHaveText('09:30:00.500000');
     await expect(panelValue(panel, 'latest')).toHaveText('09:30:10.250000');
     await expect(panelValue(panel, 'span')).toHaveText('0:00:09.750000');
@@ -1678,12 +1854,16 @@ test.describe('Tabular Data Viewer Extension', () => {
     page
   }) => {
     const dialog = await openAdaptiveStats(page, 'payload');
+    // No unique tile and no unique pane, even though the payload reports a
+    // distinct count: the dialog describes bytes, not placeholder text.
     await expectTiles(dialog, [
       ['Total rows', '12'],
       ['Non-null', '12'],
-      ['Null', '0'],
-      ['Unique (non-null)', '3']
+      ['Null', '0']
     ]);
+    await expect(dialog.locator('[data-testid="unique-values"]')).toHaveCount(
+      0
+    );
     await expect(
       dialog
         .locator('[data-testid="stats-panel"]')
@@ -1735,17 +1915,18 @@ test.describe('Tabular Data Viewer Extension', () => {
         .locator('[data-testid="stats-panel"]')
         .locator('.jp-ColumnStatsModal-note')
     ).toHaveText('The column has no values.');
-    await expect(dialog.locator('[data-testid="unique-values"]')).toContainText(
-      'No values to list'
+    // Nothing repeats when nothing is present, so there is no pane to list
+    await expect(dialog.locator('[data-testid="unique-values"]')).toHaveCount(
+      0
     );
   });
 
   test('should rank unique values by count with a share bar each', async ({
     page
   }) => {
-    const viewer = await openInViewer(page, 'adaptive_types.parquet');
+    const viewer = await openInViewer(page, 'sample_data.parquet');
     const header = viewer.locator('.jp-TabularDataViewer-headerCell', {
-      hasText: 'price'
+      hasText: 'age'
     });
 
     // Capture the two payloads the dialog renders from, so the rows below are
@@ -1775,7 +1956,6 @@ test.describe('Tabular Data Viewer Extension', () => {
     const rows = dialog.locator('[data-testid="unique-value-row"]');
     await expect(rows).toHaveCount(payload.values.length);
 
-    const maxCount = Math.max(...payload.counts, 1);
     for (let i = 0; i < payload.values.length; i++) {
       const row = rows.nth(i);
       await expect(row.locator('.jp-ColumnStatsModal-value')).toHaveText(
@@ -1784,14 +1964,14 @@ test.describe('Tabular Data Viewer Extension', () => {
       await expect(row.locator('.jp-ColumnStatsModal-valueCount')).toHaveText(
         String(payload.counts[i])
       );
-      // The bar is the count's share of the largest count
+      // The bar and the percentage are both the count's share of all rows
       const width = await row
         .locator('.jp-ColumnStatsModal-fill')
         .evaluate((node: HTMLElement) => parseFloat(node.style.width));
-      expect(width).toBeCloseTo((payload.counts[i] / maxCount) * 100, 2);
-      // The percentage column is the count's share of all rows
+      const share = (payload.counts[i] / stats.total_rows) * 100;
+      expect(width).toBeCloseTo(share, 2);
       await expect(row.locator('.jp-ColumnStatsModal-valuePct')).toHaveText(
-        `${((payload.counts[i] / stats.total_rows) * 100).toFixed(2)}%`
+        `${share.toFixed(2)}%`
       );
     }
   });
@@ -1799,46 +1979,62 @@ test.describe('Tabular Data Viewer Extension', () => {
   test('should name what the unique-values bar and percentage measure', async ({
     page
   }) => {
-    // 'Share' is the bar normalised to the largest count, and '%' is the
-    // row's count as a percentage of all rows.
-    const dialog = await openAdaptiveStats(page, 'price');
+    // Both the bar and '%' measure the row's count against all rows, so the
+    // two always agree.
+    const dialog = await openAdaptiveStats(page, 'zip');
     const headers = await dialog
       .locator('.jp-ColumnStatsModal-valueCols span')
       .allTextContents();
-    expect(headers).toEqual(['Value', 'Share', 'Count', '%']);
+    expect(headers).toEqual(['Value', 'Share of rows', 'Count', '%']);
 
-    // The bar is normalised to the largest count, so its widest fill is 100%
     const fills = await dialog
       .locator('.jp-ColumnStatsModal-fill')
       .evaluateAll((nodes: HTMLElement[]) =>
         nodes.map(node => parseFloat(node.style.width))
       );
-    expect(Math.max(...fills)).toBeCloseTo(100, 2);
+    const pcts = await dialog
+      .locator('.jp-ColumnStatsModal-valuePct')
+      .allTextContents();
+    expect(pcts.length).toBe(fills.length);
+    for (let i = 0; i < fills.length; i++) {
+      expect(parseFloat(pcts[i])).toBeCloseTo(fills[i], 2);
+    }
   });
 
-  test('should wrap a long unique value', async ({ page }) => {
-    // The activity_stats ids are 48 characters and the values column is at
-    // most 150px wide, so an ellipsis hid the value; the span wraps instead.
-    const viewer = await openInViewer(page, 'activity_stats.parquet');
-    const header = viewer.locator('.jp-TabularDataViewer-headerCell').filter({
-      has: page.locator('.jp-TabularDataViewer-columnName', {
-        hasText: /^id$/
-      })
+  test.describe('with maxUniqueValues above the farm_id count', () => {
+    test.use({
+      mockSettings: {
+        ...galata.DEFAULT_SETTINGS,
+        [PLUGIN_ID]: { maxUniqueValues: 200 }
+      }
     });
-    await header.locator('.jp-TabularDataViewer-infoIcon').click();
-    const dialog = page.locator('[data-testid="stats-dialog"]');
-    await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
 
-    const value = dialog
-      .locator('[data-testid="unique-value-row"] .jp-ColumnStatsModal-value')
-      .first();
-    await expect(value).toBeVisible();
-    const metrics = await value.evaluate((node: HTMLElement) => ({
-      text: node.textContent,
-      scrollWidth: node.scrollWidth,
-      clientWidth: node.clientWidth
-    }));
-    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
+    test('should wrap a long unique value', async ({ page }) => {
+      // farm_id holds 169 distinct values, so its pane appears only when the
+      // limit is raised above the default 100. Its values are 36 characters
+      // and the values column is narrower than that, so an ellipsis hid the
+      // value; the span wraps instead.
+      const viewer = await openInViewer(page, 'activity_stats.parquet');
+      const header = viewer.locator('.jp-TabularDataViewer-headerCell').filter({
+        has: page.locator('.jp-TabularDataViewer-columnName', {
+          hasText: /^farm_id$/
+        })
+      });
+      await header.locator('.jp-TabularDataViewer-infoIcon').click();
+      const dialog = page.locator('[data-testid="stats-dialog"]');
+      await expect(dialog).toBeVisible({ timeout: GRID_TIMEOUT });
+
+      const value = dialog
+        .locator('[data-testid="unique-value-row"] .jp-ColumnStatsModal-value')
+        .first();
+      await expect(value).toBeVisible();
+      const metrics = await value.evaluate((node: HTMLElement) => ({
+        text: node.textContent,
+        scrollWidth: node.scrollWidth,
+        clientWidth: node.clientWidth
+      }));
+      expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
+    });
   });
 
   test('should plot the mean line apart from the median line', async ({
@@ -1978,7 +2174,7 @@ test.describe('Tabular Data Viewer Extension', () => {
         'sample_data.csv',
         'Tabular Data Viewer (Text)'
       );
-      const dialog = await openStatsDialog(page, viewer, 'name');
+      const dialog = await openStatsDialog(page, viewer, 'age');
       const pane = dialog.locator('[data-testid="unique-values"]');
       await expect(pane).toHaveAttribute('aria-label', 'Unique values');
       await pane.focus();
@@ -2052,16 +2248,28 @@ test.describe('Tabular Data Viewer Extension', () => {
       }
     });
 
-    test('should limit the unique values list to the setting', async ({
+    test('should show the pane only for a column within the limit', async ({
       page
     }) => {
-      const dialog = await openAdaptiveStats(page, 'id');
+      const viewer = await openInViewer(page, 'activity_stats.parquet');
+
+      // alarm_rate_trend holds 33 distinct values, more than the limit of 5,
+      // so the pane cannot list them and the dialog stays 720px.
+      const overLimit = await openStatsDialog(page, viewer, 'alarm_rate_trend');
       await expect(
-        dialog.locator('.jp-ColumnStatsModal-valuesNote')
-      ).toContainText('5 of 12 listed rows');
+        overLimit.locator('[data-testid="unique-values"]')
+      ).toHaveCount(0);
+      expect(Math.round((await overLimit.boundingBox())!.width)).toBe(720);
+      await overLimit.locator('[data-testid="close-stats"]').click();
+
+      // period holds three values, inside the limit: the pane lists all three.
+      const withinLimit = await openStatsDialog(page, viewer, 'period');
       await expect(
-        dialog.locator('[data-testid="unique-value-row"]')
-      ).toHaveCount(5);
+        withinLimit.locator('.jp-ColumnStatsModal-valuesNote')
+      ).toHaveText('3 of 3 listed, ranked by count');
+      await expect(
+        withinLimit.locator('[data-testid="unique-value-row"]')
+      ).toHaveCount(3);
     });
   });
 

@@ -2541,7 +2541,11 @@ def test_read_sqlite_unknown_table_raises(tmp_path):
 
 def test_read_sqlite_blob_placeholder(tmp_path):
     """BLOB cells render as '<BLOB size>' strings, never raw bytes"""
-    from jupyterlab_tabular_data_viewer_extension.readers import read_as_arrow_table
+    from jupyterlab_tabular_data_viewer_extension.readers import (
+        BINARY_PLACEHOLDER_KEY,
+        BLOB_SIZE_STATS_KEY,
+        read_as_arrow_table,
+    )
     from jupyterlab_tabular_data_viewer_extension.routes import normalize_arrow_type
 
     target = tmp_path / "sample_database.db"
@@ -2567,6 +2571,17 @@ def test_read_sqlite_blob_placeholder(tmp_path):
         "warranty_0017.pdf",
         "manual_0026.pdf",
     ]
+
+    # The exact byte lengths are recorded as field metadata for the marked
+    # column only; the text column beside it keeps its schema untouched.
+    content_metadata = t.schema.field("content").metadata or {}
+    assert content_metadata[BINARY_PLACEHOLDER_KEY] == b"1"
+    size_stats = json.loads(content_metadata[BLOB_SIZE_STATS_KEY])
+    assert size_stats["count"] == 4
+    assert size_stats["min"] == 256.0
+    assert size_stats["max"] == 16384.0
+    assert size_stats["total"] == 256.0 + 1024.0 + 4096.0 + 16384.0
+    assert not (t.schema.field("filename").metadata or {})
 
 
 def test_sqlite_cascade_mixed_type_column(tmp_path):
@@ -2699,15 +2714,16 @@ async def test_metadata_with_sqlite_table_param(jp_fetch, jp_root_dir):
     ]
 
 
-async def test_sqlite_blob_column_reports_binary_with_counts_only(
+async def test_sqlite_blob_column_reports_binary_size_statistics(
     jp_fetch, jp_root_dir
 ):
     """A BLOB column keeps its placeholder text but is served as binary.
 
     The values stay '<BLOB size>' strings; the reader's field marker is what
     tells the metadata payload and the statistics payload that the column
-    holds bytes, so the panel reports counts only rather than lengths or a
-    most-common placeholder.
+    holds bytes. The reader records the exact byte lengths with length(), so
+    the statistics payload carries size aggregates and a log2 histogram over
+    those bytes, and no unique count over the placeholder texts.
     """
     target_dir = jp_root_dir / "data"
     target_dir.mkdir(exist_ok=True)
@@ -2735,11 +2751,32 @@ async def test_sqlite_blob_column_reports_binary_with_counts_only(
     stats = json.loads(stats_response.body)
 
     assert stats["data_type"] == "binary"
-    assert stats["binary_placeholder"] is True
     assert stats["total_rows"] == 3
     assert stats["non_null_count"] == 3
     assert stats["null_count"] == 0
-    assert stats["unique_count"] == 3
+    assert not {
+        "unique_count",
+        "unique_percentage",
+        "binary_placeholder",
+    } & stats.keys()
+
+    # The three blobs are 512 B, 1 KB and 2 KB; quartiles come from
+    # pyarrow.quantile over those exact lengths.
+    assert stats["size_min"] == 512.0
+    assert stats["size_q1"] == 768.0
+    assert stats["size_median"] == 1024.0
+    assert stats["size_q3"] == 1536.0
+    assert stats["size_max"] == 2048.0
+    assert stats["size_mean"] == pytest.approx(1194.6667, abs=0.001)
+    assert stats["size_std_dev"] == pytest.approx(638.5762, abs=0.001)
+    assert stats["size_total"] == 3584.0
+    assert stats["size_histogram"]["bins"] == [
+        {"label": "<512 B>", "count": 1},
+        {"label": "<1 KB>", "count": 1},
+        {"label": "<2 KB>", "count": 1},
+    ]
+
+    # None of the fields derived from the placeholder text is present
     assert not {
         "min_length",
         "max_length",
@@ -3019,10 +3056,17 @@ def test_blob_placeholder_size_rendering(tmp_path, size, expected):
 
 
 def test_blob_column_null_and_mixed_affinity(tmp_path):
-    """NULL stays NULL, text stays verbatim, only real BLOBs get a placeholder"""
+    """NULL stays NULL, text stays verbatim, only real BLOBs get a placeholder.
+
+    The size statistics also describe only the blob cells: the text and the
+    integer in the same column are not bytes.
+    """
     import sqlite3
 
-    from jupyterlab_tabular_data_viewer_extension.readers import _read_sqlite
+    from jupyterlab_tabular_data_viewer_extension.readers import (
+        BLOB_SIZE_STATS_KEY,
+        _read_sqlite,
+    )
 
     target = tmp_path / "mixed_blob.db"
     conn = sqlite3.connect(str(target))
@@ -3042,12 +3086,29 @@ def test_blob_column_null_and_mixed_affinity(tmp_path):
     finally:
         conn.close()
 
-    payload = _read_sqlite(str(target)).column("payload").to_pylist()
+    table = _read_sqlite(str(target))
+    payload = table.column("payload").to_pylist()
     assert payload[0] is None, "NULL must not become a placeholder"
     assert payload[1] == "<BLOB 0 B>"
     assert payload[2] == "<BLOB 2 KB>"
     assert payload[3] == "not binary", "text in a BLOB column passes through"
     assert payload[4] == "42", "a number in a mixed column casts, not placeholders"
+
+    size_stats = json.loads(
+        table.schema.field("payload").metadata[BLOB_SIZE_STATS_KEY]
+    )
+    assert size_stats["count"] == 2
+    assert size_stats["min"] == 0.0
+    assert size_stats["q1"] == 512.0
+    assert size_stats["median"] == 1024.0
+    assert size_stats["q3"] == 1536.0
+    assert size_stats["max"] == 2048.0
+    assert size_stats["total"] == 2048.0
+    assert [
+        (bin["label"], bin["count"])
+        for bin in size_stats["bins"]
+        if bin["count"]
+    ] == [("<1 B>", 1), ("<2 KB>", 1)]
 
 
 def test_sqlite_column_name_requiring_quoting(tmp_path):
@@ -4284,6 +4345,7 @@ async def test_duration_ns_statistics_keep_sub_microsecond_digits(
     )
     assert rendered_min == "0 days 00:00:00.000000100"
     assert rendered_max == "0 days 00:00:00.000000750"
+    assert stats["histogram"]["bins"][0]["label"] == rendered_min
 
 
 def test_time_column_reports_earliest_latest_and_range():
@@ -4388,3 +4450,223 @@ def test_string_column_top_share_is_share_of_all_rows():
     assert stats["most_common_value"] == "a"
     assert stats["most_common_count"] == 3
     assert stats["top_share"] == 37.5
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: histograms
+# ---------------------------------------------------------------------------
+
+
+async def test_numeric_histogram_bins_cover_every_non_null_value(
+    jp_fetch, jp_root_dir
+):
+    """int, float, decimal and duration columns bin every non-null value.
+
+    age and salary come from the workbook, price is a decimal parquet column
+    and elapsed a duration. Each histogram has 12 equal-width bins whose
+    counts add up to non_null_count, so no value is dropped or counted twice.
+    """
+    import re
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "sample_data.xlsx", target_dir / "sample_data.xlsx")
+    shutil.copy(
+        DATA_DIR / "adaptive_types.parquet", target_dir / "adaptive_types.parquet"
+    )
+    shutil.copy(
+        DATA_DIR / "typed_columns.parquet", target_dir / "typed_columns.parquet"
+    )
+
+    cases = [
+        ("data/sample_data.xlsx", "age", None),
+        ("data/sample_data.xlsx", "salary", None),
+        ("data/adaptive_types.parquet", "price", None),
+        ("data/typed_columns.parquet", "elapsed", r"-?\d+:\d{2}:\d{2}(\.\d{6})?"),
+    ]
+    for path, column, label_pattern in cases:
+        response = await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            "column-stats",
+            method="POST",
+            body=json.dumps({"path": path, "columnName": column}),
+        )
+        assert response.code == 200
+        stats = json.loads(response.body)
+        bins = stats["histogram"]["bins"]
+        assert len(bins) == 12, column
+        assert sum(bin["count"] for bin in bins) == stats["non_null_count"], column
+        assert all(isinstance(bin["label"], str) and bin["label"] for bin in bins)
+        if label_pattern:
+            assert all(re.fullmatch(label_pattern, bin["label"]) for bin in bins)
+
+
+async def test_temporal_histogram_unit_follows_the_span(jp_fetch, jp_root_dir):
+    """The bin unit is the coarsest one that still holds at least eight bins.
+
+    clock spans eleven minutes, so minutes; join_date spans five years, where
+    years give fewer than eight bins and months give 60, so three-month bins;
+    created spans twelve days, so days. A date column stops at day because a
+    date carries no clock. Every histogram stays between 8 and 20 bins and its
+    labels carry the unit's granularity.
+    """
+    import re
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    shutil.copy(DATA_DIR / "sample_data.xlsx", target_dir / "sample_data.xlsx")
+    shutil.copy(
+        DATA_DIR / "adaptive_types.parquet", target_dir / "adaptive_types.parquet"
+    )
+    shutil.copy(
+        DATA_DIR / "typed_columns.parquet", target_dir / "typed_columns.parquet"
+    )
+
+    cases = [
+        ("data/typed_columns.parquet", "clock", r"\d{2}:\d{2}"),
+        ("data/sample_data.xlsx", "join_date", r"\d{4}-\d{2}"),
+        ("data/adaptive_types.parquet", "created", r"\d{4}-\d{2}-\d{2}"),
+    ]
+    for path, column, label_pattern in cases:
+        response = await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            "column-stats",
+            method="POST",
+            body=json.dumps({"path": path, "columnName": column}),
+        )
+        assert response.code == 200
+        stats = json.loads(response.body)
+        bins = stats["histogram"]["bins"]
+        assert 8 <= len(bins) <= 20, column
+        assert all(re.fullmatch(label_pattern, bin["label"]) for bin in bins), column
+        assert sum(bin["count"] for bin in bins) == stats["non_null_count"], column
+
+
+def test_temporal_histogram_short_spans_keep_the_date():
+    """A short date column bins by day, and a timestamp keeps the date in its
+    sub-day labels.
+
+    Five dates would otherwise fall through to hourly bins whose clock-only
+    labels repeat across the days. Three days of timestamps binned hourly must
+    still tell the days apart, so each label carries the date.
+    """
+    import datetime as dt
+
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import _temporal_histogram
+
+    dates = pa.array(
+        [dt.date(2026, 1, 1) + dt.timedelta(days=offset) for offset in range(5)],
+        pa.date32(),
+    )
+    date_bins = _temporal_histogram(dates)["bins"]
+    assert [bin["label"] for bin in date_bins] == [
+        "2026-01-01",
+        "2026-01-02",
+        "2026-01-03",
+        "2026-01-04",
+        "2026-01-05",
+    ]
+    assert sum(bin["count"] for bin in date_bins) == len(dates)
+
+    stamps = pa.array(
+        [dt.datetime(2026, 1, day, 9, 0) for day in (1, 2, 3)],
+        pa.timestamp("us"),
+    )
+    stamp_bins = _temporal_histogram(stamps)["bins"]
+    stamp_labels = [bin["label"] for bin in stamp_bins]
+    assert len(stamp_labels) == len(set(stamp_labels))
+    assert all(label.startswith("2026-01-") for label in stamp_labels)
+    assert sum(bin["count"] for bin in stamp_bins) == len(stamps)
+
+
+async def test_histograms_keep_empty_bins(jp_fetch, jp_root_dir):
+    """A gap between the values still occupies its bins.
+
+    Two clusters far apart leave empty bins between them on both axes, and
+    counting only the occupied bins would misreport the shape of the data.
+    """
+    import datetime as dt
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table(
+            {
+                "value": pa.array([0, 1, 2, 100, 101, 102], pa.int64()),
+                "when": pa.array(
+                    [
+                        dt.datetime(2026, 1, 1, 9, 0),
+                        dt.datetime(2026, 1, 1, 9, 20),
+                        dt.datetime(2026, 1, 1, 9, 0),
+                        dt.datetime(2026, 1, 1, 9, 20),
+                        dt.datetime(2026, 1, 1, 9, 0),
+                        dt.datetime(2026, 1, 1, 9, 20),
+                    ],
+                    pa.timestamp("us"),
+                ),
+            }
+        ),
+        target_dir / "gaps.parquet",
+    )
+
+    for column in ("value", "when"):
+        response = await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            "column-stats",
+            method="POST",
+            body=json.dumps({"path": "data/gaps.parquet", "columnName": column}),
+        )
+        assert response.code == 200
+        stats = json.loads(response.body)
+        bins = stats["histogram"]["bins"]
+        assert sum(bin["count"] for bin in bins) == stats["non_null_count"], column
+        assert sum(1 for bin in bins if bin["count"] == 0) > 0, column
+
+
+async def test_zero_row_and_all_null_columns_carry_no_histogram(
+    jp_fetch, jp_root_dir
+):
+    """Nothing to bin means no histogram key at all, not an empty one."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    target_dir = jp_root_dir / "data"
+    target_dir.mkdir(exist_ok=True)
+    pq.write_table(
+        pa.table({"value": pa.array([], pa.int64())}),
+        target_dir / "zero_rows.parquet",
+    )
+    pq.write_table(
+        pa.table({"value": pa.array([None, None], pa.int64())}),
+        target_dir / "all_null.parquet",
+    )
+
+    for filename in ("zero_rows.parquet", "all_null.parquet"):
+        response = await jp_fetch(
+            "jupyterlab-tabular-data-viewer-extension",
+            "column-stats",
+            method="POST",
+            body=json.dumps({"path": f"data/{filename}", "columnName": "value"}),
+        )
+        assert response.code == 200
+        stats = json.loads(response.body)
+        assert "histogram" not in stats, filename
+        assert "size_histogram" not in stats, filename
+
+
+def test_constant_column_gets_a_single_histogram_bin():
+    """A zero span gets one bin holding every value, not twelve empty bins."""
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension.stats import calculate_column_stats
+
+    table = pa.table({"v": pa.array([5, 5, 5], pa.int64())})
+
+    stats = calculate_column_stats(table, "v")
+
+    assert stats["histogram"]["bins"] == [{"label": "5", "count": 3}]

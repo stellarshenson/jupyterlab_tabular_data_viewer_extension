@@ -2,13 +2,15 @@
 Column statistics calculation using PyArrow.
 """
 
+import datetime as dt
+import json
 import math
 
 import pyarrow as pa
 import pyarrow.compute as pc
 from typing import Dict, Any
 
-from .readers import is_binary_placeholder
+from .readers import BLOB_SIZE_STATS_KEY, is_binary_placeholder
 
 
 def simplify_type(arrow_type: pa.DataType) -> str:
@@ -75,6 +77,226 @@ def numeric_view(column):
     return None
 
 
+def _format_number(value):
+    """A histogram edge as the dialog's statistic formatter shows a number."""
+    rounded = round(float(value), 2)
+    if rounded == int(rounded):
+        return f"{int(rounded):,}"
+    return f"{rounded:,.2f}".rstrip("0").rstrip(".")
+
+
+def _format_duration(value, unit):
+    """A count of a duration's own unit as the grid's timedelta text."""
+    if unit == "ns":
+        # pyarrow keeps the nine nanosecond digits a timedelta cannot.
+        return str(pa.scalar(round(float(value)), pa.duration("ns")).as_py())
+    return str(
+        dt.timedelta(
+            microseconds=round(float(value) * {"ms": 1e3, "s": 1e6}.get(unit, 1))
+        )
+    )
+
+
+def _numeric_histogram(values, duration_unit=None):
+    """12 equal-width bins over [min, max], empty bins kept.
+
+    A constant column has a zero span, so it gets one bin holding every value.
+    Non-finite floats are dropped before binning: they have no place on the
+    axis and would make every bin index NaN.
+    """
+    values = pc.drop_null(values)
+    if pa.types.is_floating(values.type):
+        values = pc.filter(values, pc.is_finite(values))
+    if len(values) == 0:
+        return None
+    min_max = pc.min_max(values)
+    low = min_max["min"].as_py()
+    high = min_max["max"].as_py()
+    format_edge = (
+        (lambda value: _format_duration(value, duration_unit))
+        if duration_unit
+        else _format_number
+    )
+    if low == high:
+        return {"bins": [{"label": format_edge(low), "count": len(values)}]}
+    width = (float(high) - float(low)) / 12
+    indices = pc.floor(
+        pc.divide(pc.subtract(pc.cast(values, pa.float64()), float(low)), width)
+    )
+    indices = pc.cast(indices, pa.int64())
+    indices = pc.min_element_wise(indices, pa.scalar(11, pa.int64()))
+    indices = pc.max_element_wise(indices, pa.scalar(0, pa.int64()))
+    value_counts = pc.value_counts(indices)
+    counts = dict(
+        zip(
+            value_counts.field("values").to_pylist(),
+            value_counts.field("counts").to_pylist(),
+        )
+    )
+    return {
+        "bins": [
+            {"label": format_edge(low + index * width), "count": counts.get(index, 0)}
+            for index in range(12)
+        ]
+    }
+
+
+# Coarsest first: the unit is the first whose span holds at least eight bins,
+# so the result is 8 to 20 bins unless the span is shorter than eight seconds.
+# A date column stops at day: a date carries no clock, so clock bins would put
+# several days of a short column under the same few labels.
+_TEMPORAL_UNITS = (
+    ("year", 0),
+    ("month", 0),
+    ("week", 7 * 86400),
+    ("day", 86400),
+    ("hour", 3600),
+    ("minute", 60),
+    ("second", 1),
+)
+
+_TEMPORAL_FORMATS = {
+    "year": "%Y",
+    "month": "%Y-%m",
+    "week": "%Y-%m-%d",
+    "day": "%Y-%m-%d",
+    "hour": "%H:00",
+    "minute": "%H:%M",
+    "second": "%H:%M:%S",
+}
+
+# A timestamp's sub-day bins carry the date: two bins a day apart must not
+# share a clock-only label.
+_TIMESTAMP_FORMATS = {
+    **_TEMPORAL_FORMATS,
+    "hour": "%Y-%m-%d %H:00",
+    "minute": "%Y-%m-%d %H:%M",
+    "second": "%Y-%m-%d %H:%M:%S",
+}
+
+
+def _as_datetime(value):
+    """A date, datetime or time value as a datetime for span arithmetic."""
+    if isinstance(value, dt.datetime):
+        return value
+    if isinstance(value, dt.time):
+        return dt.datetime.combine(dt.date(1970, 1, 1), value)
+    return dt.datetime.combine(value, dt.time())
+
+
+def _floor_to(value, unit):
+    """The start of the unit's period containing `value`."""
+    if unit == "year":
+        return value.replace(
+            month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+    if unit == "month":
+        return value.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if unit in ("week", "day"):
+        return value.replace(hour=0, minute=0, second=0, microsecond=0)
+    if unit == "hour":
+        return value.replace(minute=0, second=0, microsecond=0)
+    if unit == "minute":
+        return value.replace(second=0, microsecond=0)
+    return value.replace(microsecond=0)
+
+
+def _unit_count(anchor, latest, unit, seconds):
+    """Bins needed to cover [anchor, latest] in whole units."""
+    if unit == "year":
+        return latest.year - anchor.year + 1
+    if unit == "month":
+        return (latest.year - anchor.year) * 12 + latest.month - anchor.month + 1
+    return int((latest - anchor).total_seconds() // seconds) + 1
+
+
+def _format_temporal(value, fmt):
+    return value.strftime(fmt)
+
+
+def _temporal_histogram(column):
+    """Bins over [min, max] in the coarsest unit that still holds 8+ bins.
+
+    The unit's period start anchors the axis, and a century-long span widens
+    the step so the count never exceeds 20. Empty bins are kept. The labels
+    use the granularity the grid shows for that unit.
+    """
+    values = [_as_datetime(value) for value in pc.drop_null(column).to_pylist()]
+    if not values:
+        return None
+    earliest, latest = min(values), max(values)
+    if earliest == latest:
+        # A constant column has a zero span. Label the single bin as the grid
+        # shows the value: a date, a clock time or an ISO timestamp.
+        if pa.types.is_date(column.type):
+            label = earliest.strftime("%Y-%m-%d")
+        elif pa.types.is_time(column.type):
+            label = earliest.strftime("%H:%M:%S")
+        else:
+            label = earliest.isoformat()
+        return {"bins": [{"label": label, "count": len(values)}]}
+    if pa.types.is_date(column.type):
+        units = _TEMPORAL_UNITS[:4]
+        formats = _TEMPORAL_FORMATS
+    elif pa.types.is_time(column.type):
+        units = _TEMPORAL_UNITS[4:]
+        formats = _TEMPORAL_FORMATS
+    else:
+        units = _TEMPORAL_UNITS
+        formats = _TIMESTAMP_FORMATS
+    for candidate_unit, candidate_seconds in units:
+        candidate_anchor = _floor_to(earliest, candidate_unit)
+        candidate_count = _unit_count(
+            candidate_anchor, latest, candidate_unit, candidate_seconds
+        )
+        unit, seconds, anchor, count = (
+            candidate_unit,
+            candidate_seconds,
+            candidate_anchor,
+            candidate_count,
+        )
+        if candidate_count >= 8:
+            break
+    step = max(1, math.ceil(count / 20))
+    bin_count = math.ceil(count / step)
+    labels = []
+    for index in range(bin_count):
+        if unit == "year":
+            start = anchor.replace(year=anchor.year + index * step)
+        elif unit == "month":
+            months = anchor.year * 12 + anchor.month - 1 + index * step
+            start = anchor.replace(year=months // 12, month=months % 12 + 1)
+        else:
+            start = anchor + dt.timedelta(seconds=seconds * index * step)
+        labels.append(_format_temporal(start, formats[unit]))
+    if unit == "year":
+        indices = [(value.year - anchor.year) // step for value in values]
+    elif unit == "month":
+        indices = [
+            ((value.year - anchor.year) * 12 + value.month - anchor.month) // step
+            for value in values
+        ]
+    else:
+        indices = [
+            int((value - anchor).total_seconds() // (seconds * step))
+            for value in values
+        ]
+    indices = [min(max(index, 0), bin_count - 1) for index in indices]
+    value_counts = pc.value_counts(pa.array(indices, pa.int64()))
+    counts = dict(
+        zip(
+            value_counts.field("values").to_pylist(),
+            value_counts.field("counts").to_pylist(),
+        )
+    )
+    return {
+        "bins": [
+            {"label": label, "count": counts.get(index, 0)}
+            for index, label in enumerate(labels)
+        ]
+    }
+
+
 def json_safe(stats: Dict[str, Any]) -> Dict[str, Any]:
     """Replace NaN and +/-Infinity with None throughout a statistics payload.
 
@@ -104,7 +326,8 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
 
     Returns:
         Dictionary with statistics appropriate for the column type. A BLOB
-        column served as placeholder text gets counts only.
+        column served as placeholder text gets counts and the byte-size
+        statistics the reader recorded, never placeholder-derived ones.
     """
     if column_name not in table.column_names:
         raise ValueError(f"Column '{column_name}' not found in table")
@@ -155,12 +378,29 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
         "unique_percentage": round(unique_percentage, 1),
     }
 
-    # unique_count for a placeholder column counts distinct displayed
-    # placeholder texts, not distinct blobs.
+    # A placeholder column reports the bytes, never the placeholder texts: no
+    # unique count, and the reader's recorded size aggregates when present.
     if placeholder:
-        stats["binary_placeholder"] = True
-    # Counts only for a BLOB placeholder column: no length, top-share or
-    # numeric fields, since none of them would describe the bytes.
+        stats.pop("unique_count")
+        stats.pop("unique_percentage")
+        raw_size_stats = (table.schema.field(column_name).metadata or {}).get(
+            BLOB_SIZE_STATS_KEY
+        )
+        if raw_size_stats:
+            size_stats = json.loads(raw_size_stats)
+            for key in (
+                "min",
+                "q1",
+                "median",
+                "q3",
+                "max",
+                "mean",
+                "std_dev",
+                "total",
+            ):
+                stats[f"size_{key}"] = float(size_stats[key])
+            stats["size_histogram"] = {"bins": size_stats.get("bins", [])}
+        return stats
     if simplified_type == "binary":
         return stats
 
@@ -253,6 +493,23 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
             # Log but don't fail - return partial stats
             print(f"Warning: Could not compute numeric stats for {column_name}: {e}")
 
+    # Numeric histogram: 12 equal-width bins beside the box plot. Only a real
+    # metric gets one; a numeric-looking text column keeps its string panel.
+    if numeric_column is not None and (
+        pa.types.is_decimal(column_type)
+        or pa.types.is_duration(column_type)
+        or simplified_type in ("int", "float")
+    ):
+        try:
+            duration_unit = (
+                column_type.unit if pa.types.is_duration(column_type) else None
+            )
+            histogram = _numeric_histogram(numeric_column, duration_unit)
+            if histogram is not None:
+                stats["histogram"] = histogram
+        except Exception as e:
+            print(f"Warning: Could not compute histogram for {column_name}: {e}")
+
     # Boolean statistics - counts only, from the non-null values
     if pa.types.is_boolean(column_type):
         true_count = int(pc.sum(pc.cast(column, pa.int64())).as_py())
@@ -319,6 +576,10 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
                 time_of_day = pc.cast(pc.drop_null(column), pa.time64("us"))
                 stats["time_of_day_min"] = pc.min(time_of_day).as_py().isoformat()
                 stats["time_of_day_max"] = pc.max(time_of_day).as_py().isoformat()
+
+            histogram = _temporal_histogram(column)
+            if histogram is not None:
+                stats["histogram"] = histogram
         except Exception as e:
             print(f"Warning: Could not compute date stats for {column_name}: {e}")
 
@@ -344,6 +605,10 @@ def calculate_column_stats(table: pa.Table, column_name: str) -> Dict[str, Any]:
                 ),
                 6,
             )
+
+            histogram = _temporal_histogram(column)
+            if histogram is not None:
+                stats["histogram"] = histogram
         except Exception as e:
             print(f"Warning: Could not compute time stats for {column_name}: {e}")
 

@@ -22,6 +22,8 @@ classifiers = [
 ]
 dependencies = [
     "pyarrow>=26.0,<27",
+    # pyarrow converts a duration[ns] scalar to the grid text only through pandas; without it the rows request raises ValueError and the column cannot be read.
+    "pandas>=2.3,<3",
     # Floor is the series this was verified against, not a researched minimum.
     # The readers pass `infer_schema_length` to `read_database`, which an older
     # polars would reject with a TypeError at read time rather than at install

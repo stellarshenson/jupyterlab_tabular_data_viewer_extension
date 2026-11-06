@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Statistics dialog - all data types</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<style>
+  /* Page chrome tokens; the demo surface keeps its own theme below. */
+  :root {
+    --bg: #f6f7f8;
+    --surface: #ffffff;
+    --ink: #1f2429;
+    --muted: #5c656d;
+    --line: #dfe4e8;
+    --accent: #1e88e5;
+    --danger: #c62828;
+    --stage: #eef1f3;
+    --scroll-thumb: #c3ccd4;
+    --accent-bg: #1565c0;
+    --accent-ink: #ffffff;
+    --pin-bg: #d32f2f;
+    --grid-dot: rgba(23, 28, 33, 0.1);
+    --shadow-1: 0 1px 2px rgba(16, 24, 32, 0.06), 0 6px 18px rgba(16, 24, 32, 0.07);
+    --shadow-2: 0 12px 34px rgba(16, 24, 32, 0.18);
+    --radius: 2px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181b;
+      --surface: #1d2125;
+      --ink: #e7eaed;
+      --muted: #9aa4ad;
+      --line: #2b3238;
+      --accent: #64b5f6;
+      --danger: #ef9a9a;
+      --stage: #101315;
+      --scroll-thumb: #3a444d;
+      --accent-bg: #64b5f6;
+      --accent-ink: #0f1317;
+      --pin-bg: #ef5350;
+      --grid-dot: rgba(232, 237, 241, 0.08);
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
+      --shadow-2: 0 14px 40px rgba(0, 0, 0, 0.5);
+      color-scheme: dark;
+    }
+  }
+
+  html { scrollbar-color: var(--scroll-thumb) transparent; scrollbar-width: thin; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 2px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--scroll-thumb) 80%, var(--ink)); background-clip: padding-box; }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 48px;
+  }
+  .wrap { max-width: 1560px; margin: 0 auto; }
+
+  .masthead { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 4px; font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
+  .lede { margin: 0; max-width: 62ch; color: var(--muted); }
+  .tools { display: flex; gap: 8px; align-items: center; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 2px; overflow: hidden; background: var(--surface); }
+  .seg-btn { font: inherit; font-size: 12px; font-weight: 600; padding: 7px 12px; background: transparent; color: var(--muted); border: 0; cursor: pointer; }
+  .seg-btn[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent-ink); }
+  .seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 600; color: var(--accent-ink);
+    background: var(--accent-bg); border: 1px solid transparent; border-radius: 2px;
+    padding: 8px 14px; cursor: pointer; box-shadow: var(--shadow-1);
+  }
+  .btn.ghost { background: var(--surface); color: var(--ink); border-color: var(--line); box-shadow: none; }
+  .btn:hover { filter: brightness(0.96); }
+  .btn.ghost:hover { filter: none; background: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
+  .btn:focus-visible, .pin:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  main.layout.jp-mod-comments-collapsed { grid-template-columns: minmax(0, 1fr); }
+  main.layout.jp-mod-comments-collapsed .sheet { display: none; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+
+  .stage {
+    position: relative;
+    background-color: var(--stage);
+    background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+    background-size: 18px 18px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 28px;
+    min-height: 460px;
+    cursor: crosshair;
+    box-shadow: var(--shadow-1);
+  }
+
+  /* ---------- the generic demo surface ---------- */
+  .mockwrap {
+    color-scheme: light;
+    --demo-surface: #ffffff;
+    --demo-band: #f0f4f8;
+    --demo-head: #e3edf5;
+    --demo-ink: #1f2933;
+    --demo-ink2: #52606d;
+    --demo-line: #d9e2ec;
+    --demo-accent: #3273a8;
+  }
+  .mockwrap[data-theme='dark'] {
+    color-scheme: dark;
+    --demo-surface: #1d2125;
+    --demo-band: #262c31;
+    --demo-head: #2e363d;
+    --demo-ink: #e7eaed;
+    --demo-ink2: #9aa4ad;
+    --demo-line: #3a444d;
+    --demo-accent: #64b5f6;
+  }
+  .demo {
+    width: min(640px, 100%);
+    background: var(--demo-surface);
+    color: var(--demo-ink);
+    border: 1px solid var(--demo-line);
+    border-radius: 2px;
+    overflow: hidden;
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), 0 18px 44px rgba(0, 0, 0, 0.12);
+  }
+  .demo-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: var(--demo-band); border-bottom: 1px solid var(--demo-line); }
+  .demo-head .title { font-weight: 650; }
+  .demo-head .tag { margin-left: auto; font-size: 11px; color: var(--demo-ink2); }
+  .demo-body { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 14px; padding: 14px; }
+  @media (max-width: 640px) { .demo-body { grid-template-columns: 1fr; } }
+  .demo-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .card { border: 1px solid var(--demo-line); border-radius: 2px; overflow: hidden; background: var(--demo-surface); }
+  .card-head { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--demo-head); font-weight: 600; }
+  .card-head .count { color: var(--demo-ink2); font-weight: 400; }
+  .row { display: flex; align-items: center; gap: 10px; min-height: 30px; padding: 0 12px; border-top: 1px solid var(--demo-line); }
+  .row .value { margin-left: auto; color: var(--demo-ink2); }
+  .notes { background: var(--demo-band); border: 1px solid var(--demo-line); border-radius: 2px; padding: 12px; }
+  .notes .notes-head { font-weight: 600; margin-bottom: 6px; }
+  .notes p { margin: 0; color: var(--demo-ink2); }
+  .notes .link { margin-top: 10px; color: var(--demo-accent); font-weight: 600; }
+
+  /* ---------- comments ---------- */
+  .sheet { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+  @media (max-width: 980px) { .sheet { position: static; } }
+  .sheet section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-1); padding: 16px 18px; }
+  .sheet h2 { margin: 0 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .pill { color: var(--muted); font-weight: 700; letter-spacing: 0; font-size: 12px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  ol#list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  ol#list:empty { display: none; }
+  .comment { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: start; padding: 8px; border-radius: 2px; }
+  .comment:hover { background: color-mix(in srgb, var(--ink) 4%, var(--surface)); }
+  .comment .num { width: 22px; height: 22px; border-radius: 50%; background: var(--pin-bg); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .comment .body { min-width: 0; }
+  .comment .where { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .comment .what { font-size: 13px; overflow-wrap: anywhere; }
+  .comment .del { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 3px; border-radius: 2px; }
+  .comment .del:hover { color: var(--danger); }
+
+  /* The mocked content may set its own z-index, so the annotation layer sits above the mock and below the composer. */
+  .pins { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  .pin {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--pin-bg); color: #fff; border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    font: 700 11px/1 system-ui, sans-serif; cursor: grab; pointer-events: auto;
+    display: grid; place-items: center; padding: 0; touch-action: none;
+  }
+  .pin:hover { filter: brightness(1.08); }
+  .pin.dragging { cursor: grabbing; filter: brightness(1.1); }
+  .pin.pending { background: transparent; border: 2px dashed var(--pin-bg); color: var(--pin-bg); box-shadow: none; opacity: 1; pointer-events: none; z-index: 5; }
+  .sync {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; padding: 3px 9px; border-radius: 2px;
+    background: color-mix(in srgb, var(--ink) 6%, var(--surface)); color: var(--muted);
+    margin: -2px 0 12px;
+  }
+  .sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #9e9e9e; flex: 0 0 auto; }
+  .sync[data-state="ok"]::before { background: #2e7d32; }
+  .sync[data-state="local"]::before { background: #ed6c02; }
+  .sync[data-state="busy"]::before { background: #0288d1; }
+  .sync:empty { display: none; }
+
+  .composer {
+    position: absolute; z-index: 6; width: 280px; max-width: calc(100% - 16px);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow-2); padding: 12px; cursor: default;
+  }
+  .composer .where { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .composer textarea {
+    width: 100%; min-height: 66px; resize: vertical; font: inherit; font-size: 13px;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 2px; padding: 7px 8px;
+  }
+  .composer textarea:focus { outline: none; border-color: var(--accent-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bg) 20%, transparent); }
+  .composer .row-buttons { display: flex; gap: 8px; margin-top: 8px; }
+  .composer .btn { padding: 5px 10px; font-size: 12px; }
+  .composer .btn.danger { background: transparent; color: var(--danger); border-color: var(--line); margin-left: auto; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: grid; place-items: center; padding: 16px; z-index: 20; }
+  .overlay .card { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-2); padding: 16px; width: min(680px, 100%); }
+  .overlay textarea { width: 100%; height: 220px; font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 2px; padding: 8px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .pin { transition: filter 120ms ease; }
+  }
+
+  .mockstage-bg { background: #12171b; padding: 22px; display: flex; flex-direction: column; gap: 22px; }
+  .type-section { display: flex; flex-direction: column; gap: 10px; }
+  .opt-label { color: #c8d2da; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .dlg { width: 720px; max-width: 100%; background: #1e1e1e; border: 1px solid #3b3b3b; border-radius: 10px; color: #e6e6e6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 13px; line-height: 1.45; box-shadow: 0 12px 34px rgba(0,0,0,.35); overflow: hidden; }
+  .dlg.wide { width: 980px; }
+  .dlg.t-int { --tint: #64b5f6; }
+  .dlg.t-float { --tint: #4dd0e1; }
+  .dlg.t-decimal { --tint: #7986cb; }
+  .dlg.t-duration { --tint: #ba68c8; }
+  .dlg.t-time { --tint: #f06292; }
+  .dlg.t-date { --tint: #81c784; }
+  .dlg.t-datetime { --tint: #aed581; }
+  .dlg.t-string { --tint: #ffb74d; }
+  .dlg.t-boolean { --tint: #ff8a65; }
+  .dlg.t-binary { --tint: #90a4ae; }
+  .dlg .chip { color: var(--tint); background: color-mix(in srgb, var(--tint) 14%, transparent); }
+  .dlg .hist-bar { background: var(--tint); }
+  .dlg .uv-bar i { background: var(--tint); }
+  .dlg .box-whis { border-color: var(--tint); background: color-mix(in srgb, var(--tint) 25%, transparent); }
+  .dlg-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #3b3b3b; }
+  .colname { font-weight: 600; font-size: 15px; }
+  .chip { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; border: 1px solid currentColor; border-radius: 2px; padding: 1px 6px; background: rgba(255,255,255,.08); opacity: .85; }
+  .head-right { margin-left: auto; display: flex; gap: 14px; align-items: center; color: #b9c0c6; font-size: 12px; }
+  .btn-ghost { border: 1px solid #4a4a4a; border-radius: 4px; padding: 4px 10px; }
+  .close-x { font-size: 16px; }
+  .dlg-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .dlg-cols { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; }
+  .col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .col-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; border-left: 1px solid #3b3b3b; padding-left: 14px; }
+  .pane-title { font-weight: 600; }
+  .pane-sub { color: #9aa0a6; font-size: 11px; }
+  .pane-note { color: #7f8a93; font-size: 10px; margin-top: 2px; }
+  .uv-head2, .uv-row2 { display: grid; grid-template-columns: minmax(90px, 1.5fr) 64px 64px; gap: 10px; align-items: center; }
+  .uv-head2 { color: #9aa0a6; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding-bottom: 6px; border-bottom: 1px solid #3b3b3b; }
+  .uv-row2 { padding: 5px 0; border-bottom: 1px solid #2c2c2c; font-size: 12px; }
+  .ab { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .ab-card { background: #1e1e1e; border: 1px solid #3b3b3b; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; width: 100%; color: #e6e6e6; }
+  .dlg-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .tile { background: #2d2d2d; border: 1px solid #3b3b3b; border-radius: 8px; padding: 8px 10px; min-height: 64px; }
+  .tile-label { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: #9aa0a6; }
+  .tile-value { font-size: 22px; font-weight: 600; margin: 2px 0; }
+  .tile-sub { font-size: 11px; color: #9aa0a6; }
+  .size-head { display: flex; align-items: baseline; gap: 10px; }
+  .size-title { font-weight: 600; }
+  .size-sub { color: #9aa0a6; font-size: 11px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 12px; background: #242424; border: 1px solid #3b3b3b; border-radius: 8px; padding: 10px 12px; }
+  .metrics.compact { grid-template-columns: repeat(5, 1fr); }
+  .metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #9aa0a6; }
+  .metric-value { font-size: 14px; }
+  .chart { display: flex; flex-direction: column; }
+  .hist { display: flex; align-items: flex-end; gap: 3px; height: 84px; padding-top: 6px; border-bottom: 1px solid #4a4a4a; }
+  .hist-bar { flex: 1; background: #2196F3; opacity: .38; border-radius: 2px 2px 0 0; }
+  .hist-axis { display: flex; justify-content: space-between; color: #9aa0a6; font-size: 10px; margin-top: 4px; }
+  .chart-cap { color: #9aa0a6; font-size: 11px; margin-top: 3px; }
+  .box { position: relative; height: 34px; margin-top: 12px; }
+  .box-line { position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: #4a4a4a; }
+  .box-whis { position: absolute; top: 6px; height: 13px; border: 1px solid #2196F3; background: rgba(33,150,243,.25); border-radius: 2px; }
+  .box-med { position: absolute; top: 4px; height: 17px; width: 2px; background: #e6e6e6; }
+  .box-mean { position: absolute; top: 8px; height: 9px; width: 9px; border: 1px dashed #b9c0c6; border-radius: 50%; transform: translateX(-4px); }
+  .box-axis { display: flex; justify-content: space-between; color: #9aa0a6; font-size: 10px; margin-top: 2px; }
+  .legend { display: flex; gap: 16px; color: #9aa0a6; font-size: 10px; margin-top: 4px; }
+  .legend i { display: inline-block; width: 14px; height: 2px; margin-right: 5px; vertical-align: middle; }
+  .lg-med { background: #e6e6e6; }
+  .lg-mean { border-top: 2px dashed #b9c0c6; }
+  .uv { background: #242424; border: 1px solid #3b3b3b; border-radius: 8px; padding: 8px 12px; }
+  .uv-head, .uv-row { display: grid; grid-template-columns: minmax(70px, 1.4fr) minmax(60px, 1fr) 52px 52px; gap: 10px; align-items: center; }
+  .uv-head { color: #9aa0a6; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding-bottom: 6px; border-bottom: 1px solid #3b3b3b; }
+  .uv-row { padding: 5px 0; border-bottom: 1px solid #2c2c2c; font-size: 12px; }
+  .uv-val { overflow-wrap: anywhere; }
+  .uv-bar { display: block; height: 10px; background: #2f2f2f; border-radius: 3px; overflow: hidden; }
+  .uv-bar i { display: block; height: 100%; background: #2196F3; opacity: .38; }
+  .uv-count, .uv-pct { text-align: right; }
+  .boolrows { display: flex; flex-direction: column; gap: 8px; }
+  .boolrow { display: grid; grid-template-columns: 60px minmax(80px, 1fr) 70px 64px; gap: 12px; align-items: center; }
+  .note { color: #9aa0a6; font-size: 11px; }
+  .dlg-foot { border-top: 1px solid #3b3b3b; padding: 8px 16px; color: #9aa0a6; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <h1>Statistics dialog - all data types</h1>
+      <p class="lede">Every data type in one frame: header, tiles, a metrics grid, a chart and a note, with the unique values on the right when some value repeats. Numbers come from the real fixtures. Click any part of a dialog to comment.</p>
+    </div>
+    <div class="tools">
+      <button class="btn" id="comments-toggle" type="button" aria-controls="comments-panel" aria-expanded="true">Hide comments (0)</button>
+      <button class="btn" id="copy" type="button">Copy comments</button>
+      <button class="btn ghost" id="clear" type="button">Clear all</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage" id="stage" aria-label="Mockup, click to comment">
+      <div class="mockwrap" data-theme="dark"><div class="mockstage-bg"><div class="type-section"><div class="opt-label" data-label="Integer">Integer - age &middot; sample_data.parquet &middot; 1,500 rows</div><div class="dlg wide t-int" data-label="dialog age"><div class="dlg-head"><span class="colname">age</span><span class="chip">int</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-cols"><div class="col-left"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">1,500</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">1,500</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">63</div><div class="tile-sub">4.2% of non-null values</div></div></div><div class="size-head"><span class="size-title">Distribution</span><span class="size-sub">integer values, five-year bins</span></div><div class="metrics"><div><div class="metric-label">Min</div><div class="metric-value">18</div></div><div><div class="metric-label">Q1</div><div class="metric-value">34</div></div><div><div class="metric-label">Median</div><div class="metric-value">49</div></div><div><div class="metric-label">Q3</div><div class="metric-value">64</div></div><div><div class="metric-label">Max</div><div class="metric-value">80</div></div><div><div class="metric-label">Mean</div><div class="metric-value">48.91</div></div><div><div class="metric-label">Std dev</div><div class="metric-value">17.77</div></div><div><div class="metric-label">Outliers</div><div class="metric-value">0 (0%)</div></div></div><div class="chart" data-label="histogram"><div class="hist"><span class="hist-bar" style="height:69px" title="116 rows"></span><span class="hist-bar" style="height:65px" title="109 rows"></span><span class="hist-bar" style="height:71px" title="120 rows"></span><span class="hist-bar" style="height:68px" title="114 rows"></span><span class="hist-bar" style="height:57px" title="96 rows"></span><span class="hist-bar" style="height:70px" title="118 rows"></span><span class="hist-bar" style="height:82px" title="137 rows"></span><span class="hist-bar" style="height:84px" title="141 rows"></span><span class="hist-bar" style="height:62px" title="104 rows"></span><span class="hist-bar" style="height:67px" title="112 rows"></span><span class="hist-bar" style="height:67px" title="112 rows"></span><span class="hist-bar" style="height:67px" title="112 rows"></span><span class="hist-bar" style="height:65px" title="109 rows"></span></div><div class="hist-axis"><span>18</span><span>35</span><span>50</span><span>65</span><span>80</span></div><div class="chart-cap">1,500 rows in 13 bins of 5 years</div></div><div class="box" data-label="box plot"><div class="box-line"></div><div class="box-whis" style="left:25.81%;width:48.379999999999995%"></div><div class="box-med" style="left:50.0%"></div><div class="box-mean" style="left:49.85%"></div><div class="box-axis"><span>18</span><span>80</span></div><div class="legend"><span><i class="lg-med"></i>median</span><span><i class="lg-mean"></i>mean</span></div></div></div><div class="col-right" data-label="unique values pane"><div class="pane-title">Unique values</div><div class="pane-sub">6 of 63 listed, ranked by count</div><div class="uv"><div class="uv-head"><span>Value</span><span>Share of rows</span><span>Count</span><span>%</span></div><div class="uv-row"><span class="uv-val">52</span><span class="uv-bar"><i style="width:2.07%"></i></span><span class="uv-count">31</span><span class="uv-pct">2.07%</span></div><div class="uv-row"><span class="uv-val">65</span><span class="uv-bar"><i style="width:2.07%"></i></span><span class="uv-count">31</span><span class="uv-pct">2.07%</span></div><div class="uv-row"><span class="uv-val">48</span><span class="uv-bar"><i style="width:2.00%"></i></span><span class="uv-count">30</span><span class="uv-pct">2.00%</span></div><div class="uv-row"><span class="uv-val">50</span><span class="uv-bar"><i style="width:1.93%"></i></span><span class="uv-count">29</span><span class="uv-pct">1.93%</span></div><div class="uv-row"><span class="uv-val">23</span><span class="uv-bar"><i style="width:1.87%"></i></span><span class="uv-count">28</span><span class="uv-pct">1.87%</span></div><div class="uv-row"><span class="uv-val">30</span><span class="uv-bar"><i style="width:1.87%"></i></span><span class="uv-count">28</span><span class="uv-pct">1.87%</span></div></div></div></div></div><div class="dlg-foot">Sample data - the age column of sample_data.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Float">Float - salary &middot; sample_data.parquet &middot; 1,500 rows</div><div class="dlg t-float" data-label="dialog salary"><div class="dlg-head"><span class="colname">salary</span><span class="chip">float</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">1,500</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">1,500</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">1,500</div><div class="tile-sub">100.0% of non-null values</div></div></div><div class="size-head"><span class="size-title">Distribution</span><span class="size-sub">float values, ten-thousand bins</span></div><div class="metrics"><div><div class="metric-label">Min</div><div class="metric-value">30,015.73</div></div><div><div class="metric-label">Q1</div><div class="metric-value">58,344.13</div></div><div><div class="metric-label">Median</div><div class="metric-value">87,494.20</div></div><div><div class="metric-label">Q3</div><div class="metric-value">118,945.06</div></div><div><div class="metric-label">Max</div><div class="metric-value">149,986.74</div></div><div><div class="metric-label">Mean</div><div class="metric-value">88,588.34</div></div><div><div class="metric-label">Std dev</div><div class="metric-value">34,274.03</div></div><div><div class="metric-label">Outliers</div><div class="metric-value">0 (0%)</div></div></div><div class="chart" data-label="histogram"><div class="hist"><span class="hist-bar" style="height:70px" title="128 rows"></span><span class="hist-bar" style="height:65px" title="119 rows"></span><span class="hist-bar" style="height:84px" title="153 rows"></span><span class="hist-bar" style="height:71px" title="130 rows"></span><span class="hist-bar" style="height:68px" title="124 rows"></span><span class="hist-bar" style="height:69px" title="126 rows"></span><span class="hist-bar" style="height:73px" title="133 rows"></span><span class="hist-bar" style="height:58px" title="105 rows"></span><span class="hist-bar" style="height:65px" title="118 rows"></span><span class="hist-bar" style="height:74px" title="134 rows"></span><span class="hist-bar" style="height:69px" title="126 rows"></span><span class="hist-bar" style="height:57px" title="104 rows"></span></div><div class="hist-axis"><span>30k</span><span>60k</span><span>90k</span><span>120k</span><span>150k</span></div><div class="chart-cap">1,500 rows in 12 bins of 10,000</div></div><div class="box" data-label="box plot"><div class="box-line"></div><div class="box-whis" style="left:23.61%;width:50.519999999999996%"></div><div class="box-med" style="left:47.91%"></div><div class="box-mean" style="left:48.82%"></div><div class="box-axis"><span>30015.7</span><span>149987</span></div><div class="legend"><span><i class="lg-med"></i>median</span><span><i class="lg-mean"></i>mean</span></div></div></div><div class="dlg-foot">Sample data - the salary column of sample_data.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Decimal">Decimal - price &middot; adaptive_types.parquet &middot; 12 rows</div><div class="dlg t-decimal" data-label="dialog price"><div class="dlg-head"><span class="colname">price</span><span class="chip">decimal</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">12</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">12</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">12</div><div class="tile-sub">100.0% of non-null values</div></div></div><div class="size-head"><span class="size-title">Distribution</span><span class="size-sub">decimal128(10, 2) values</span></div><div class="metrics"><div><div class="metric-label">Min</div><div class="metric-value">9.99</div></div><div><div class="metric-label">Q1</div><div class="metric-value">17.56</div></div><div><div class="metric-label">Median</div><div class="metric-value">23.75</div></div><div><div class="metric-label">Q3</div><div class="metric-value">36.88</div></div><div><div class="metric-label">Max</div><div class="metric-value">99.99</div></div><div><div class="metric-label">Mean</div><div class="metric-value">32.52</div></div><div><div class="metric-label">Std dev</div><div class="metric-value">24.45</div></div><div><div class="metric-label">Outliers</div><div class="metric-value">1 (8.3%)</div></div></div><div class="chart" data-label="histogram"><div class="hist"><span class="hist-bar" style="height:84px" title="4 rows"></span><span class="hist-bar" style="height:63px" title="3 rows"></span><span class="hist-bar" style="height:42px" title="2 rows"></span><span class="hist-bar" style="height:21px" title="1 rows"></span><span class="hist-bar" style="height:2px" title="0 rows"></span><span class="hist-bar" style="height:21px" title="1 rows"></span><span class="hist-bar" style="height:2px" title="0 rows"></span><span class="hist-bar" style="height:2px" title="0 rows"></span><span class="hist-bar" style="height:21px" title="1 rows"></span></div><div class="hist-axis"><span>10</span><span>30</span><span>50</span><span>80</span><span>100</span></div><div class="chart-cap">12 rows in 9 bins of 10</div></div><div class="box" data-label="box plot"><div class="box-line"></div><div class="box-whis" style="left:8.41%;width:21.47%"></div><div class="box-med" style="left:15.29%"></div><div class="box-mean" style="left:25.03%"></div><div class="box-axis"><span>9.99</span><span>99.99</span></div><div class="legend"><span><i class="lg-med"></i>median</span><span><i class="lg-mean"></i>mean</span></div></div></div><div class="dlg-foot">Sample data - the price column of adaptive_types.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Duration">Duration - elapsed &middot; typed_columns.parquet &middot; 12 rows</div><div class="dlg t-duration" data-label="dialog elapsed"><div class="dlg-head"><span class="colname">elapsed</span><span class="chip">duration</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">12</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">12</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">12</div><div class="tile-sub">100.0% of non-null values</div></div></div><div class="size-head"><span class="size-title">Distribution</span><span class="size-sub">durations shown as the grid shows them</span></div><div class="metrics"><div><div class="metric-label">Min</div><div class="metric-value">0:00:00</div></div><div><div class="metric-label">Q1</div><div class="metric-value">0:13:45</div></div><div><div class="metric-label">Median</div><div class="metric-value">0:27:30</div></div><div><div class="metric-label">Q3</div><div class="metric-value">0:41:15</div></div><div><div class="metric-label">Max</div><div class="metric-value">0:55:00</div></div><div><div class="metric-label">Mean</div><div class="metric-value">0:27:30</div></div><div><div class="metric-label">Std dev</div><div class="metric-value">0:17:15</div></div><div><div class="metric-label">Outliers</div><div class="metric-value">0 (0%)</div></div></div><div class="chart" data-label="histogram"><div class="hist"><span class="hist-bar" style="height:84px" title="2 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:42px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="2 rows"></span></div><div class="hist-axis"><span>0:00</span><span>0:14</span><span>0:27</span><span>0:41</span><span>0:55</span></div><div class="chart-cap">12 rows in 10 bins of 330 seconds</div></div><div class="box" data-label="box plot"><div class="box-line"></div><div class="box-whis" style="left:25.0%;width:50.0%"></div><div class="box-med" style="left:50.0%"></div><div class="box-mean" style="left:50.0%"></div><div class="box-axis"><span>0:00</span><span>0:55</span></div><div class="legend"><span><i class="lg-med"></i>median</span><span><i class="lg-mean"></i>mean</span></div></div></div><div class="dlg-foot">Sample data - the elapsed column of typed_columns.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Time">Time - clock &middot; typed_columns.parquet &middot; 12 rows</div><div class="dlg t-time" data-label="dialog clock"><div class="dlg-head"><span class="colname">clock</span><span class="chip">time</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">12</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">12</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">12</div><div class="tile-sub">100.0% of non-null values</div></div></div><div class="size-head"><span class="size-title">Distribution</span><span class="size-sub">one row per minute between the earliest and latest</span></div><div class="metrics compact"><div><div class="metric-label">Earliest</div><div class="metric-value">09:00:00</div></div><div><div class="metric-label">Latest</div><div class="metric-value">09:11:00</div></div><div><div class="metric-label">Span</div><div class="metric-value">11 minutes</div></div></div><div class="chart" data-label="histogram"><div class="hist"><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span></div><div class="hist-axis"><span>09:00</span><span>09:03</span><span>09:06</span><span>09:09</span><span>09:11</span></div><div class="chart-cap">12 times in 12 one-minute bins</div></div></div><div class="dlg-foot">Sample data - the clock column of typed_columns.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Date">Date - join_date &middot; sample_data.parquet &middot; 1,500 rows</div><div class="dlg t-date" data-label="dialog join_date"><div class="dlg-head"><span class="colname">join_date</span><span class="chip">date</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">1,500</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">1,500</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">1,028</div><div class="tile-sub">68.5% of non-null values</div></div></div><div class="size-head"><span class="size-title">Distribution</span><span class="size-sub">rows per year between the earliest and latest</span></div><div class="metrics compact"><div><div class="metric-label">Earliest</div><div class="metric-value">2020-01-02</div></div><div><div class="metric-label">Latest</div><div class="metric-value">2024-12-05</div></div><div><div class="metric-label">Span</div><div class="metric-value">1,799 days</div></div></div><div class="chart" data-label="histogram"><div class="hist"><span class="hist-bar" style="height:84px" title="317 rows"></span><span class="hist-bar" style="height:80px" title="302 rows"></span><span class="hist-bar" style="height:79px" title="298 rows"></span><span class="hist-bar" style="height:82px" title="309 rows"></span><span class="hist-bar" style="height:73px" title="274 rows"></span></div><div class="hist-axis"><span>2020</span><span>2021</span><span>2022</span><span>2023</span><span>2024</span></div><div class="chart-cap">1,500 dates in 5 one-year bins</div></div></div><div class="dlg-foot">Sample data - the join_date column of sample_data.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Datetime">Datetime - created &middot; adaptive_types.parquet &middot; 12 rows</div><div class="dlg t-datetime" data-label="dialog created"><div class="dlg-head"><span class="colname">created</span><span class="chip">datetime</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">12</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">12</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">12</div><div class="tile-sub">100.0% of non-null values</div></div></div><div class="size-head"><span class="size-title">Distribution</span><span class="size-sub">rows per day between the earliest and latest</span></div><div class="metrics"><div><div class="metric-label">Earliest</div><div class="metric-value">2026-01-01 09:00</div></div><div><div class="metric-label">Latest</div><div class="metric-value">2026-01-12 09:11</div></div><div><div class="metric-label">Span</div><div class="metric-value">11 days</div></div><div><div class="metric-label">Time of day</div><div class="metric-value">09:00 - 09:11</div></div></div><div class="chart" data-label="histogram"><div class="hist"><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span><span class="hist-bar" style="height:84px" title="1 rows"></span></div><div class="hist-axis"><span>Jan 1</span><span>Jan 5</span><span>Jan 9</span><span>Jan 12</span></div><div class="chart-cap">12 timestamps in 12 one-day bins</div></div></div><div class="dlg-foot">Sample data - the created column of adaptive_types.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Text">Text - department &middot; sample_data.parquet &middot; 1,500 rows</div><div class="dlg wide t-string" data-label="dialog department"><div class="dlg-head"><span class="colname">department</span><span class="chip">string</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-cols"><div class="col-left"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">1,500</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">1,500</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">5</div><div class="tile-sub">0.3% of non-null values</div></div></div><div class="size-head"><span class="size-title">Text</span><span class="size-sub">five values, 20.5 percent at most</span></div><div class="metrics compact"><div><div class="metric-label">Most common</div><div class="metric-value">Finance</div></div><div><div class="metric-label">Top share</div><div class="metric-value">20.5% of non-null</div></div><div><div class="metric-label">Min length</div><div class="metric-value">2</div></div><div><div class="metric-label">Max length</div><div class="metric-value">11</div></div><div><div class="metric-label">Avg length</div><div class="metric-value">6.8</div></div></div></div><div class="col-right" data-label="unique values pane"><div class="pane-title">Unique values</div><div class="pane-sub">5 of 5 listed, ranked by count</div><div class="uv"><div class="uv-head"><span>Value</span><span>Share of rows</span><span>Count</span><span>%</span></div><div class="uv-row"><span class="uv-val">Finance</span><span class="uv-bar"><i style="width:20.47%"></i></span><span class="uv-count">307</span><span class="uv-pct">20.47%</span></div><div class="uv-row"><span class="uv-val">Sales</span><span class="uv-bar"><i style="width:20.33%"></i></span><span class="uv-count">305</span><span class="uv-pct">20.33%</span></div><div class="uv-row"><span class="uv-val">HR</span><span class="uv-bar"><i style="width:20.00%"></i></span><span class="uv-count">300</span><span class="uv-pct">20.00%</span></div><div class="uv-row"><span class="uv-val">Marketing</span><span class="uv-bar"><i style="width:19.73%"></i></span><span class="uv-count">296</span><span class="uv-pct">19.73%</span></div><div class="uv-row"><span class="uv-val">Engineering</span><span class="uv-bar"><i style="width:19.47%"></i></span><span class="uv-count">292</span><span class="uv-pct">19.47%</span></div></div></div></div></div><div class="dlg-foot">Sample data - the department column of sample_data.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Numeric text">Text that reads as numbers - zip &middot; adaptive_types.parquet &middot; 12 rows</div><div class="dlg wide t-string" data-label="dialog zip"><div class="dlg-head"><span class="colname">zip</span><span class="chip">string</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-cols"><div class="col-left"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">12</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">12</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">3</div><div class="tile-sub">25.0% of non-null values</div></div></div><div class="size-head"><span class="size-title">Numeric values</span><span class="size-sub">digits in a text column, read as numbers</span></div><div class="metrics"><div><div class="metric-label">Min</div><div class="metric-value">2</div></div><div><div class="metric-label">Q1</div><div class="metric-value">5.75</div></div><div><div class="metric-label">Median</div><div class="metric-value">8.5</div></div><div><div class="metric-label">Q3</div><div class="metric-value">10</div></div><div><div class="metric-label">Max</div><div class="metric-value">10</div></div><div><div class="metric-label">Mean</div><div class="metric-value">7.25</div></div><div><div class="metric-label">Std dev</div><div class="metric-value">3.27</div></div><div><div class="metric-label">Outliers</div><div class="metric-value">0 (0%)</div></div></div><div class="box" data-label="box plot"><div class="box-line"></div><div class="box-whis" style="left:46.88%;width:53.12%"></div><div class="box-med" style="left:81.25%"></div><div class="box-mean" style="left:65.62%"></div><div class="box-axis"><span>2</span><span>10</span></div><div class="legend"><span><i class="lg-med"></i>median</span><span><i class="lg-mean"></i>mean</span></div></div></div><div class="col-right" data-label="unique values pane"><div class="pane-title">Unique values</div><div class="pane-sub">3 of 3 listed, ranked by count</div><div class="uv"><div class="uv-head"><span>Value</span><span>Share of rows</span><span>Count</span><span>%</span></div><div class="uv-row"><span class="uv-val">010</span><span class="uv-bar"><i style="width:50.00%"></i></span><span class="uv-count">6</span><span class="uv-pct">50.00%</span></div><div class="uv-row"><span class="uv-val">002</span><span class="uv-bar"><i style="width:25.00%"></i></span><span class="uv-count">3</span><span class="uv-pct">25.00%</span></div><div class="uv-row"><span class="uv-val">007</span><span class="uv-bar"><i style="width:25.00%"></i></span><span class="uv-count">3</span><span class="uv-pct">25.00%</span></div></div></div></div></div><div class="dlg-foot">Sample data - the zip column of adaptive_types.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Boolean">Boolean - is_active &middot; sample_data.parquet &middot; 1,500 rows</div><div class="dlg t-boolean" data-label="dialog is_active"><div class="dlg-head"><span class="colname">is_active</span><span class="chip">boolean</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">1,500</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">1,500</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">2</div><div class="tile-sub">0.1% of non-null values</div></div></div><div class="size-head"><span class="size-title">Values</span><span class="size-sub">true and false with their share of non-null</span></div><div class="boolrows" data-label="boolean bars"><div class="boolrow"><span class="boolname">true</span><span class="uv-bar"><i style="width:48.9%"></i></span><span class="uv-count">734</span><span class="uv-pct">48.9%</span></div><div class="boolrow"><span class="boolname">false</span><span class="uv-bar"><i style="width:51.1%"></i></span><span class="uv-count">766</span><span class="uv-pct">51.1%</span></div></div><div class="note">No unique list: the two bars already are the whole value set.</div></div><div class="dlg-foot">Sample data - the is_active column of sample_data.parquet.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="List as text">List served as JSON text - tags &middot; adaptive_types.parquet &middot; 12 rows</div><div class="dlg wide t-string" data-label="dialog tags"><div class="dlg-head"><span class="colname">tags</span><span class="chip">string</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-cols"><div class="col-left"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">12</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">12</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">3</div><div class="tile-sub">25.0% of non-null values</div></div></div><div class="size-head"><span class="size-title">Text</span><span class="size-sub">the grid shows the list as JSON text</span></div><div class="metrics compact"><div><div class="metric-label">Most common</div><div class="metric-value">["a", "b"]</div></div><div><div class="metric-label">Top share</div><div class="metric-value">41.7% of non-null</div></div><div><div class="metric-label">Min length</div><div class="metric-value">2</div></div><div><div class="metric-label">Max length</div><div class="metric-value">10</div></div><div><div class="metric-label">Avg length</div><div class="metric-value">6.3</div></div></div></div><div class="col-right" data-label="unique values pane"><div class="pane-title">Unique values</div><div class="pane-sub">3 of 3 listed, ranked by count</div><div class="uv"><div class="uv-head"><span>Value</span><span>Share of rows</span><span>Count</span><span>%</span></div><div class="uv-row"><span class="uv-val">["a", "b"]</span><span class="uv-bar"><i style="width:41.67%"></i></span><span class="uv-count">5</span><span class="uv-pct">41.67%</span></div><div class="uv-row"><span class="uv-val">["b"]</span><span class="uv-bar"><i style="width:33.33%"></i></span><span class="uv-count">4</span><span class="uv-pct">33.33%</span></div><div class="uv-row"><span class="uv-val">[]</span><span class="uv-bar"><i style="width:25.00%"></i></span><span class="uv-count">3</span><span class="uv-pct">25.00%</span></div></div></div></div></div><div class="dlg-foot">Sample data - the tags column served as text.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="Binary (approved)">Binary - content &middot; documents table &middot; 1,000 blobs &middot; approved Option A</div><div class="dlg t-binary" data-label="dialog content"><div class="dlg-head"><span class="colname">content</span><span class="chip">binary</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">1,000</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">1,000</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div></div><div class="size-head"><span class="size-title">Size</span><span class="size-sub">measured with length(); contents are never decoded</span></div><div class="metrics"><div><div class="metric-label">Min</div><div class="metric-value">512 B</div></div><div><div class="metric-label">Q1</div><div class="metric-value">3.1 KB</div></div><div><div class="metric-label">Median</div><div class="metric-value">12.0 KB</div></div><div><div class="metric-label">Q3</div><div class="metric-value">96.2 KB</div></div><div><div class="metric-label">Max</div><div class="metric-value">4.8 MB</div></div><div><div class="metric-label">Mean</div><div class="metric-value">208.4 KB</div></div><div><div class="metric-label">Std dev</div><div class="metric-value">421.7 KB</div></div><div><div class="metric-label">Total</div><div class="metric-value">203.5 MB</div></div></div><div class="chart" data-label="size histogram"><div class="hist"><span class="hist-bar" style="height:2px" title="4 blobs"></span><span class="hist-bar" style="height:14px" title="32 blobs"></span><span class="hist-bar" style="height:41px" title="95 blobs"></span><span class="hist-bar" style="height:72px" title="168 blobs"></span><span class="hist-bar" style="height:84px" title="196 blobs"></span><span class="hist-bar" style="height:74px" title="172 blobs"></span><span class="hist-bar" style="height:51px" title="118 blobs"></span><span class="hist-bar" style="height:33px" title="78 blobs"></span><span class="hist-bar" style="height:22px" title="52 blobs"></span><span class="hist-bar" style="height:15px" title="36 blobs"></span><span class="hist-bar" style="height:10px" title="24 blobs"></span><span class="hist-bar" style="height:6px" title="14 blobs"></span><span class="hist-bar" style="height:3px" title="7 blobs"></span><span class="hist-bar" style="height:2px" title="4 blobs"></span></div><div class="hist-axis"><span>512 B</span><span>4 KB</span><span>32 KB</span><span>256 KB</span><span>2 MB</span><span>4.8 MB</span></div><div class="chart-cap">1,000 blobs in log2 bins</div></div><div class="note">No unique count: the grid shows one placeholder per size, so a count would measure sizes, not contents.</div></div><div class="dlg-foot">Sample data - a documents table holding 1,000 PDF blobs.</div></div></div>
+<div class="type-section"><div class="opt-label" data-label="All null">All-null - blank &middot; adaptive_types.parquet &middot; 12 rows</div><div class="dlg t-string" data-label="dialog blank"><div class="dlg-head"><span class="colname">blank</span><span class="chip">string</span><span class="head-right"><span class="btn-ghost">Copy stats as JSON</span><span class="close-x">&#215;</span></span></div><div class="dlg-body"><div class="dlg-tiles"><div class="tile"><div class="tile-label">Total rows</div><div class="tile-value">12</div><div class="tile-sub">100% of all rows</div></div><div class="tile"><div class="tile-label">Non-null</div><div class="tile-value">0</div><div class="tile-sub">0.0% of all rows</div></div><div class="tile"><div class="tile-label">Null</div><div class="tile-value">12</div><div class="tile-sub">100.0% of all rows</div></div><div class="tile"><div class="tile-label">Unique</div><div class="tile-value">0</div><div class="tile-sub">0.0% of non-null values</div></div></div><div class="note">No values to summarize: every cell is null.</div></div><div class="dlg-foot">Sample data - the blank column of adaptive_types.parquet.</div></div></div></div></div>
+      <div class="pins" id="pins"></div>
+      <span class="pin pending" id="pending" hidden></span>
+      <div class="composer" id="composer" hidden>
+        <span class="where" id="c-where">the stage</span>
+        <textarea id="c-text" placeholder="What should change here?"></textarea>
+        <div class="row-buttons">
+          <button class="btn" id="c-save" type="button">Save</button>
+          <button class="btn ghost" id="c-cancel" type="button">Cancel</button>
+          <button class="btn danger" id="c-delete" type="button" hidden>Delete</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sheet" id="comments-panel">
+      <section class="comments">
+        <h2>Comments <span class="pill" id="count">(0)</span></h2>
+        <p class="sync" id="sync"></p>
+        <ol id="list"></ol>
+        <p class="hint" id="hint">Click anywhere on the stage to leave the first comment.</p>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="card">
+    <p style="margin:0 0 8px;font-size:13px;color:var(--muted)">Clipboard is blocked in this browser. Select the text and copy it yourself.</p>
+    <textarea id="fallback-text" readonly></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px">
+      <button class="btn" id="overlay-close" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = 'mockup-comments-all-types-v1';
+  var stage = document.getElementById('stage');
+  var pins = document.getElementById('pins');
+  var composer = document.getElementById('composer');
+  var where = document.getElementById('c-where');
+  var text = document.getElementById('c-text');
+  var deleteBtn = document.getElementById('c-delete');
+  var list = document.getElementById('list');
+  var count = document.getElementById('count');
+  var hint = document.getElementById('hint');
+  var overlay = document.getElementById('overlay');
+  var fallbackText = document.getElementById('fallback-text');
+  var layout = document.querySelector('main.layout');
+  var toggle = document.getElementById('comments-toggle');
+
+  var comments = [];
+  var deleted = [];
+  var editing = null;
+  var at = null;
+  var syncLine = document.getElementById('sync');
+  var pending = document.getElementById('pending');
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) { return; }
+      var data = JSON.parse(raw);
+      if (Array.isArray(data)) { comments = data; return; }
+      comments = data.comments || [];
+      deleted = data.deleted || [];
+    } catch (e) { comments = []; deleted = []; }
+  }
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify({ comments: comments, deleted: deleted })); }
+    catch (e) { setStatus('this browser blocks storage - press Copy comments'); }
+  }
+  function setStatus(s) {
+    syncLine.textContent = s;
+    syncLine.dataset.state = s.indexOf('saved') === 0 ? 'ok' : s.indexOf('stored') === 0 ? 'local' : 'busy';
+  }
+  function merge(list) {
+    var seen = {};
+    var out = [];
+    comments.concat(list).forEach(function (c) {
+      if (!c || !c.id || seen[c.id] || deleted.indexOf(c.id) !== -1) { return; }
+      seen[c.id] = true;
+      out.push(c);
+    });
+    return out;
+  }
+  function post(list) {
+    return fetch('comments', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(list), cache: 'no-store' })
+      .then(function (r) { if (!r.ok) { throw new Error('post'); } deleted = []; persist(); setStatus('saved to the project server'); })
+      .catch(function () { setStatus('stored in this browser only - press Copy comments'); });
+  }
+  function sync() {
+    setStatus('syncing...');
+    fetch('comments', { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { if (!r.ok) { throw new Error('get'); } return r.json(); })
+      .then(function (server) {
+        if (!Array.isArray(server)) { throw new Error('shape'); }
+        var merged = merge(server);
+        comments = merged;
+        persist();
+        render();
+        if (JSON.stringify(merged) !== JSON.stringify(server)) {
+          return post(merged).then(function () { setStatus('saved to the project server'); });
+        }
+        deleted = [];
+        persist();
+        setStatus('saved to the project server');
+      })
+      .catch(function () { setStatus('stored in this browser only - press Copy comments'); });
+  }
+  function uid() { return 'c' + Math.random().toString(36).slice(2, 9); }
+
+  function renderPins() {
+    pins.textContent = '';
+    comments.forEach(function (c, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pin';
+      b.style.left = c.x + '%';
+      b.style.top = c.y + '%';
+      b.textContent = String(i + 1);
+      b.title = c.text;
+      b.setAttribute('aria-label', 'Comment ' + (i + 1) + ' on ' + c.label + '. Drag to move it.');
+      b.addEventListener('pointerdown', function (ev) { startDrag(ev, c, b); });
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        if (justDragged) { return; }
+        openComposer({ id: c.id, x: c.x, y: c.y, label: c.label, body: c.text });
+      });
+      pins.appendChild(b);
+    });
+  }
+
+  var drag = null;
+  var justDragged = false;
+
+  function startDrag(ev, c, el) {
+    if (ev.button !== undefined && ev.button !== 0) { return; }
+    ev.stopPropagation();
+    closeComposer();
+    var r = stage.getBoundingClientRect();
+    drag = { c: c, el: el, startX: ev.clientX, startY: ev.clientY, moved: false };
+    el.classList.add('dragging');
+    try { el.setPointerCapture(ev.pointerId); } catch (e) { /* pointer capture optional */ }
+    function move(e) {
+      if (!drag) { return; }
+      var dx = e.clientX - drag.startX;
+      var dy = e.clientY - drag.startY;
+      if (Math.abs(dx) + Math.abs(dy) > 4) { drag.moved = true; }
+      if (!drag.moved) { return; }
+      var x = Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100));
+      var y = Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100));
+      drag.c.x = x;
+      drag.c.y = y;
+      el.style.left = x + '%';
+      el.style.top = y + '%';
+    }
+    function end() {
+      el.classList.remove('dragging');
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', end);
+      el.removeEventListener('pointercancel', end);
+      if (drag && drag.moved) {
+        justDragged = true;
+        setTimeout(function () { justDragged = false; }, 120);
+        persist();
+        post(comments);
+        render();
+      }
+      drag = null;
+    }
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+  }
+
+  function syncToggle() {
+    var open = !layout.classList.contains('jp-mod-comments-collapsed');
+    toggle.textContent = (open ? 'Hide comments (' : 'Show comments (') + comments.length + ')';
+    toggle.setAttribute('aria-expanded', String(open));
+  }
+  function setPanelOpen(open) {
+    layout.classList.toggle('jp-mod-comments-collapsed', !open);
+    syncToggle();
+  }
+
+  function renderList() {
+    list.textContent = '';
+    count.textContent = '(' + comments.length + ')';
+    syncToggle();
+    hint.hidden = comments.length > 0;
+    comments.forEach(function (c, i) {
+      var li = document.createElement('li');
+      li.className = 'comment';
+      var num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = String(i + 1);
+      var body = document.createElement('div');
+      body.className = 'body';
+      var w = document.createElement('div');
+      w.className = 'where';
+      w.textContent = c.label;
+      var t = document.createElement('div');
+      t.className = 'what';
+      t.textContent = c.text;
+      body.appendChild(w);
+      body.appendChild(t);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'del';
+      del.textContent = '×';
+      del.title = 'Delete comment ' + (i + 1);
+      del.addEventListener('click', function () { remove(c.id); });
+      li.appendChild(num);
+      li.appendChild(body);
+      li.appendChild(del);
+      list.appendChild(li);
+    });
+  }
+
+  function render() { renderPins(); renderList(); }
+
+  function openComposer(opts) {
+    editing = opts.id || null;
+    at = { x: opts.x, y: opts.y };
+    where.textContent = opts.label;
+    text.value = opts.body || '';
+    deleteBtn.hidden = !editing;
+    composer.hidden = false;
+    if (editing) {
+      pending.hidden = true;
+    } else {
+      var n = comments.length + 1;
+      pending.textContent = String(n);
+      pending.setAttribute('aria-label', 'New comment ' + n);
+      pending.style.left = opts.x + '%';
+      pending.style.top = opts.y + '%';
+      pending.hidden = false;
+    }
+    var sw = stage.clientWidth;
+    var sh = stage.clientHeight;
+    var cw = composer.offsetWidth;
+    var ch = composer.offsetHeight;
+    var px = (opts.x / 100) * sw;
+    var py = (opts.y / 100) * sh;
+    var left = px + 12;
+    if (left + cw > sw - 8) { left = px - 12 - cw; }
+    if (left < 8) { left = 8; }
+    var top = py + 12;
+    if (top + ch > sh - 8) { top = py - 12 - ch; }
+    if (top < 8) { top = 8; }
+    composer.style.left = left + 'px';
+    composer.style.top = top + 'px';
+    text.focus();
+  }
+
+  function closeComposer() {
+    composer.hidden = true;
+    pending.hidden = true;
+    editing = null;
+    at = null;
+  }
+
+  function remove(id) {
+    comments = comments.filter(function (c) { return c.id !== id; });
+    if (deleted.indexOf(id) === -1) { deleted.push(id); }
+    persist();
+    post(comments);
+    if (editing === id) { closeComposer(); }
+    render();
+  }
+
+  stage.addEventListener('click', function (e) {
+    var sel = window.getSelection();
+    if (sel && String(sel).trim().length > 0) { return; }
+    if (e.target.closest('#composer, .pin, .btn, a, button')) { return; }
+    if (!composer.hidden) { closeComposer(); return; }
+    var r = stage.getBoundingClientRect();
+    var x = ((e.clientX - r.left) / r.width) * 100;
+    var y = ((e.clientY - r.top) / r.height) * 100;
+    if (x < 0 || y < 0 || x > 100 || y > 100) { return; }
+    var holder = e.target.closest('[data-label]');
+    openComposer({ x: x, y: y, label: holder ? holder.getAttribute('data-label') : 'the stage' });
+  });
+
+  function saveComment() {
+    var body = text.value.trim();
+    if (!body) { text.focus(); return; }
+    if (editing) {
+      comments.forEach(function (c) { if (c.id === editing) { c.text = body; } });
+    } else if (at) {
+      comments.push({ id: uid(), x: at.x, y: at.y, label: where.textContent, text: body, time: new Date().toISOString() });
+    }
+    persist();
+    post(comments);
+    closeComposer();
+    render();
+  }
+  document.getElementById('c-save').addEventListener('click', saveComment);
+
+  document.getElementById('c-cancel').addEventListener('click', closeComposer);
+  deleteBtn.addEventListener('click', function () { if (editing) { remove(editing); } });
+  text.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeComposer(); } });
+
+  function summary() {
+    var head = 'Mockup comments';
+    if (!comments.length) { return head + '\n(no comments)'; }
+    return head + '\n' + comments.map(function (c, i) {
+      return (i + 1) + '. [' + c.label + '] ' + c.text + ' (pinned at ' + Math.round(c.x) + '%, ' + Math.round(c.y) + '%)';
+    }).join('\n');
+  }
+
+  function flash(label) {
+    var btn = document.getElementById('copy');
+    var old = btn.textContent;
+    btn.textContent = label;
+    setTimeout(function () { btn.textContent = old; }, 1400);
+  }
+
+  document.getElementById('copy').addEventListener('click', function () {
+    if (!comments.length) { flash('No comments yet'); return; }
+    var t = summary();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { flash('Copied'); }, function () { fallbackText.value = t; overlay.hidden = false; fallbackText.select(); });
+    } else {
+      fallbackText.value = t; overlay.hidden = false; fallbackText.select();
+    }
+  });
+
+  var clearArmed = false;
+  var clearTimer = null;
+  document.getElementById('clear').addEventListener('click', function () {
+    var btn = this;
+    if (!comments.length) { return; }
+    if (!clearArmed) {
+      clearArmed = true;
+      btn.textContent = 'Confirm clear';
+      clearTimer = setTimeout(function () { clearArmed = false; btn.textContent = 'Clear all'; }, 4000);
+      return;
+    }
+    clearTimeout(clearTimer);
+    clearArmed = false;
+    btn.textContent = 'Clear all';
+    comments = [];
+    persist();
+    post(comments);
+    closeComposer();
+    render();
+  });
+
+  document.getElementById('overlay-close').addEventListener('click', function () { overlay.hidden = true; });
+
+  var wrap = document.querySelector('.mockwrap');
+  var segBtns = Array.prototype.slice.call(document.querySelectorAll('.seg-btn'));
+  function setMockTheme(t) {
+    wrap.setAttribute('data-theme', t);
+    segBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mock') === t)); });
+    try { localStorage.setItem('mockup-theme', t); } catch (e) { /* storage optional */ }
+  }
+  segBtns.forEach(function (b) {
+    b.addEventListener('click', function () { setMockTheme(b.getAttribute('data-mock')); });
+  });
+  try {
+    var savedTheme = localStorage.getItem('mockup-theme');
+    if (savedTheme) { setMockTheme(savedTheme); }
+  } catch (e) { /* storage optional */ }
+
+  toggle.addEventListener('click', function () {
+    var open = layout.classList.contains('jp-mod-comments-collapsed');
+    setPanelOpen(open);
+    try { localStorage.setItem('mockup-comments-open', open ? '1' : '0'); } catch (e) { /* storage optional */ }
+  });
+  try {
+    setPanelOpen(localStorage.getItem('mockup-comments-open') !== '0');
+  } catch (e) { setPanelOpen(true); }
+
+  load();
+  render();
+  sync();
+})();
+</script>
+</body>
+</html>

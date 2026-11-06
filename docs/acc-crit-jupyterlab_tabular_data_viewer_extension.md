@@ -452,9 +452,43 @@ The column statistics dialog: overview tiles, statistics chosen by the column ty
   - log: 2026-11-05T20:59:58Z @kj added
   - log: 2026-11-05T21:56:11Z @kj closed
   - log: 2026-11-05T22:34:50Z @kj amended text "a blob or binary column is typed binary in the grid header and the dialog chip, the grid keeps showing '<BLOB size>', and the dialog shows no value-derived statistics for it, only the counts and a note that the column holds binary content" -> "HIGH; a blob or binary column is typed binary in the grid header and chip, the grid shows '<BLOB size>', the dialog shows counts and a binary note only, and a placeholder column's unique count is labelled 'Unique (as shown)' because it counts displayed placeholders, not blobs"
-- [x] `ACC-STATS-68-TICKS` **Share bars carry percentage ticks** - MEDIUM; every share bar shows a faint tick at each 10 percent of its length, drawn behind the fill so a bar reads against one scale whatever its value
-  - evidence: galata 'should fit the tile labels and value headers at 2089x1244': the track resolves a repeating-linear-gradient with a 10 percent period at 14 px height, painted under the fill
-  - test: galata: open a column's unique values and assert the bar track paints ten equal stops and the fill stays inside it
+- [x] `ACC-STATS-68-TICKS` **Share bars show each value's share** - MEDIUM; each unique-value row's bar fill spans that value's share of all rows on a plain track; no percentage ticks are drawn
+  - evidence: galata 'should fit the tile labels and value headers at 2089x1244': every bar's fill and its percentage measure the count against all rows, no tick gradient on the track
+  - test: galata: open age's unique values and assert each bar's fill width is its count share of all rows
   - test-tags: FUNCTIONAL
   - log: 2026-11-05T21:00:43Z @kj added
   - log: 2026-11-05T21:24:54Z @kj closed
+  - log: 2026-11-06T12:46:12Z @kj amended title "Share bars carry percentage ticks" -> "Share bars show each value's share"; text "every share bar shows a faint tick at each 10 percent of its length, drawn behind the fill so a bar reads against one scale whatever its value" -> "MEDIUM; each unique-value row's bar fill spans that value's share of all rows on a plain track; no percentage ticks are drawn"; reason: the approved A design replaced ticked bars with share-of-rows bars; round 12 found the tick claim false
+  - log: 2026-11-06T12:46:12Z @kj edited test "galata: open a column's unique values and assert the bar track paints ten equal stops and the fill stays inside it" -> "galata: open age's unique values and assert each bar's fill width is its count share of all rows"; evidence "galata 'should fit the tile labels and value headers at 2089x1244': the track resolves a repeating-linear-gradient with a 10 percent period at 14 px height, painted under the fill" -> "galata 'should fit the tile labels and value headers at 2089x1244': every bar's fill and its percentage measure the count against all rows, no tick gradient on the track"
+- [x] `ACC-STATS-69-BLOB-SIZE` **Binary columns show size statistics** - HIGH; a binary column's dialog is narrow, shows Total rows, Non-null and Null only, and a Size block with min, Q1, median, Q3, max, mean, std dev and total byte size plus a size histogram; sizes come from length() and no contents are read; no unique count
+  - evidence: Galata blob test asserts the three tiles, the Size block Min 512 B through Total 3.5 KB and the size histogram; pytest test_sqlite_blob_column_reports_binary_size_statistics; 208 pytest and 68 Galata green at 1.7.21
+  - test: open data/blob_sample.db content statistics and assert the size block, the histogram and the three tiles
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-06T08:10:22Z @kj added
+  - log: 2026-11-06T10:15:47Z @kj closed
+- [x] `ACC-STATS-70-UNIQUE-RULE` **Unique pane only when values repeat** - MEDIUM; the unique values pane appears only when some value repeats and the distinct count is within the unique-values limit, so a nearly all-distinct column stays narrow; boolean and binary never show it; each bar is the row's share of all rows; headers read Share of rows and %
+  - evidence: Galata 'should size the dialog from the pane and tint the chip by type' pins 980 with the pane for age and 720 without for salary and join_date; 'should show the pane only for a column within the limit' pins the limit gate; 68 Galata green
+  - test: open an all-distinct column and a repeating one and assert the pane is hidden and shown
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-06T08:10:22Z @kj added
+  - log: 2026-11-06T08:13:56Z @kj amended text "the unique values pane appears only when some value repeats, that is when unique_count is below non_null_count; boolean and binary columns never show it; each bar is the row's share of all rows and the headers read Share of rows and %" -> "MEDIUM; the unique values pane appears only when some value repeats and the distinct count is within the unique-values limit, so a nearly all-distinct column stays narrow; boolean and binary never show it; each bar is the row's share of all rows; headers read Share of rows and %"
+  - log: 2026-11-06T10:15:47Z @kj closed
+- [x] `ACC-STATS-71-TEMPORAL-HIST` **Temporal columns show a binned histogram** - MEDIUM; date, datetime and time columns show a binned histogram between the earliest and latest values, with the bin unit chosen from the span so there are between 8 and 20 bins and empty bins are kept
+  - evidence: Galata clock, join_date and created assert one bar per payload bin (12, 20, 12); pytest test_temporal_histogram_unit_follows_the_span and test_temporal_histogram_short_spans_keep_the_date; 208 pytest green
+  - test: open the clock, join_date and created columns and assert the histogram bin counts
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-06T08:10:22Z @kj added
+  - log: 2026-11-06T10:15:47Z @kj closed
+- [x] `ACC-STATS-72-NUM-HIST` **Numeric columns show a histogram** - MEDIUM; int, float, decimal and duration columns show a histogram of about 12 equal-width bins beside the box plot, with empty bins kept, and the axis labels formatted as the grid shows the values
+  - evidence: pytest test_numeric_histogram_bins_cover_every_non_null_value asserts 12 bins summing to non-null for age, salary, price and elapsed; Galata age test asserts the histogram above the box plot; 208 pytest, 68 Galata green
+  - test: open the age and salary columns and assert the histogram bars and axis labels
+  - test-tags: FUNCTIONAL
+  - log: 2026-11-06T08:10:22Z @kj added
+  - log: 2026-11-06T10:15:47Z @kj closed
+- [x] `ACC-STATS-73-NS-RUNTIME` **duration[ns] renders on every install** - HIGH; a duration[ns] column's rows, unique values, filter and statistics all return text on an install of the wheel alone, because pyarrow's nanosecond conversion needs pandas and pandas is a declared runtime dependency
+  - evidence: fresh venv install of the 1.7.21 wheel pulled pandas 2.3.3; pa.scalar(1500000001, pa.duration('ns')).as_py() rendered '0 days 00:00:01.500000001'; pytest 209 and Galata 68 green
+  - test: install the wheel in a fresh venv, open a duration[ns] parquet, assert the grid cell reads `0 days 00:00:01.500000001`
+  - test-tags: UNIT, FUNCTIONAL, E2E
+  - mechanism: 2026-11-06T12:46:05Z @kj pyarrow's DurationScalar.as_py converts a duration[ns] scalar to Timedelta only through pandas; pandas sits in [project].dependencies, so every install carries the conversion and no pandas-free fallback path remains
+  - log: 2026-11-06T12:46:05Z @kj added
+  - log: 2026-11-06T13:08:15Z @kj closed: closed: verified on the built wheel and a fresh venv

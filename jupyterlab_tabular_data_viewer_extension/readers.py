@@ -30,6 +30,7 @@ from urllib.parse import quote
 import openpyxl
 import polars as pl
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 # Bound at import, not looked up inside an `except` clause. Resolving
@@ -626,6 +627,73 @@ def is_binary_placeholder(field):
     return (field.metadata or {}).get(BINARY_PLACEHOLDER_KEY) == b"1"
 
 
+# Field metadata carrying the exact blob-size aggregates as a JSON object. The
+# placeholder text holds a rounded size ('1.3 KB'), so it cannot answer a
+# minimum, a quartile or a byte total - these aggregates can.
+BLOB_SIZE_STATS_KEY = b"jl_tabular_blob_size_stats"
+
+
+def _format_blob_size(size):
+    """Bytes in the same B/KB/MB text the placeholder SQL renders."""
+    if size < 1024:
+        return f"{size:g} B"
+    if size < 1048576:
+        value, unit = size / 1024.0, "KB"
+    else:
+        value, unit = size / 1048576.0, "MB"
+    text = f"{value:.1f}"
+    return f"{text[:-2] if text.endswith('.0') else text} {unit}"
+
+
+def _blob_size_stats(lengths):
+    """Size aggregates and log2 bins for one blob column's exact byte lengths.
+
+    `lengths` is an int64 Arrow array with a null where the cell is NULL, so
+    the count and every aggregate describe the non-null cells. Quartiles come
+    from pyarrow.quantile. Each bin is one power of two, labelled by its lower
+    bound in the same B/KB/MB text the placeholder column shows. An empty blob
+    has no log2, so the size is floored at 1 byte and keeps bucket 0.
+    """
+    valid = pc.drop_null(lengths)
+    if len(valid) == 0:
+        return None
+    quantiles = pc.quantile(valid, q=[0.25, 0.5, 0.75]).to_pylist()
+    buckets = pc.cast(
+        pc.floor(
+            pc.log2(
+                pc.cast(
+                    pc.max_element_wise(valid, pa.scalar(1, pa.int64())),
+                    pa.float64(),
+                )
+            )
+        ),
+        pa.int64(),
+    )
+    value_counts = pc.value_counts(buckets)
+    counts = dict(
+        zip(
+            value_counts.field("values").to_pylist(),
+            value_counts.field("counts").to_pylist(),
+        )
+    )
+    low, high = min(counts), max(counts)
+    return {
+        "count": len(valid),
+        "min": float(pc.min(valid).as_py()),
+        "q1": float(quantiles[0]),
+        "median": float(quantiles[1]),
+        "q3": float(quantiles[2]),
+        "max": float(pc.max(valid).as_py()),
+        "mean": float(pc.mean(valid).as_py()),
+        "std_dev": float(pc.stddev(valid).as_py()),
+        "total": float(pc.sum(valid).as_py()),
+        "bins": [
+            {"label": f"<{_format_blob_size(2**bucket)}>", "count": counts.get(bucket, 0)}
+            for bucket in range(low, high + 1)
+        ],
+    }
+
+
 def _blob_placeholder_sql(name, alias=None):
     """SQL yielding '<BLOB size>' for BLOB cells and the value for everything else.
 
@@ -725,6 +793,25 @@ def _read_sqlite(file_path, table=None):
         df = pl.read_database(
             f"SELECT {select_list} FROM {ident}", conn, infer_schema_length=None
         )
+        # Exact byte lengths for each blob column. length() answers from the
+        # record header for a BLOB, so the payload is never loaded; the int64
+        # array feeds the quantiles and the log2 histogram in stats.py. The
+        # typeof filter keeps a mixed-affinity column's text and numeric cells
+        # out: length() counts their characters and digits, not bytes.
+        blob_size_stats = {}
+        for column, name in zip(columns, names):
+            if name in blob_columns:
+                lengths = pa.array(
+                    [
+                        length
+                        for (length,) in conn.execute(
+                            f"SELECT length({_quote_ident(column)}) FROM {ident}"
+                            f" WHERE typeof({_quote_ident(column)}) = 'blob'"
+                        )
+                    ],
+                    type=pa.int64(),
+                )
+                blob_size_stats[name] = _blob_size_stats(lengths)
     # A column that is NULL in every row comes back Null-typed, which has no
     # arrow kernels - column statistics raise ArrowNotImplementedError, not a
     # ValueError, so the request 500s. SQLite is where a wholly-NULL column is
@@ -734,12 +821,11 @@ def _read_sqlite(file_path, table=None):
         schema = table.schema
         for index, field in enumerate(schema):
             if field.name in blob_columns:
-                schema = schema.set(
-                    index,
-                    field.with_metadata(
-                        {**(field.metadata or {}), BINARY_PLACEHOLDER_KEY: b"1"}
-                    ),
-                )
+                metadata = {**(field.metadata or {}), BINARY_PLACEHOLDER_KEY: b"1"}
+                size_stats = blob_size_stats.get(field.name)
+                if size_stats is not None:
+                    metadata[BLOB_SIZE_STATS_KEY] = json.dumps(size_stats).encode()
+                schema = schema.set(index, field.with_metadata(metadata))
         table = table.cast(schema)
     return table
 

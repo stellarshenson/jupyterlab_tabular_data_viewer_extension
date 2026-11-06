@@ -1,5 +1,5 @@
 import { Widget } from '@lumino/widgets';
-import { IColumnStats, IUniqueValues } from './request';
+import { IColumnStats, IHistogram, IUniqueValues } from './request';
 
 /**
  * Modal dialog widget for displaying column statistics
@@ -24,7 +24,11 @@ export class ColumnStatsModal extends Widget {
    */
   private _render(): void {
     const dialog = document.createElement('div');
-    dialog.className = 'jp-ColumnStatsModal-content';
+    const hasValues = this._hasValuesPane();
+    dialog.className = hasValues
+      ? 'jp-ColumnStatsModal-content jp-ColumnStatsModal-contentWide'
+      : 'jp-ColumnStatsModal-content';
+    dialog.setAttribute('data-tint', this._tintKey(this._stats.data_type));
     dialog.setAttribute('data-testid', 'stats-dialog');
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
@@ -35,7 +39,9 @@ export class ColumnStatsModal extends Widget {
     dialog.appendChild(this._renderHeader());
 
     const body = document.createElement('div');
-    body.className = 'jp-ColumnStatsModal-body';
+    body.className = hasValues
+      ? 'jp-ColumnStatsModal-body jp-ColumnStatsModal-bodySplit'
+      : 'jp-ColumnStatsModal-body';
 
     const stats = document.createElement('div');
     stats.className = 'jp-ColumnStatsModal-stats';
@@ -43,9 +49,35 @@ export class ColumnStatsModal extends Widget {
     stats.appendChild(this._renderPanel());
 
     body.appendChild(stats);
-    body.appendChild(this._renderValues());
+    if (hasValues) {
+      body.appendChild(this._renderValues());
+    }
     dialog.appendChild(body);
     this.node.appendChild(dialog);
+  }
+
+  /**
+   * The unique values pane appears only when some value repeats, the type is
+   * neither boolean nor binary, and the distinct count fits the fetch limit.
+   * A truncated list would hide values the grid holds, so such a column keeps
+   * the single 720px column.
+   */
+  private _hasValuesPane(): boolean {
+    const stats = this._stats;
+    if (
+      this._uniqueValues === null ||
+      stats.unique_count === undefined ||
+      stats.data_type === 'boolean' ||
+      stats.data_type === 'binary'
+    ) {
+      return false;
+    }
+    // A limit of 0 means "no limit" and fetchUniqueValues lists every value.
+    const limit = this._uniqueValues.limit;
+    return (
+      stats.unique_count < stats.non_null_count &&
+      (limit <= 0 || stats.unique_count <= limit)
+    );
   }
 
   /**
@@ -95,9 +127,10 @@ export class ColumnStatsModal extends Widget {
     tiles.setAttribute('data-testid', 'stats-tiles');
 
     const share = (percentage: number): string => `${percentage.toFixed(1)}%`;
+    const uniqueCount = this._stats.unique_count ?? 0;
     const uniqueShare =
       this._stats.non_null_count > 0
-        ? (this._stats.unique_count / this._stats.non_null_count) * 100
+        ? (uniqueCount / this._stats.non_null_count) * 100
         : 0;
 
     tiles.appendChild(
@@ -121,15 +154,17 @@ export class ColumnStatsModal extends Widget {
         `${share(this._stats.null_percentage)} of all rows`
       )
     );
-    tiles.appendChild(
-      this._tile(
-        this._stats.binary_placeholder === true
-          ? 'Unique (as shown)'
-          : 'Unique (non-null)',
-        this._formatNumber(this._stats.unique_count),
-        `${share(uniqueShare)} of non-null values`
-      )
-    );
+    // A binary column has no meaningful distinct count: the grid shows one
+    // placeholder per size, so a count would measure sizes, not contents.
+    if (this._stats.data_type !== 'binary') {
+      tiles.appendChild(
+        this._tile(
+          'Unique (non-null)',
+          this._formatNumber(uniqueCount),
+          `${share(uniqueShare)} of non-null values`
+        )
+      );
+    }
     return tiles;
   }
 
@@ -188,43 +223,14 @@ export class ColumnStatsModal extends Widget {
           )
         );
       }
-    } else if (type === 'date') {
-      panel.appendChild(this._heading('Date range'));
-      this._appendDateRows(panel);
-    } else if (type === 'datetime') {
-      panel.appendChild(this._heading('Date and time range'));
-      this._appendDateRows(panel);
-      if (stats.time_of_day_min && stats.time_of_day_max) {
-        panel.appendChild(
-          this._row(
-            'time_of_day',
-            'Time of day',
-            `${stats.time_of_day_min} to ${stats.time_of_day_max}`
-          )
-        );
-      }
-    } else if (type.startsWith('time')) {
-      panel.appendChild(this._heading('Time range'));
-      if (stats.earliest_time) {
-        panel.appendChild(
-          this._row('earliest', 'Earliest', stats.earliest_time)
-        );
-      }
-      if (stats.latest_time) {
-        panel.appendChild(this._row('latest', 'Latest', stats.latest_time));
-      }
-      if (
-        stats.time_range_seconds !== undefined &&
-        stats.time_range_seconds !== null
-      ) {
-        panel.appendChild(
-          this._row(
-            'span',
-            'Span',
-            this._formatSeconds(stats.time_range_seconds)
-          )
-        );
-      }
+    } else if (type === 'binary') {
+      this._appendBinaryPanel(panel);
+    } else if (
+      type === 'date' ||
+      type === 'datetime' ||
+      type.startsWith('time')
+    ) {
+      this._appendTemporalPanel(panel);
     } else if (
       type === 'int' ||
       type === 'float' ||
@@ -246,25 +252,113 @@ export class ColumnStatsModal extends Widget {
   }
 
   /**
-   * Shared earliest, latest and span rows for date and datetime columns
+   * Blob size block: the length aggregates and their log2 histogram
    */
-  private _appendDateRows(panel: HTMLElement): void {
+  private _appendBinaryPanel(panel: HTMLElement): void {
     const stats = this._stats;
-    if (stats.earliest_date) {
-      panel.appendChild(this._row('earliest', 'Earliest', stats.earliest_date));
-    }
-    if (stats.latest_date) {
-      panel.appendChild(this._row('latest', 'Latest', stats.latest_date));
-    }
-    if (stats.date_range_days !== undefined && stats.date_range_days !== null) {
-      const days = stats.date_range_days;
+    if (stats.size_min === undefined || stats.size_min === null) {
       panel.appendChild(
-        this._row(
-          'span',
-          'Span',
-          `${this._formatNumber(days)} ${days === 1 ? 'day' : 'days'}`
-        )
+        this._note('No statistics are computed for this column.')
       );
+      return;
+    }
+    panel.appendChild(this._heading('Size'));
+    const metrics = this._metrics();
+    const add = (key: string, label: string, value?: number): void => {
+      if (value !== undefined && value !== null) {
+        metrics.appendChild(this._metric(key, label, this._formatBytes(value)));
+      }
+    };
+    add('size_min', 'Min', stats.size_min);
+    add('size_q1', 'Q1', stats.size_q1);
+    add('size_median', 'Median', stats.size_median);
+    add('size_q3', 'Q3', stats.size_q3);
+    add('size_max', 'Max', stats.size_max);
+    add('size_mean', 'Mean', stats.size_mean);
+    add('size_std_dev', 'Std dev', stats.size_std_dev);
+    add('size_total', 'Total', stats.size_total);
+    panel.appendChild(metrics);
+    if (stats.size_histogram?.bins.length) {
+      panel.appendChild(
+        this._histogram(stats.size_histogram, 'size-histogram')
+      );
+    }
+    panel.appendChild(
+      this._note(
+        'Sizes are measured with length(); contents are never decoded.'
+      )
+    );
+  }
+
+  /**
+   * Earliest, latest and span metrics above the temporal histogram
+   */
+  private _appendTemporalPanel(panel: HTMLElement): void {
+    const stats = this._stats;
+    const type = stats.data_type;
+    panel.appendChild(this._heading('Distribution'));
+    const metrics = this._metrics(true);
+
+    if (type === 'date' || type === 'datetime') {
+      if (stats.earliest_date) {
+        metrics.appendChild(
+          this._metric('earliest', 'Earliest', stats.earliest_date)
+        );
+      }
+      if (stats.latest_date) {
+        metrics.appendChild(
+          this._metric('latest', 'Latest', stats.latest_date)
+        );
+      }
+      if (
+        stats.date_range_days !== undefined &&
+        stats.date_range_days !== null
+      ) {
+        const days = stats.date_range_days;
+        metrics.appendChild(
+          this._metric(
+            'span',
+            'Span',
+            `${this._formatNumber(days)} ${days === 1 ? 'day' : 'days'}`
+          )
+        );
+      }
+      if (stats.time_of_day_min && stats.time_of_day_max) {
+        metrics.appendChild(
+          this._metric(
+            'time_of_day',
+            'Time of day',
+            `${stats.time_of_day_min} to ${stats.time_of_day_max}`
+          )
+        );
+      }
+    } else {
+      if (stats.earliest_time) {
+        metrics.appendChild(
+          this._metric('earliest', 'Earliest', stats.earliest_time)
+        );
+      }
+      if (stats.latest_time) {
+        metrics.appendChild(
+          this._metric('latest', 'Latest', stats.latest_time)
+        );
+      }
+      if (
+        stats.time_range_seconds !== undefined &&
+        stats.time_range_seconds !== null
+      ) {
+        metrics.appendChild(
+          this._metric(
+            'span',
+            'Span',
+            this._formatSeconds(stats.time_range_seconds)
+          )
+        );
+      }
+    }
+    panel.appendChild(metrics);
+    if (stats.histogram?.bins.length) {
+      panel.appendChild(this._histogram(stats.histogram, 'histogram'));
     }
   }
 
@@ -275,9 +369,12 @@ export class ColumnStatsModal extends Widget {
     const stats = this._stats;
     panel.appendChild(this._heading('Distribution'));
 
+    const metrics = this._metrics();
     const add = (key: string, label: string, value?: number): void => {
       if (value !== undefined && value !== null) {
-        panel.appendChild(this._row(key, label, this._formatNumeric(value)));
+        metrics.appendChild(
+          this._metric(key, label, this._formatNumeric(value))
+        );
       }
     };
 
@@ -291,13 +388,18 @@ export class ColumnStatsModal extends Widget {
 
     if (stats.outlier_count !== undefined && stats.outlier_count !== null) {
       const percentage = stats.outlier_percentage ?? 0;
-      panel.appendChild(
-        this._row(
+      metrics.appendChild(
+        this._metric(
           'outliers',
           'Outliers',
           `${this._formatNumber(stats.outlier_count)} (${percentage}% of non-null)`
         )
       );
+    }
+    panel.appendChild(metrics);
+
+    if (stats.histogram?.bins.length) {
+      panel.appendChild(this._histogram(stats.histogram, 'histogram'));
     }
 
     if (
@@ -387,13 +489,10 @@ export class ColumnStatsModal extends Widget {
     const valuesPane = document.createElement('div');
     valuesPane.className = 'jp-ColumnStatsModal-values';
 
-    const values = this._stats.non_null_count === 0 ? null : this._uniqueValues;
-    const shown = values ? values.values.length : 0;
-    const total = values ? values.total_count : 0;
-    const valuesLabel =
-      this._stats.binary_placeholder === true
-        ? 'Unique values (as shown)'
-        : 'Unique values';
+    const values = this._uniqueValues as IUniqueValues;
+    const shown = values.values.length;
+    const total = values.total_count;
+    const valuesLabel = 'Unique values';
 
     const head = document.createElement('div');
     head.className = 'jp-ColumnStatsModal-valuesHead';
@@ -401,7 +500,7 @@ export class ColumnStatsModal extends Widget {
     heading.textContent = valuesLabel;
     const note = document.createElement('span');
     note.className = 'jp-ColumnStatsModal-valuesNote';
-    note.textContent = `${shown} of ${total} listed rows · ranked by count`;
+    note.textContent = `${shown} of ${total} listed, ranked by count`;
     head.appendChild(heading);
     head.appendChild(note);
     valuesPane.appendChild(head);
@@ -409,7 +508,7 @@ export class ColumnStatsModal extends Widget {
     const columns = document.createElement('div');
     columns.className = 'jp-ColumnStatsModal-valueCols';
     columns.setAttribute('aria-hidden', 'true');
-    for (const label of ['Value', 'Share', 'Count', '%']) {
+    for (const label of ['Value', 'Share of rows', 'Count', '%']) {
       const column = document.createElement('span');
       column.textContent = label;
       columns.appendChild(column);
@@ -423,22 +522,20 @@ export class ColumnStatsModal extends Widget {
     scroll.setAttribute('aria-label', valuesLabel);
     scroll.tabIndex = 0;
 
-    if (!values || values.values.length === 0) {
+    if (values.values.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'jp-ColumnStatsModal-empty';
       empty.textContent = 'No values to list';
       scroll.appendChild(empty);
     } else {
-      const maxCount = values.counts.reduce(
-        (largest, count) => Math.max(largest, count),
-        1
-      );
       values.values.forEach((value, index) => {
         const count = values.counts[index];
+        // Bar and percentage both measure the count against all rows, so the
+        // two always agree.
         const percentage =
           this._stats.total_rows > 0
-            ? ((count / this._stats.total_rows) * 100).toFixed(2)
-            : '0.00';
+            ? (count / this._stats.total_rows) * 100
+            : 0;
 
         const row = document.createElement('div');
         row.className = 'jp-ColumnStatsModal-valueRow';
@@ -452,7 +549,7 @@ export class ColumnStatsModal extends Widget {
         track.className = 'jp-ColumnStatsModal-track';
         const fill = document.createElement('span');
         fill.className = 'jp-ColumnStatsModal-fill';
-        fill.style.width = `${(count / maxCount) * 100}%`;
+        fill.style.width = `${percentage}%`;
         track.appendChild(fill);
 
         const countEl = document.createElement('span');
@@ -461,7 +558,7 @@ export class ColumnStatsModal extends Widget {
 
         const percentageEl = document.createElement('span');
         percentageEl.className = 'jp-ColumnStatsModal-valuePct';
-        percentageEl.textContent = `${percentage}%`;
+        percentageEl.textContent = `${percentage.toFixed(2)}%`;
 
         row.appendChild(name);
         row.appendChild(track);
@@ -503,6 +600,109 @@ export class ColumnStatsModal extends Widget {
     row.appendChild(keyEl);
     row.appendChild(valueEl);
     return row;
+  }
+
+  /**
+   * Grid holding the metric cells of the distribution blocks
+   */
+  private _metrics(compact = false): HTMLElement {
+    const grid = document.createElement('div');
+    grid.className = compact
+      ? 'jp-ColumnStatsModal-metrics jp-ColumnStatsModal-metricsCompact'
+      : 'jp-ColumnStatsModal-metrics';
+    return grid;
+  }
+
+  /**
+   * One metric cell: an uppercase label above its value. It carries the same
+   * test id and classes as a panel row so the values are addressable alike.
+   */
+  private _metric(key: string, label: string, value: string): HTMLElement {
+    const cell = document.createElement('div');
+    cell.className = 'jp-ColumnStatsModal-metric';
+    cell.setAttribute('data-testid', `stats-panel-row-${key}`);
+
+    const keyEl = document.createElement('span');
+    keyEl.className = 'jp-ColumnStatsModal-rowLabel';
+    keyEl.textContent = label;
+
+    const valueEl = document.createElement('span');
+    valueEl.className = 'jp-ColumnStatsModal-rowValue';
+    valueEl.textContent = value;
+
+    cell.appendChild(keyEl);
+    cell.appendChild(valueEl);
+    return cell;
+  }
+
+  /**
+   * Histogram bars whose labels come from the payload's bins. An empty bin
+   * keeps a two-pixel stub so the gap stays visible.
+   */
+  private _histogram(histogram: IHistogram, testId: string): HTMLElement {
+    const chart = document.createElement('div');
+    chart.className = 'jp-ColumnStatsModal-chart';
+    chart.setAttribute('data-testid', testId);
+
+    const bins = histogram.bins;
+    const largest = bins.reduce((max, bin) => Math.max(max, bin.count), 1);
+
+    const bars = document.createElement('div');
+    bars.className = 'jp-ColumnStatsModal-hist';
+    bars.setAttribute('aria-hidden', 'true');
+    for (const bin of bins) {
+      const bar = document.createElement('span');
+      bar.className = 'jp-ColumnStatsModal-histBar';
+      bar.setAttribute('data-testid', 'histogram-bar');
+      bar.style.height =
+        bin.count > 0 ? `${(bin.count / largest) * 100}%` : '0';
+      bar.title = `${bin.label}: ${this._formatNumber(bin.count)} ${
+        bin.count === 1 ? 'row' : 'rows'
+      }`;
+      bars.appendChild(bar);
+    }
+    chart.appendChild(bars);
+
+    const axis = document.createElement('div');
+    axis.className = 'jp-ColumnStatsModal-histAxis';
+    for (const index of this._axisTickIndices(bins.length)) {
+      const tick = document.createElement('span');
+      tick.textContent = bins[index].label;
+      axis.appendChild(tick);
+    }
+    chart.appendChild(axis);
+    return chart;
+  }
+
+  /**
+   * Five evenly spaced bin indices, keeping the payload's own labels
+   */
+  private _axisTickIndices(count: number): number[] {
+    const indices = new Set<number>();
+    for (let step = 0; step <= 4; step++) {
+      indices.add(Math.round(((count - 1) * step) / 4));
+    }
+    return Array.from(indices);
+  }
+
+  /**
+   * Bytes in the B/KB/MB text the placeholder column and the reader use
+   */
+  private _formatBytes(value: number): string {
+    if (value < 1024) {
+      return `${Number(value.toPrecision(6))} B`;
+    }
+    if (value < 1048576) {
+      return `${this._trimTrailingZero((value / 1024).toFixed(1))} KB`;
+    }
+    return `${this._trimTrailingZero((value / 1048576).toFixed(1))} MB`;
+  }
+
+  /**
+   * "1.0" -> "1", so a whole unit keeps the reader's text
+   */
+  private _trimTrailingZero(text: string): string {
+    return text.endsWith('.0') ? text.slice(0, -2) : text;
   }
 
   /**
@@ -588,6 +788,36 @@ export class ColumnStatsModal extends Widget {
   private _countShare(count: number, total: number): string {
     const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
     return `${this._formatNumber(count)} (${percentage}% of non-null)`;
+  }
+
+  /**
+   * Tint key for a data type; the dialog carries it as data-tint and the chip,
+   * the bars and the box plot read the CSS custom property it selects. Nested
+   * and unknown types fall back to the string tint.
+   */
+  private _tintKey(type: string): string {
+    if (type === 'datetime' || type === 'date') {
+      return type;
+    }
+    if (type.startsWith('time')) {
+      return 'time';
+    }
+    if (type.startsWith('duration')) {
+      return 'duration';
+    }
+    if (type.startsWith('decimal')) {
+      return 'decimal';
+    }
+    if (
+      type === 'int' ||
+      type === 'float' ||
+      type === 'string' ||
+      type === 'boolean' ||
+      type === 'binary'
+    ) {
+      return type;
+    }
+    return 'string';
   }
 
   /**
