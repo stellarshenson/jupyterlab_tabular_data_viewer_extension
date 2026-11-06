@@ -3,6 +3,7 @@ import { requestAPI, fetchColumnStats, fetchUniqueValues } from './request';
 import { ColumnStatsModal, FilterModal, DownloadModal } from './modal';
 import { URLExt } from '@jupyterlab/coreutils';
 import { ServerConnection } from '@jupyterlab/services';
+import { TranslationBundle } from '@jupyterlab/translation';
 
 /**
  * Extensions claimed for SQLite. Single source of truth: `index.ts` registers
@@ -91,8 +92,12 @@ export class TabularDataViewer extends Widget {
   private _loadingOverlay: HTMLDivElement;
   private _loadingTimer: number | null = null;
   private _statsPending = false;
+  private _trans: TranslationBundle;
+  // The open modal, so disposing the viewer disposes it too
+  private _modal: Widget | null = null;
 
   constructor(
+    trans: TranslationBundle,
     filePath: string,
     setLastContextMenuRow: (row: any) => void,
     maxCellCharacters: number = 100,
@@ -100,6 +105,7 @@ export class TabularDataViewer extends Widget {
     rowsPerPage: number = 500
   ) {
     super();
+    this._trans = trans;
     this._filePath = filePath;
     this._setLastContextMenuRow = setLastContextMenuRow;
     this._maxCellCharacters = maxCellCharacters;
@@ -161,7 +167,7 @@ export class TabularDataViewer extends Widget {
     });
 
     const checkboxText = document.createElement('span');
-    checkboxText.textContent = ' Case insensitive';
+    checkboxText.textContent = this._trans.__(' Case insensitive');
 
     checkboxLabel.appendChild(this._caseInsensitiveCheckbox);
     checkboxLabel.appendChild(checkboxText);
@@ -181,7 +187,7 @@ export class TabularDataViewer extends Widget {
     });
 
     const regexText = document.createElement('span');
-    regexText.textContent = ' Use regex';
+    regexText.textContent = this._trans.__(' Use regex');
 
     regexLabel.appendChild(this._regexCheckbox);
     regexLabel.appendChild(regexText);
@@ -331,10 +337,12 @@ export class TabularDataViewer extends Widget {
   public showDownloadModal(): void {
     const hasFilters = Object.keys(this._filters).length > 0;
     const modal = new DownloadModal(
+      this._trans,
       (format: string) => this.downloadFilteredData(format),
       hasFilters,
       this._canExportOriginal()
     );
+    this._modal = modal;
     modal.show();
   }
 
@@ -638,7 +646,7 @@ export class TabularDataViewer extends Widget {
       const filterButton = document.createElement('button');
       filterButton.className = 'jp-TabularDataViewer-filterButton';
       filterButton.dataset.columnName = col.name;
-      filterButton.title = 'Filter by values';
+      filterButton.title = this._trans.__('Filter by values');
 
       // Create SVG filter icon
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -699,7 +707,7 @@ export class TabularDataViewer extends Widget {
       // Add info icon for column statistics
       const infoIcon = document.createElement('i');
       infoIcon.className = 'jp-TabularDataViewer-infoIcon fas fa-info-circle';
-      infoIcon.title = 'Show column statistics';
+      infoIcon.title = this._trans.__('Show column statistics');
       infoIcon.setAttribute('role', 'button');
       infoIcon.setAttribute(
         'aria-label',
@@ -1022,6 +1030,7 @@ export class TabularDataViewer extends Widget {
 
       // Create and show modal
       const modal = new FilterModal(
+        this._trans,
         columnName,
         uniqueValues,
         currentValueList,
@@ -1072,6 +1081,7 @@ export class TabularDataViewer extends Widget {
         }
       );
 
+      this._modal = modal;
       modal.show();
     } catch (error) {
       console.error('Failed to open filter modal:', error);
@@ -1240,7 +1250,8 @@ export class TabularDataViewer extends Widget {
         this._maxUniqueValues,
         this._activeSheet
       );
-      const modal = new ColumnStatsModal(stats, uniqueValues);
+      const modal = new ColumnStatsModal(this._trans, stats, uniqueValues);
+      this._modal = modal;
       modal.show();
     } catch (error) {
       console.error('Failed to load column statistics:', error);
@@ -1343,8 +1354,8 @@ export class TabularDataViewer extends Widget {
       const exportLink = document.createElement('a');
       exportLink.href = '#';
       exportLink.className = 'jp-TabularDataViewer-exportLink';
-      exportLink.textContent = 'Export';
-      exportLink.title = 'Export the current view';
+      exportLink.textContent = this._trans.__('Export');
+      exportLink.title = this._trans.__('Export the current view');
       exportLink.addEventListener('click', e => {
         e.preventDefault();
         this.showDownloadModal();
@@ -1356,7 +1367,7 @@ export class TabularDataViewer extends Widget {
         const clearLink = document.createElement('a');
         clearLink.href = '#';
         clearLink.className = 'jp-TabularDataViewer-clearFilters';
-        clearLink.textContent = 'Clear filters';
+        clearLink.textContent = this._trans.__('Clear filters');
         clearLink.addEventListener('click', e => {
           e.preventDefault();
           this._clearFilters();
@@ -1451,6 +1462,8 @@ export class TabularDataViewer extends Widget {
       this._menuObserver.disconnect();
       this._menuObserver = null;
     }
+
+    this._modal?.dispose();
 
     // Clean up resize event listeners if still active
     if (this._resizing) {

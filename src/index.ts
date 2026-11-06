@@ -14,10 +14,16 @@ import { Contents } from '@jupyterlab/services';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
+import {
+  ITranslator,
+  nullTranslator,
+  TranslationBundle
+} from '@jupyterlab/translation';
+
 import { spreadsheetIcon } from '@jupyterlab/ui-components';
 
-import { TabularDataViewer, SQLITE_EXTENSIONS } from './widget';
-import { TabularDataDocument } from './document';
+import type { TabularDataViewer } from './widget';
+import type { TabularDataDocument } from './document';
 
 /**
  * The name under which the no-content model factory is registered.
@@ -62,17 +68,26 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
   private _setLastContextMenuRow: (row: any) => void;
   private _setActiveWidget: (widget: TabularDataViewer) => void;
   private _getSettings: () => ISettings;
+  private _trans: TranslationBundle;
+  private _viewerClass: typeof TabularDataViewer;
+  private _documentClass: typeof TabularDataDocument;
 
   constructor(
     options: DocumentRegistry.IWidgetFactoryOptions,
     setLastContextMenuRow: (row: any) => void,
     setActiveWidget: (widget: TabularDataViewer) => void,
-    getSettings: () => ISettings
+    getSettings: () => ISettings,
+    trans: TranslationBundle,
+    viewerClass: typeof TabularDataViewer,
+    documentClass: typeof TabularDataDocument
   ) {
     super(options);
     this._setLastContextMenuRow = setLastContextMenuRow;
     this._setActiveWidget = setActiveWidget;
     this._getSettings = getSettings;
+    this._trans = trans;
+    this._viewerClass = viewerClass;
+    this._documentClass = documentClass;
   }
 
   /**
@@ -85,15 +100,17 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
     // console.log(`[Tabular Data Viewer] File type: ${context.contentsModel?.type}, Format: ${context.contentsModel?.format}`);
 
     const settings = this._getSettings();
-    const content = new TabularDataViewer(
+    const content = new this._viewerClass(
+      this._trans,
       context.path,
       this._setLastContextMenuRow,
       settings.maxCellCharacters,
       settings.maxUniqueValues,
       settings.rowsPerPage
     );
-    const widget = new TabularDataDocument({ content, context });
-    widget.title.label = context.path.split('/').pop() || 'Tabular Data File';
+    const widget = new this._documentClass({ content, context });
+    widget.title.label =
+      context.path.split('/').pop() || this._trans.__('Tabular Data File');
     // Only MimeDocument copies the file type's icon onto the tab; a widget
     // factory has to do it itself. Every tabular type shares this one.
     widget.title.icon = spreadsheetIcon;
@@ -147,10 +164,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
     'Jupyterlab extension to allow simple browsing of tabular data files (Parquet, Excel, CSV, TSV, SQLite) with filtering and sorting capabilities',
   autoStart: true,
   requires: [ISettingRegistry],
-  activate: async (app: JupyterFrontEnd, settingRegistry: ISettingRegistry) => {
+  optional: [ITranslator],
+  activate: async (
+    app: JupyterFrontEnd,
+    settingRegistry: ISettingRegistry,
+    translator: ITranslator | null
+  ) => {
     console.log(
       'JupyterLab extension @stellarshenson/jupyterlab-tabular-data-viewer-extension is activated!'
     );
+
+    const trans = (translator ?? nullTranslator).load(
+      'jupyterlab_tabular_data_viewer_extension'
+    );
+
+    // Deferred out of the module top (jupyter/prefer-lazy-imports) and awaited
+    // here: the file type registration and factories below need them at once.
+    const { TabularDataViewer, SQLITE_EXTENSIONS } = await import('./widget');
+    const { TabularDataDocument } = await import('./document');
 
     const { docRegistry, commands, contextMenu } = app;
 
@@ -197,15 +228,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Command to copy row as JSON
     const copyRowCommand = 'tabular-data-viewer:copy-row-json';
     commands.addCommand(copyRowCommand, {
-      label: 'Copy Row as JSON',
-      caption: 'Copy the row data as JSON to clipboard',
+      label: trans.__('Copy Row as JSON'),
+      caption: trans.__('Copy the row data as JSON to clipboard'),
+      describedBy: { args: { type: 'object', properties: {} } },
       isEnabled: () => {
         return lastContextMenuRow !== null;
       },
       execute: async () => {
         if (lastContextMenuRow) {
           // Filter out internal metadata fields before copying
-          const { __row_index__, ...rowData } = lastContextMenuRow;
+          const rowData = { ...lastContextMenuRow };
+          delete rowData.__row_index__;
           const jsonString = JSON.stringify(rowData, null, 2);
           await navigator.clipboard.writeText(jsonString);
           // console.log('Row copied to clipboard as JSON');
@@ -221,8 +254,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Download command
     const downloadCommand = 'tabular-data-viewer:download';
     commands.addCommand(downloadCommand, {
-      label: 'Export',
-      caption: 'Export the current view in various formats',
+      label: trans.__('Export'),
+      caption: trans.__('Export the current view in various formats'),
+      describedBy: { args: { type: 'object', properties: {} } },
       isEnabled: () => {
         return activeWidget !== null;
       },
@@ -395,7 +429,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         (widget: TabularDataViewer) => {
           activeWidget = widget;
         },
-        () => settings
+        () => settings,
+        trans,
+        TabularDataViewer,
+        TabularDataDocument
       );
 
       docRegistry.addWidgetFactory(binaryFactory);
@@ -419,7 +456,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         (widget: TabularDataViewer) => {
           activeWidget = widget;
         },
-        () => settings
+        () => settings,
+        trans,
+        TabularDataViewer,
+        TabularDataDocument
       );
 
       docRegistry.addWidgetFactory(textFactory);

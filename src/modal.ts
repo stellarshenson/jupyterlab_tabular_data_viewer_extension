@@ -1,3 +1,4 @@
+import { TranslationBundle } from '@jupyterlab/translation';
 import { Widget } from '@lumino/widgets';
 import { IColumnStats, IHistogram, IUniqueValues } from './request';
 
@@ -9,9 +10,15 @@ export class ColumnStatsModal extends Widget {
   private _uniqueValues: IUniqueValues | null;
   private _dialog!: HTMLElement;
   private _returnFocus: HTMLElement | null = null;
+  private _trans: TranslationBundle;
 
-  constructor(stats: IColumnStats, uniqueValues: IUniqueValues | null = null) {
+  constructor(
+    trans: TranslationBundle,
+    stats: IColumnStats,
+    uniqueValues: IUniqueValues | null = null
+  ) {
     super();
+    this._trans = trans;
     this._stats = stats;
     this._uniqueValues = uniqueValues;
     this.addClass('jp-ColumnStatsModal');
@@ -32,7 +39,7 @@ export class ColumnStatsModal extends Widget {
     dialog.setAttribute('data-testid', 'stats-dialog');
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
-    dialog.setAttribute('aria-label', 'Column statistics');
+    dialog.setAttribute('aria-label', this._trans.__('Column statistics'));
     dialog.tabIndex = -1;
     this._dialog = dialog;
 
@@ -100,13 +107,13 @@ export class ColumnStatsModal extends Widget {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'jp-ColumnStatsModal-copy';
     copyBtn.setAttribute('data-testid', 'copy-stats');
-    copyBtn.textContent = 'Copy stats as JSON';
+    copyBtn.textContent = this._trans.__('Copy stats as JSON');
     copyBtn.onclick = () => this._copyStatsAsJson(copyBtn);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'jp-ColumnStatsModal-close';
     closeBtn.setAttribute('data-testid', 'close-stats');
-    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.setAttribute('aria-label', this._trans.__('Close'));
     closeBtn.textContent = '×';
     closeBtn.onclick = () => this.close();
 
@@ -525,7 +532,7 @@ export class ColumnStatsModal extends Widget {
     if (values.values.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'jp-ColumnStatsModal-empty';
-      empty.textContent = 'No values to list';
+      empty.textContent = this._trans.__('No values to list');
       scroll.appendChild(empty);
     } else {
       values.values.forEach((value, index) => {
@@ -543,7 +550,7 @@ export class ColumnStatsModal extends Widget {
 
         const name = document.createElement('span');
         name.className = 'jp-ColumnStatsModal-value';
-        name.textContent = value === '' ? '(empty)' : value;
+        name.textContent = value === '' ? this._trans.__('(empty)') : value;
 
         const track = document.createElement('span');
         track.className = 'jp-ColumnStatsModal-track';
@@ -961,13 +968,13 @@ export class ColumnStatsModal extends Widget {
       const json = JSON.stringify(this._stats, null, 2);
       await navigator.clipboard.writeText(json);
       // Provide visual feedback
-      button.textContent = 'Copied!';
+      button.textContent = this._trans.__('Copied!');
       setTimeout(() => {
         button.textContent = originalText;
       }, 2000);
     } catch (error) {
       console.error('Failed to copy stats to clipboard:', error);
-      button.textContent = 'Copy failed';
+      button.textContent = this._trans.__('Copy failed');
       setTimeout(() => {
         button.textContent = originalText;
       }, 2000);
@@ -1055,14 +1062,17 @@ export class FilterModal extends Widget {
   private _uniqueValues: IUniqueValues;
   private _selectedValues: Set<string>;
   private _onApply: (values: string[] | null) => void;
+  private _trans: TranslationBundle;
 
   constructor(
+    trans: TranslationBundle,
     columnName: string,
     uniqueValues: IUniqueValues,
     currentFilter: string[],
     onApply: (values: string[] | null) => void
   ) {
     super();
+    this._trans = trans;
     this._columnName = columnName;
     this._uniqueValues = uniqueValues;
     this._selectedValues = new Set(currentFilter);
@@ -1098,12 +1108,12 @@ export class FilterModal extends Widget {
 
     const selectAllBtn = document.createElement('button');
     selectAllBtn.className = 'jp-FilterModal-button';
-    selectAllBtn.textContent = 'Select All';
+    selectAllBtn.textContent = this._trans.__('Select All');
     selectAllBtn.onclick = () => this._selectAll();
 
     const clearBtn = document.createElement('button');
     clearBtn.className = 'jp-FilterModal-button';
-    clearBtn.textContent = 'Clear';
+    clearBtn.textContent = this._trans.__('Clear');
     clearBtn.onclick = () => this._clearAll();
 
     actionButtons.appendChild(selectAllBtn);
@@ -1139,7 +1149,7 @@ export class FilterModal extends Widget {
       labelContainer.className = 'jp-FilterModal-valueLabelContainer';
 
       const label = document.createElement('span');
-      label.textContent = value || '(empty)';
+      label.textContent = value || this._trans.__('(empty)');
       label.className = 'jp-FilterModal-valueLabel';
 
       const count = document.createElement('span');
@@ -1163,12 +1173,12 @@ export class FilterModal extends Widget {
 
     const okBtn = document.createElement('button');
     okBtn.className = 'jp-FilterModal-okButton';
-    okBtn.textContent = 'OK';
+    okBtn.textContent = this._trans.__('OK');
     okBtn.onclick = () => this._apply();
 
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'jp-FilterModal-cancelButton';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = this._trans.__('Cancel');
     cancelBtn.onclick = () => this.close();
 
     bottomButtons.appendChild(cancelBtn);
@@ -1273,13 +1283,16 @@ export class DownloadModal extends Widget {
   private _onDownload: (format: string) => void;
   private _hasFilters: boolean;
   private _canExportOriginal: boolean;
+  private _trans: TranslationBundle;
 
   constructor(
+    trans: TranslationBundle,
     onDownload: (format: string) => void,
     hasFilters = false,
     canExportOriginal = true
   ) {
     super();
+    this._trans = trans;
     this._onDownload = onDownload;
     this._hasFilters = hasFilters;
     this._canExportOriginal = canExportOriginal;
@@ -1299,7 +1312,7 @@ export class DownloadModal extends Widget {
     const header = document.createElement('div');
     header.className = 'jp-FilterModal-header';
     const title = document.createElement('h3');
-    title.textContent = 'Export';
+    title.textContent = this._trans.__('Export');
     const closeBtn = document.createElement('button');
     closeBtn.className = 'jp-FilterModal-close';
     closeBtn.textContent = '×';
@@ -1312,8 +1325,9 @@ export class DownloadModal extends Widget {
     if (this._hasFilters) {
       const notice = document.createElement('div');
       notice.className = 'jp-FilterModal-notice';
-      notice.textContent =
-        'Filters are active - export will include only the filtered rows.';
+      notice.textContent = this._trans.__(
+        'Filters are active - export will include only the filtered rows.'
+      );
       content.appendChild(notice);
     }
 
@@ -1358,7 +1372,7 @@ export class DownloadModal extends Widget {
     cancelDiv.className = 'jp-FilterModal-footer';
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'jp-FilterModal-button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = this._trans.__('Cancel');
     cancelBtn.onclick = () => this.close();
     cancelDiv.appendChild(cancelBtn);
     content.appendChild(cancelDiv);
