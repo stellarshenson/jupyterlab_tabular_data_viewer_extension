@@ -64,7 +64,19 @@ export default defineConfig([
       ],
       curly: ['error', 'all'],
       eqeqeq: 'error',
-      'prefer-arrow-callback': 'error'
+      'prefer-arrow-callback': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[regex.pattern=/\\(\\?<[=!]/]',
+          message: 'RegExp lookbehind does not parse on Safari before 16.4'
+        },
+        {
+          selector:
+            ":matches(NewExpression, CallExpression)[callee.name='RegExp'] :matches(Literal[value=/\\(\\?<[=!]/], TemplateElement[value.cooked=/\\(\\?<[=!]/])",
+          message: 'RegExp lookbehind does not parse on Safari before 16.4'
+        }
+      ]
     }
   },
   prettierRecommended

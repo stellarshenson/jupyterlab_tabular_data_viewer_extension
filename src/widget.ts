@@ -263,6 +263,12 @@ export class TabularDataViewer extends Widget {
     // The strip does not scroll on its own: a wheel over the header scrolls
     // the body, as it did when the header sat inside the body's scroller
     this._headerStrip.addEventListener('wheel', (e: WheelEvent) => {
+      // Ctrl+wheel and pinch are zoom; any other wheel is handled here, so the
+      // browser does not read a sideways swipe as back navigation
+      if (e.ctrlKey) {
+        return;
+      }
+      e.preventDefault();
       // shortcut: a line-mode delta (Firefox mouse wheel) counts as 16px, read
       // the row height instead if header wheel steps feel off against the body
       const scale = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : 1;
@@ -647,6 +653,8 @@ export class TabularDataViewer extends Widget {
       filterInput.type = 'text';
       filterInput.className = 'jp-TabularDataViewer-filterInput';
       filterInput.placeholder = this._getFilterPlaceholder(col.type);
+      // A narrow input truncates the placeholder; the tooltip keeps it readable
+      filterInput.title = filterInput.placeholder;
       filterInput.dataset.columnName = col.name;
       filterInput.dataset.columnType = col.type;
 

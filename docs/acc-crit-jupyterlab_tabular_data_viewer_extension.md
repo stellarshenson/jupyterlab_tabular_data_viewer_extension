@@ -320,13 +320,14 @@ The column statistics dialog: overview tiles, statistics chosen by the column ty
 
 - log: 2026-11-05T14:29:12Z @kj category created
 
-- [x] `ACC-STATS-48-DIALOG` **Dialog fills the viewer** - HIGH; the dialog spans the viewer width up to 1100 px and centers above it, keeping a 16 px margin; the header and statistics column stay fixed and only the values pane scrolls; a value row keeps its value, bar, count and percentage within 760 px
+- [x] `ACC-STATS-48-DIALOG` **Dialog fills the viewer** - HIGH; the dialog spans the viewer width up to 1100 px and centers above it, keeping a 16 px margin; the header stays fixed and the values pane scrolls; the statistics column scrolls only when it does not fit the 75vh dialog (ACC-STATS-74-HEIGHT) or in the stacked layout at 720 px width or less, and never sideways; a value row keeps its value, bar, count and percentage within 760 px
   - evidence: galata 'should render the adaptive statistics dialog for a duration column': width > 700 and only the values pane scrolls
   - test: open a fixture column and measure the dialog against the viewer width; count the scroll containers
   - test-tags: UNIT, FUNCTIONAL
   - log: 2026-11-05T14:29:12Z @kj added
   - log: 2026-11-05T14:59:23Z @kj closed
   - log: 2026-11-05T17:57:33Z @kj amended text "the dialog spans the viewer width with a 16 px margin; the header and the statistics column stay fixed and only the unique values pane scrolls" -> "the dialog spans the viewer width up to 1100 px and centers above it, keeping a 16 px margin; the header and statistics column stay fixed and only the values pane scrolls; a value row keeps its value, bar, count and percentage within 760 px"
+  - log: 2026-11-06T22:15:34Z @kj amended text "the dialog spans the viewer width up to 1100 px and centers above it, keeping a 16 px margin; the header and statistics column stay fixed and only the values pane scrolls; a value row keeps its value, bar, count and percentage within 760 px" -> "HIGH; the dialog spans the viewer width up to 1100 px and centers above it, keeping a 16 px margin; the header stays fixed and the values pane scrolls; the statistics column scrolls only when it does not fit the 75vh dialog (ACC-STATS-74-HEIGHT) or in the stacked layout at 720 px width or less, and never sideways; a value row keeps its value, bar, count and percentage within 760 px"; reason: the amended rule names both conditions under which the statistics column scrolls
 - [x] `ACC-STATS-49-TILES` **Overview tiles** - HIGH; four tiles show Total rows, Non-null, Null and Unique; each carries the count and its percentage of total rows to one decimal
   - evidence: galata 'should render the summary tiles for an integer column': Total rows 12, Non-null 12, Null 0, Unique 12
   - test: open a column and compare the four tile values with the stats payload
@@ -533,9 +534,10 @@ Lint, packaging and the quality gates every release passes
   - test-tags: MANUAL
   - log: 2026-11-06T17:27:42Z @kj added
   - log: 2026-11-06T18:07:55Z @kj closed: closed: 36 warnings fixed at their causes in commit e02481e
-- [x] `ACC-BUILD-78-TRANSLATE` **User-facing strings are translatable** - LOW; every user-facing string of the grid and the three dialogs goes through the JupyterLab translator when one is installed and reads the same English when none is
+- [x] `ACC-BUILD-78-TRANSLATE` **User-facing strings are translatable** - LOW; the 27 user-facing strings the jupyter/no-untranslated-string rule flags in the grid and the three dialogs go through the JupyterLab translator when one is installed and read the same English when none is; strings the rule does not flag, such as the filter placeholders, are not translated yet
   - evidence: 27 literals wrapped with trans.__() in commit e02481e; Galata 70 green with no translator installed, every English label assertion unchanged
   - test: galata: open the grid and the statistics, filter and export dialogs and assert their English labels
   - test-tags: FUNCTIONAL
   - log: 2026-11-06T17:27:42Z @kj added
   - log: 2026-11-06T18:07:55Z @kj closed: closed: optional ITranslator, one bundle passed to the viewer and the three dialogs
+  - log: 2026-11-06T20:47:59Z @kj amended text "every user-facing string of the grid and the three dialogs goes through the JupyterLab translator when one is installed and reads the same English when none is" -> "LOW; the 27 user-facing strings the jupyter/no-untranslated-string rule flags in the grid and the three dialogs go through the JupyterLab translator when one is installed and read the same English when none is; strings the rule does not flag, such as the filter placeholders, are not translated yet"; reason: the earlier text claimed every user-facing string; the filter placeholders built by _getFilterPlaceholder are plain literals, found while fixing DEF-GRID-48

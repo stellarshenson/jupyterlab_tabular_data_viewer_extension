@@ -214,6 +214,14 @@
   pointer-events: auto;
 }
 
+/* Overhanging the last cell would give the header strip scroll range the body lacks;
+   8 px matches the part of every other handle inside its own cell, and 16 px would
+   cover the sort arrow */
+.jp-TabularDataViewer-headerCell:last-child .jp-TabularDataViewer-resizeHandle {
+  right: 0;
+  width: 8px;
+}
+
 /* Table Body */
 .jp-TabularDataViewer-tbody {
   background-color: var(--jp-layout-color1);
@@ -719,8 +727,9 @@
   min-width: 0;
   min-height: 0;
 
-  /* Scrolls only when the column is taller than the 75vh dialog leaves it */
-  overflow-y: auto;
+  /* Scrolls only when the column is taller than the 75vh dialog leaves it, and
+     never sideways: overflow-y auto alone would also compute overflow-x auto */
+  overflow: hidden auto;
 }
 
 .jp-ColumnStatsModal-tiles {
@@ -749,10 +758,18 @@
 }
 
 .jp-ColumnStatsModal-tileValue {
-  font-size: 19px;
+  /* 16 px fits an 8-digit count in the 103 px tile of the 980 px dialog; the wrap is the last resort for longer counts */
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+/* The screen-reader copy of the count stays out of a selection, so a copied tile holds the count once */
+.jp-ColumnStatsModal-tile .jp-sr-only {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .jp-ColumnStatsModal-tileSub {
@@ -897,6 +914,7 @@
 .jp-ColumnStatsModal-box {
   position: absolute;
   top: 6px;
+  box-sizing: border-box;
   height: 14px;
   border: 1px solid var(--columnstats-tint);
   border-radius: 3px;
@@ -1076,7 +1094,7 @@
 }
 
 /* Short viewports: compact the statistics column so the distribution block and
-   its legend stay inside the dialog. Only the values pane keeps scrolling. */
+   its legend stay inside the dialog. */
 @media (height <= 700px) {
   .jp-ColumnStatsModal-tile {
     padding: 5px 8px;

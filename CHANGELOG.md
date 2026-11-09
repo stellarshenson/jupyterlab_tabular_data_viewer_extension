@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.8.4] - 2026-11-09
+
+### Changed
+
+- **The grid's column names and filters sit in a header strip above the body scroller**, so the vertical scrollbar starts below them instead of running through the header rows; the strip follows the body's horizontal scroll and the columns keep their widths
+- **The 27 user-facing strings the linter flags go through the JupyterLab translator** when one is installed and read the same English when none is; filter placeholders stay untranslated
+
+### Fixed
+
+- **A long summary-tile count wraps after a group separator, never inside a digit group**, and the 16 px count fits an 8-digit number in the split dialog
+- **A tile count reaches a screen reader as one text leaf**, and its hidden copy stays out of a mouse selection, including in Safari through `-webkit-user-select`
+- **The statistics column never scrolls sideways**, the box plot and its median and mean lines stay inside the axis, and a short window scrolls the column instead of clipping its last panel
+- **The tile value split no longer uses a regex lookbehind**, so the extension chunk loads on Safari 16.3 and older
+- **A regex lookbehind in the source now fails lint**, written as a literal or as a string passed to `new RegExp`, so the Safari break cannot return
+- **The last column's resize handle no longer covers its sort arrow**, a narrow filter input keeps its operator hint in the tooltip, and a horizontal wheel over the header is consumed while Ctrl+wheel is left to zoom
+
 ## [1.8.3] - 2026-11-06
 
 ### Changed

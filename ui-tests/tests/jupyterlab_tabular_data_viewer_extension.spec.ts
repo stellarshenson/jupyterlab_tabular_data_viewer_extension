@@ -1143,13 +1143,6 @@ test.describe('Tabular Data Viewer Extension', () => {
     await expect
       .poll(() => strip.evaluate((el: HTMLElement) => el.scrollLeft))
       .toBe(300);
-    await body.evaluate((el: HTMLElement) => {
-      el.scrollLeft = 300;
-    });
-    expect(await body.evaluate((el: HTMLElement) => el.scrollLeft)).toBe(300);
-    await expect
-      .poll(() => strip.evaluate((el: HTMLElement) => el.scrollLeft))
-      .toBe(300);
     const offsets = await viewer.evaluate((root: HTMLElement) => {
       const area = root
         .querySelector('.jp-TabularDataViewer-headerStrip')!
@@ -1196,6 +1189,117 @@ test.describe('Tabular Data Viewer Extension', () => {
       clientHeight: el.clientHeight
     }));
     expect(extent.scrollHeight).toBeLessThanOrEqual(extent.clientHeight + 1);
+
+    // (d) The last column's resize handle stays inside its cell, so the strip
+    // has no scroll range the body lacks, and it still resizes the column
+    const scrollWidths = await viewer.evaluate((root: HTMLElement) => ({
+      strip: root.querySelector('.jp-TabularDataViewer-headerStrip')!
+        .scrollWidth,
+      body: root.querySelector('.jp-TabularDataViewer-container')!.scrollWidth
+    }));
+    expect(
+      Math.abs(scrollWidths.strip - scrollWidths.body)
+    ).toBeLessThanOrEqual(1);
+    await body.evaluate((el: HTMLElement) => {
+      el.scrollLeft = el.scrollWidth;
+    });
+    await expect
+      .poll(async () =>
+        Math.abs(
+          (await strip.evaluate((el: HTMLElement) => el.scrollLeft)) -
+            (await body.evaluate((el: HTMLElement) => el.scrollLeft))
+        )
+      )
+      .toBe(0);
+    const lastWidths = () =>
+      viewer.evaluate((root: HTMLElement) =>
+        [
+          '.jp-TabularDataViewer-headerCell:last-child',
+          '.jp-TabularDataViewer-tbody tr td:last-child'
+        ].map(
+          selector =>
+            root.querySelector(selector)!.getBoundingClientRect().width
+        )
+      );
+    const [headBefore, bodyBefore] = await lastWidths();
+    const handle = (await viewer
+      .locator(
+        '.jp-TabularDataViewer-headerCell:last-child .jp-TabularDataViewer-resizeHandle'
+      )
+      .boundingBox())!;
+    const handleX = handle.x + handle.width / 2;
+    const handleY = handle.y + handle.height / 2;
+    await page.mouse.move(handleX, handleY);
+    await page.mouse.down();
+    await page.mouse.move(handleX + 50, handleY, { steps: 5 });
+    await page.mouse.up();
+    const [headAfter, bodyAfter] = await lastWidths();
+    expect(Math.abs(headAfter - headBefore - 50)).toBeLessThanOrEqual(1);
+    expect(Math.abs(bodyAfter - bodyBefore - 50)).toBeLessThanOrEqual(1);
+
+    // (e) A narrow filter input truncates its placeholder; the title keeps the
+    // operator syntax and the text hint readable as a tooltip
+    const hints = await viewer
+      .locator('.jp-TabularDataViewer-filterInput')
+      .evaluateAll(inputs =>
+        inputs.map(input => ({
+          title: (input as HTMLInputElement).title,
+          placeholder: (input as HTMLInputElement).placeholder
+        }))
+      );
+    expect(hints.length).toBeGreaterThan(0);
+    for (const hint of hints) {
+      expect(hint.title).not.toBe('');
+      expect(hint.title).toBe(hint.placeholder);
+    }
+
+    // (f) The header consumes a wheel and scrolls the body with it, so a
+    // sideways touchpad swipe does not navigate back; Ctrl+wheel only zooms
+    const wheel = (init: WheelEventInit) =>
+      viewer.evaluate((root: HTMLElement, eventInit: WheelEventInit) => {
+        const container = root.querySelector(
+          '.jp-TabularDataViewer-container'
+        )!;
+        const before = { left: container.scrollLeft, top: container.scrollTop };
+        const event = new WheelEvent('wheel', {
+          ...eventInit,
+          bubbles: true,
+          cancelable: true
+        });
+        root
+          .querySelector('.jp-TabularDataViewer-headerStrip')!
+          .dispatchEvent(event);
+        return {
+          prevented: event.defaultPrevented,
+          before,
+          left: container.scrollLeft,
+          top: container.scrollTop
+        };
+      }, init);
+    const swipe = await wheel({ deltaX: 120 });
+    expect(swipe.prevented).toBe(true);
+    expect(swipe.left).toBeGreaterThan(swipe.before.left);
+    const zoom = await wheel({ deltaY: 100, ctrlKey: true });
+    expect(zoom.prevented).toBe(false);
+    expect(zoom.top).toBe(zoom.before.top);
+
+    // (g) The last column's resize handle leaves its sort arrow clickable: a
+    // click on the arrow reverses the sort instead of landing on the handle
+    const lastHeader = viewer.locator(
+      '.jp-TabularDataViewer-headerCell:last-child'
+    );
+    const arrow = lastHeader.locator('.jp-TabularDataViewer-sortIndicator');
+    await lastHeader.locator('.jp-TabularDataViewer-columnName').click();
+    await expect(arrow).toContainText('▲');
+    await expect(gridRows(viewer).first()).toBeVisible({
+      timeout: GRID_TIMEOUT
+    });
+    const arrowBox = (await arrow.boundingBox())!;
+    await page.mouse.click(
+      arrowBox.x + arrowBox.width - 1,
+      arrowBox.y + arrowBox.height / 2
+    );
+    await expect(arrow).toContainText('▼');
   });
 
   test('should refresh from disk on reload without fetching content', async ({
@@ -1633,14 +1737,19 @@ test.describe('Tabular Data Viewer Extension', () => {
       expect(item!.y + item!.height).toBeLessThanOrEqual(box!.y + box!.height);
     }
 
-    // Still no second scroll region: the column fits the 75vh dialog
+    // Still no second scroll region: the column fits the 75vh dialog, and it
+    // never scrolls sideways
     const statsOverflow = await dialog.evaluate((node: HTMLElement) => {
       const stats = node.querySelector(
         '.jp-ColumnStatsModal-stats'
       ) as HTMLElement;
-      return stats.scrollHeight - stats.clientHeight;
+      return {
+        height: stats.scrollHeight - stats.clientHeight,
+        overflowX: getComputedStyle(stats).overflowX
+      };
     });
-    expect(statsOverflow).toBeLessThanOrEqual(1);
+    expect(statsOverflow.height).toBeLessThanOrEqual(1);
+    expect(statsOverflow.overflowX).toBe('hidden');
   });
 
   test('should cap the dialog at three quarters of the window height', async ({
@@ -1912,6 +2021,152 @@ test.describe('Tabular Data Viewer Extension', () => {
     expect(
       await rows.locator('.jp-ColumnStatsModal-value').allTextContents()
     ).toContain('(null)');
+  });
+
+  test('should keep an 8-digit count on one line in a split dialog tile', async ({
+    page
+  }) => {
+    // At 19 px an 8-digit count broke inside a digit group in the 980px
+    // dialog; age repeats its values, so its dialog has the split layout.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const dialog = await openStatsDialog(page, viewer, 'age');
+    await expect(
+      dialog.locator('.jp-ColumnStatsModal-bodySplit')
+    ).toBeVisible();
+
+    const fit = await dialog
+      .locator('.jp-ColumnStatsModal-tile', { hasText: 'Total rows' })
+      .locator('.jp-ColumnStatsModal-tileValue')
+      .evaluate((node: HTMLElement) => {
+        node.textContent = '12,345,678';
+        return {
+          height: node.getBoundingClientRect().height,
+          lineHeight: parseFloat(getComputedStyle(node).lineHeight)
+        };
+      });
+    expect(fit.height).toBeLessThan(1.5 * fit.lineHeight);
+  });
+
+  test('should wrap a tile count after a group separator, not inside a digit group', async ({
+    page
+  }) => {
+    // overflow-wrap: anywhere alone broke 1,500 into 1,50 and 0, so the first
+    // line read as a different number.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const dialog = await openStatsDialog(page, viewer, 'age');
+
+    const wrap = await dialog
+      .locator('.jp-ColumnStatsModal-tile', { hasText: 'Total rows' })
+      .locator('.jp-ColumnStatsModal-tileValue')
+      .evaluate((node: HTMLElement) => {
+        const chars = Array.from(node.childNodes)
+          .filter((child): child is Text => child instanceof Text)
+          .flatMap(child =>
+            Array.from({ length: child.length }, (_, i) => ({ child, i }))
+          );
+        const range = document.createRange();
+        const last = chars[chars.length - 1];
+        range.setStart(chars[0].child, 0);
+        range.setEnd(last.child, last.i);
+        // One character narrower than the value, so it cannot fit on one line
+        node.style.width = `${range.getBoundingClientRect().width}px`;
+
+        const top = ({ child, i }: { child: Text; i: number }) => {
+          range.setStart(child, i);
+          range.setEnd(child, i + 1);
+          return range.getBoundingClientRect().top;
+        };
+        const secondLine = chars.findIndex(c => top(c) > top(chars[0]));
+        return { text: node.textContent ?? '', secondLine };
+      });
+    expect(wrap.text).toBe('1,500');
+    expect(wrap.secondLine).toBeGreaterThan(0);
+    expect(wrap.text[wrap.secondLine - 1]).toBe(',');
+  });
+
+  test('should expose a tile count to assistive technology as one text leaf', async ({
+    page
+  }) => {
+    // The <wbr> split left 1,500 as two StaticText leaves, 1, and 500, so a
+    // screen reader that steps by object could announce two numbers.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const dialog = await openStatsDialog(page, viewer, 'age');
+
+    // Galata's page is a proxy that newCDPSession rejects; its frame is not
+    const cdp = await page.context().newCDPSession(page.mainFrame());
+    const { result } = await cdp.send('Runtime.evaluate', {
+      expression: `[...document.querySelectorAll('.jp-ColumnStatsModal-tile')].find(
+        tile => tile.firstChild.textContent === 'Total rows')`
+    });
+    const { node } = await cdp.send('DOM.describeNode', {
+      objectId: result.objectId
+    });
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    const byId = new Map(nodes.map(n => [n.nodeId, n]));
+    const leaves: string[] = [];
+    const walk = (n: any): void => {
+      if (!n.ignored && n.role?.value === 'StaticText') {
+        leaves.push(n.name.value.toLowerCase());
+      }
+      (n.childIds ?? []).forEach((id: string) => walk(byId.get(id)));
+    };
+    walk(nodes.find(n => n.backendDOMNodeId === node.backendNodeId));
+    expect(leaves).toEqual(['total rows', '1,500', '100.0% of all rows']);
+    // The copy must stay visually hidden, or every tile shows its count twice
+    await expect(
+      dialog.locator('.jp-ColumnStatsModal-tile .jp-sr-only').first()
+    ).toHaveCSS('clip-path', 'inset(50%)');
+  });
+
+  test('should copy a tile count once when the whole tile is selected', async ({
+    page
+  }) => {
+    // The screen-reader copy of the count is selectable text, so a selection
+    // from the label to the sub line held 1,500 twice.
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    const dialog = await openStatsDialog(page, viewer, 'age');
+
+    const selected = await dialog
+      .locator('.jp-ColumnStatsModal-tile', { hasText: 'Total rows' })
+      .evaluate((tile: HTMLElement) => {
+        const range = document.createRange();
+        range.selectNodeContents(tile);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        return selection?.toString() ?? '';
+      });
+    expect(selected.match(/1,500/g)).toHaveLength(1);
+  });
+
+  test('should keep the box plot inside its axis when Q3 equals the max', async ({
+    page
+  }) => {
+    // data_completeness has median = Q3 = max. The box border and the lines
+    // centred on their value ended 1-2 px past the axis, where the statistics
+    // column clips them (DEF-STATS-50-BOX-CLIP).
+    const viewer = await openInViewer(page, 'activity_stats.parquet');
+    await page.setViewportSize({ width: 1280, height: 660 });
+    const dialog = await openStatsDialog(page, viewer, 'data_completeness');
+    const plot = dialog.locator('[data-testid="boxplot"]');
+    await expect(plot).toBeVisible();
+
+    const [axisRight, ...markRights] = await plot.evaluate(
+      (node: HTMLElement) =>
+        [
+          '.jp-ColumnStatsModal-axis',
+          '.jp-ColumnStatsModal-box',
+          '.jp-ColumnStatsModal-median',
+          '.jp-ColumnStatsModal-mean'
+        ].map(
+          selector =>
+            node.querySelector(selector)!.getBoundingClientRect().right
+        )
+    );
+    for (const right of markRights) {
+      expect(right).toBeLessThanOrEqual(axisRight + 0.5);
+    }
   });
 
   test('should render the date range for a date column', async ({ page }) => {

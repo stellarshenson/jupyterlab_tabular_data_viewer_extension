@@ -188,7 +188,19 @@ export class ColumnStatsModal extends Widget {
 
     const valueEl = document.createElement('div');
     valueEl.className = 'jp-ColumnStatsModal-tileValue';
-    valueEl.textContent = value;
+    valueEl.setAttribute('aria-hidden', 'true');
+    // A forced wrap falls after a group separator, never inside a digit group
+    (value.match(/\d+\D*|\D+/g) ?? []).forEach((part, i) => {
+      if (i) {
+        valueEl.appendChild(document.createElement('wbr'));
+      }
+      valueEl.append(part);
+    });
+
+    // The <wbr> parts read as separate numbers; screen readers get this copy
+    const spoken = document.createElement('span');
+    spoken.className = 'jp-sr-only';
+    spoken.textContent = value;
 
     const subEl = document.createElement('div');
     subEl.className = 'jp-ColumnStatsModal-tileSub';
@@ -196,6 +208,7 @@ export class ColumnStatsModal extends Widget {
 
     tile.appendChild(key);
     tile.appendChild(valueEl);
+    tile.appendChild(spoken);
     tile.appendChild(subEl);
     return tile;
   }
@@ -752,11 +765,11 @@ export class ColumnStatsModal extends Widget {
 
     const medianLine = document.createElement('span');
     medianLine.className = 'jp-ColumnStatsModal-median';
-    medianLine.style.left = `calc(${at(median)}% - 1px)`;
+    medianLine.style.left = `clamp(0px, calc(${at(median)}% - 1px), calc(100% - 2px))`;
 
     const meanLine = document.createElement('span');
     meanLine.className = 'jp-ColumnStatsModal-mean';
-    meanLine.style.left = `calc(${at(mean)}% - 1px)`;
+    meanLine.style.left = `clamp(0px, calc(${at(mean)}% - 1px), calc(100% - 2px))`;
 
     plot.appendChild(axis);
     plot.appendChild(box);

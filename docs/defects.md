@@ -365,6 +365,61 @@ The column statistics dialog and its payload.
   - root-cause: 2026-11-06T15:16:27Z @kj the live chip rule sets background-color to var(--jp-layout-color2); the design page line 233 sets a 14 percent color-mix of the tint
   - log: 2026-11-06T15:16:27Z @kj added
   - log: 2026-11-06T15:40:28Z @kj closed: fixed: .jp-ColumnStatsModal-chip background-color is color-mix(in srgb, var(--columnstats-tint) 14%, transparent)
+- [x] `DEF-STATS-50-BOX-CLIP` **Box plot right edge clipped** - MINOR; when Q3 or the median equals the max, the box loses its right border and corners and the median and mean lines show at 1 px; regression of overflow: hidden auto on .jp-ColumnStatsModal-stats
+  - evidence: box border-box, median and mean clamped to the axis; new Galata 'should keep the box plot inside its axis when Q3 equals the max' failed before (box right 982.98 vs axis 981), passes; full Galata 71/71
+  - repro: activity_stats.parquet, data_completeness statistics at 1280x660; box right stroke not painted
+  - test-tags: E2E
+  - root-cause: 2026-11-06T22:15:21Z @kj the content-box box with a 1 px border and the calc(X% - 1px) median and mean lines end up to 2 px past the axis end; overflow-x hidden clips them
+  - log: 2026-11-06T22:15:21Z @kj added
+  - log: 2026-11-06T22:39:37Z @kj closed
+- [x] `DEF-STATS-51-TILE-CLIP` **Tile count cut at the column edge** - MINOR; in windows narrower than about 600 px a long count in the rightmost summary tile (123,456,789) is cut through the last digit and can no longer be scrolled into view
+  - evidence: overflow-wrap: anywhere on .jp-ColumnStatsModal-tileValue; 123,456,789 at 480 px ends 12 px inside the column on two lines, was 20-48 px past; full Galata 71/71
+  - repro: column with millions of distinct values, window 600 px wide, read the Unique tile
+  - test-tags: E2E
+  - root-cause: 2026-11-06T22:15:21Z @kj .jp-ColumnStatsModal-tileValue has no wrap rule inside a minmax(0, 1fr) tile; overflow-x hidden removed the scrollbar that reached the digits
+  - log: 2026-11-06T22:15:21Z @kj added
+  - log: 2026-11-06T22:39:37Z @kj closed
+- [-] `DEF-STATS-52-NARROW-STRIP` **Stacked statistics column shrinks to a strip** - MINOR; at 720 px width or less the stacked statistics column shrinks to a 77-101 px scroll strip even when it would fit
+  - related: ACC-STATS-74-HEIGHT - the 75vh cap that turns the stacked overlap into a strip
+  - repro: window 683x635, open statistics for a column with a unique-values pane
+  - test-tags: E2E
+  - root-cause: 2026-11-06T22:15:22Z @kj stats has min-height 0 and flex-shrink 1, the values pane has flex 1 1 auto with the full list as basis, so both shrink in proportion
+  - log: 2026-11-06T22:15:22Z @kj added
+  - log: 2026-11-06T22:15:34Z @kj rejected: owner rejected 2026-11-06: all content stays reachable by scrolling the strip; the layout appears only at 720 px width or less; a fix needs a height split that keeps the unique-values pane readable
+- [x] `DEF-STATS-53-TILE-BREAK` **Tile count breaks inside a digit group** - MINOR; in the 980 px dialog a count of 1,234,567 or more wraps mid-group on DejaVu fonts ('1,234,56' then '7'), 123,456,789 on Arial metrics; side effect of the DEF-STATS-51-TILE-CLIP wrap
+  - evidence: 16px tile font plus a wbr after each group separator in _tile; 1,234,567 at a 900 px window wraps '1,234, / 567' (was '1,234,56 / 7'); new Galata wrap test failed before, passes; full Galata 73/73; review round 19 SHIP
+  - related: DEF-STATS-51-TILE-CLIP - the wrap that exposed it
+  - repro: repeating column with 1,234,567 rows, 1280x900, read the Total rows tile
+  - test-tags: E2E
+  - root-cause: 2026-11-07T07:32:09Z @kj a 19 px semibold count does not fit the 105 px tile; overflow-wrap: anywhere then breaks at any character, since no break is allowed after a comma before a digit
+  - log: 2026-11-07T07:32:09Z @kj added
+  - log: 2026-11-07T12:06:09Z @kj 16px tile font fixed the 980 px dialog at 1280 px; round 18: mid-group break remains at windows 721-1011 px, with a statistics-column scrollbar, and for 9-digit counts; owner chose a line-break opportunity after each group separator
+  - log: 2026-11-07T12:32:14Z @kj closed
+- [x] `DEF-STATS-54-TILE-SPEECH` **Tile count split for screen readers** - MINOR; the wbr break points make each tile count three accessible text leaves ('1,', '234,', '567'); a screen reader that steps by object may read three numbers; not reproduced on a real screen reader
+  - evidence: visual value aria-hidden, a .jp-sr-only copy holds the count as one text node; CDP tree shows one StaticText '1,234,567' (was three); new Galata test failed before, passes; full Galata 74/74; rounds 20 and 21 SHIP
+  - related: DEF-STATS-53-TILE-BREAK - the wbr fix that split the value
+  - repro: CDP Accessibility.getFullAXTree on the Total rows tile of a 1,234,567-row column: three StaticText leaves
+  - test-tags: E2E
+  - root-cause: 2026-11-07T12:35:21Z @kj the value is built from text nodes split by wbr elements, and the accessibility tree keeps one leaf per text node
+  - log: 2026-11-07T12:35:21Z @kj added
+  - log: 2026-11-07T13:10:24Z @kj closed
+- [x] `DEF-STATS-55-TILE-COPY` **Tile copy pastes the count twice** - MINOR; a drag-selection across a summary tile copies 'Total rows', the count twice and the sub line, because the .jp-sr-only screen-reader copy is selectable
+  - evidence: user-select: none plus -webkit-user-select: none on the tile .jp-sr-only copy; copy-once Galata test failed before (count twice), passes; full Galata 75/75; round 23 SHIP with 0 findings; Safari not run, no WebKit build installed
+  - related: DEF-STATS-54-TILE-SPEECH - the hidden copy that is selected
+  - repro: drag from a tile label to its sub line, Ctrl+C, paste: the count appears twice
+  - test-tags: E2E
+  - root-cause: 2026-11-07T13:11:01Z @kj the visually hidden copy from DEF-STATS-54-TILE-SPEECH is clipped, not unselectable, so it joins any selection over the tile
+  - log: 2026-11-07T13:11:01Z @kj added
+  - log: 2026-11-07T13:40:49Z @kj user-select: none fixed Chromium (copy-once Galata test, 75/75, round 22 SHIP); Safari needs the -webkit- prefix, owner chose to add it
+  - log: 2026-11-07T14:10:28Z @kj closed
+- [x] `DEF-STATS-56-LOOKBEHIND` **Tile split regex breaks old Safari** - MINOR; the tile value split uses a regex lookbehind /(?<=\D)(?=\d)/, which Safari and iOS Safari 16.3 and older cannot parse, so the extension chunk fails to load there
+  - evidence: split replaced by value.match(/\d+\D*|\D+/g) ?? []; same rendered parts for 72 value shapes and 100000 random strings; built bundle holds no lookbehind; full Galata 75/75; round 25 SHIP with 0 changes; Safari 16.3 not run
+  - related: DEF-STATS-53-TILE-BREAK - the split that introduced the lookbehind
+  - repro: load the statistics chunk in Safari 16.3: SyntaxError on the lookbehind in src/modal.ts _tile
+  - test-tags: E2E
+  - root-cause: 2026-11-07T14:11:12Z @kj the DEF-STATS-53-TILE-BREAK fix wrote the separator split with a lookbehind assertion
+  - log: 2026-11-07T14:11:12Z @kj added
+  - log: 2026-11-07T14:30:19Z @kj closed
 
 ## Grid display `GRID`
 
@@ -379,3 +434,24 @@ Layout, scrolling and rendering of the table grid
   - root-cause: 2026-11-06T16:49:53Z @kj one .jp-TabularDataViewer-container scrolls the whole table with a sticky thead, so its track spans the headers; its ::-webkit-scrollbar rules are inactive because the GalaxaLab theme sets * { scrollbar-width: thin }, which makes Chrome ignore webkit scrollbar styling
   - log: 2026-11-06T16:49:53Z @kj added
   - log: 2026-11-06T18:07:54Z @kj closed: fixed: filter and header rows moved into a header strip above the body scroller, scrollLeft kept in step, columns share widths
+- [x] `DEF-GRID-47-HANDLE-OVERHANG` **Last resize handle overhangs the table by 8 px** - MINOR; the last column's resize handle extends 8 px past the table, so the header strip has 8 px more scroll range than the body; no user action reaches it today; `style/base.css`
+  - evidence: Galata 'should start the vertical scrollbar below the header rows': strip and body scrollWidth both 1660, was 1668 vs 1660; last-column drag +50 px grows header and body alike; Galata 70, pytest 208 at 1.8.3
+  - repro: open sample_data.parquet, compare the header strip scrollWidth with the body scrollWidth
+  - test-tags: E2E
+  - root-cause: 2026-11-06T19:41:12Z @kj every .jp-TabularDataViewer-resizeHandle sits at right: -8px with width 16px, half outside its header cell; the last cell has no neighbour to absorb that half, so it widens the strip's scroll range
+  - log: 2026-11-06T19:41:12Z @kj added
+  - log: 2026-11-06T20:47:58Z @kj closed: fixed: last header cell's resize handle kept inside its cell
+- [x] `DEF-GRID-48-HINT-CUT` **Filter hint cut off in narrow columns** - MINOR; below about 170 px column width the numeric filter's operator hint is cut off, because the input may now shrink and the hint exists only as a placeholder; `src/widget.ts`
+  - evidence: Galata 'should start the vertical scrollbar below the header rows' asserts every filter input title equals its non-empty placeholder; failed on the old build with an empty title; Galata 70 at 1.8.3
+  - repro: drag a numeric column narrower than 170 px and read its filter input
+  - test-tags: E2E
+  - root-cause: 2026-11-06T19:41:12Z @kj min-width: 0 lets the filter input shrink so its button stays inside the cell, and the operator syntax is carried only by the placeholder, which a narrow input truncates
+  - log: 2026-11-06T19:41:12Z @kj added
+  - log: 2026-11-06T20:47:59Z @kj closed: fixed: each filter input's title copies its placeholder
+- [x] `DEF-GRID-49-SWIPE-BACK` **Header swipe may trigger browser Back** - MINOR; likely cause, unproven on macOS: a sideways touchpad swipe over the header rows is left unconsumed, so the browser may treat it as Back; Ctrl+wheel over the header also scrolls the body while zooming; `src/widget.ts`
+  - evidence: Galata asserts a cancelable deltaX wheel on the header strip is defaultPrevented and scrolls the body, and a Ctrl wheel is not prevented and leaves scrollTop unchanged; both failed before; not checked on a macOS touchpad
+  - repro: macOS, wide table, two-finger swipe sideways with the pointer over the column names
+  - test-tags: E2E
+  - root-cause: 2026-11-06T19:41:13Z @kj the header strip's wheel listener forwards the delta to the body but never calls preventDefault and does not skip Ctrl+wheel, so the browser still sees an unhandled horizontal wheel and a zoom gesture also scrolls
+  - log: 2026-11-06T19:41:13Z @kj added
+  - log: 2026-11-06T20:47:59Z @kj closed: fixed: header wheel skips Ctrl+wheel and calls preventDefault before forwarding
