@@ -1040,16 +1040,17 @@ export class TabularDataViewer extends Widget {
 
       if (isNumeric) {
         // Parse numerical filter with operator
-        const match = value.match(/^([><=]+)?\s*(.+)$/);
-        if (match) {
-          const operator = match[1] || '=';
-          const numValue = match[2].trim();
-
+        const match = value.match(/^(>=|<=|>|<|=)?\s*(.+)$/);
+        const numValue = match ? match[2].trim() : '';
+        // The server adds no predicate for a non-number, so store no filter
+        if (match && numValue && Number.isFinite(Number(numValue))) {
           this._filters[columnName] = {
             type: 'number',
             value: numValue,
-            operator: operator
+            operator: match[1] || '='
           };
+        } else {
+          delete this._filters[columnName];
         }
       } else {
         // Text filter

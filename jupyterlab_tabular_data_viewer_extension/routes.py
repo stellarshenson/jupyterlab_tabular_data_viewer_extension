@@ -542,23 +542,22 @@ class ParquetDataHandler(APIHandler):
                 return
 
             # Add original row index column (1-indexed for display)
-            original_indices = pa.array(range(1, len(table) + 1))
+            original_indices = pa.arange(1, len(table) + 1)
             table = table.append_column("__original_row_index__", original_indices)
 
             if filters:
                 table = _apply_filters(table, filters, use_regex, case_insensitive)
 
-            # Apply sorting if requested
-            if sort_by and sort_by in table.column_names:
-                indices = _sort_indices(table, sort_by, sort_order)
-                table = pc.take(table, indices)
-
             # Get total filtered rows
             total_filtered_rows = len(table)
-
-            # Apply pagination
             end = min(offset + limit, len(table))
-            table_slice = table.slice(offset, end - offset)
+
+            # Take only the requested page, from the sort order when sorted
+            if sort_by and sort_by in table.column_names:
+                indices = _sort_indices(table, sort_by, sort_order)
+                table_slice = table.take(indices.slice(offset, limit))
+            else:
+                table_slice = table.slice(offset, end - offset)
 
             # Convert to list of dictionaries with JSON-serializable values
             data = []

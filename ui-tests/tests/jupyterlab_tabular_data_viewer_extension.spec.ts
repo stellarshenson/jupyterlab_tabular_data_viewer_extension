@@ -523,6 +523,18 @@ test.describe('Tabular Data Viewer Extension', () => {
     await filterInput.press('Enter');
     await expect(gridRows(viewer)).toHaveCount(1, { timeout: GRID_TIMEOUT });
 
+    // An entry the server cannot apply stores no filter
+    await filterInput.fill('==1');
+    await filterInput.press('Enter');
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+    await expect(
+      viewer.locator('.jp-TabularDataViewer-statusRight')
+    ).not.toContainText('filter active');
+
+    await filterInput.fill('=1');
+    await filterInput.press('Enter');
+    await expect(gridRows(viewer)).toHaveCount(1, { timeout: GRID_TIMEOUT });
+
     await sheetTab(viewer, 'orders').click();
     await expect(gridRows(viewer)).toHaveCount(30, { timeout: GRID_TIMEOUT });
 

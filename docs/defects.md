@@ -330,6 +330,20 @@ sort, filter and statistics requests on an open table
   - test-tags: UNIT
   - log: 2026-11-13T09:21:42Z @kj added
   - log: 2026-11-13T09:31:18Z @kj closed
+- [x] `DEF-FILTER-64-BAD-NUMBER` **a number filter the server cannot parse counts as an active filter** - MEDIUM; an entry such as ==5, !=5, =>5 or 1,000 on a number column is stored by the frontend and dropped by the server, so the grid shows every row while the status bar, the export note and the _filtered file name claim a filter; widget.ts _applyFilter
+  - evidence: widget.ts _applyFilter stores a number filter only for the operators >=, <=, >, <, = with a finite number, else removes it; Galata 'should reset filters when switching tables' types ==1 and reads 12 rows with no 'filter active'; Galata 78 green
+  - repro: open sample_database.db, table customers, type ==1 in the customer_id filter, Enter: 12 of 12 rows and '1 filter active'
+  - test-tags: E2E
+  - root-cause: 2026-11-13T18:08:19Z @kj the frontend pattern [><=]+ accepted any run of operator characters and any text as the value, while routes.py adds no predicate for a non-number (DEF-FILTER-28 server contract)
+  - log: 2026-11-13T18:08:19Z @kj added
+  - log: 2026-11-13T18:18:23Z @kj closed
+- [x] `DEF-FILTER-65-SORT-PAGE` **a sorted page reorders the whole table before taking one page** - MINOR; ParquetDataHandler takes every row in sort order and then slices 500 of them, and builds the row-number column from a Python range; on 3,000,000 rows the take costs 0.16 to 1.8 s per page and the range 0.27 s; routes.py
+  - evidence: routes.py ParquetDataHandler takes table.take(indices.slice(offset, limit)) and builds row numbers with pa.arange; 3,000,000 rows: page take 0.0002 s against 0.157 s, row numbers 0.014 s against 0.272 s; pytest 209 green, sort and pagination cases included
+  - repro: time pc.take(table, indices) against table.take(indices.slice(0, 500)) on a 3,000,000-row table
+  - test-tags: UNIT
+  - root-cause: 2026-11-13T18:08:19Z @kj the page slice was written after the reorder, so the reorder ran on all rows; pa.array(range()) converts one Python int per row
+  - log: 2026-11-13T18:08:19Z @kj added
+  - log: 2026-11-13T18:18:23Z @kj closed
 
 ## Column statistics `STATS`
 
