@@ -1348,6 +1348,139 @@ test.describe('Tabular Data Viewer Extension', () => {
     expect(contentsRequests.filter(u => !u.includes('content=0'))).toEqual([]);
   });
 
+  test('should export the viewer the context menu was opened on', async ({
+    page
+  }) => {
+    await openInViewer(page, 'sample_data.parquet');
+    await openInViewer(page, 'sample_database.db');
+
+    // Back on the first file. The Export command acted on the viewer created
+    // last, so this exported a table of the database.
+    await page.activity.activateTab('sample_data.parquet');
+    const viewer = activeViewer(page);
+    await expect(gridRows(viewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+    await viewer
+      .locator('.jp-TabularDataViewer-statusBar')
+      .click({ button: 'right' });
+    await page
+      .locator('.lm-Menu-item[data-command="tabular-data-viewer:download"]')
+      .click();
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: GRID_TIMEOUT }),
+      page
+        .locator('.jp-FilterModal .jp-FilterModal-buttons')
+        .getByRole('button', { name: 'Download as CSV', exact: true })
+        .click()
+    ]);
+    expect(download.suggestedFilename()).toBe('sample_data.csv');
+  });
+
+  test('should apply a sort clicked while a page is loading', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'sample_data.parquet');
+    await expect(gridRows(viewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+
+    // Hold the second page so the sort click lands while it is in flight
+    let dataRequests = 0;
+    await page.route(/\/data(?:\?|$)/, async route => {
+      dataRequests += 1;
+      if (dataRequests === 1) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      await route.continue();
+    });
+    await viewer
+      .locator('.jp-TabularDataViewer-container')
+      .evaluate((el: HTMLElement) => {
+        el.scrollTop = el.scrollHeight;
+      });
+    await expect(
+      viewer.locator('.jp-TabularDataViewer-statusRight')
+    ).toHaveText('Loading...');
+    await viewer
+      .locator(
+        '.jp-TabularDataViewer-headerCell[data-column-name="age"] .jp-TabularDataViewer-columnType'
+      )
+      .click();
+
+    // The sort used to be dropped: the arrow showed and the rows stayed in
+    // file order, 1000 of them. 18 is the lowest age in the fixture.
+    await expect(gridRows(viewer)).toHaveCount(PAGE_SIZE, {
+      timeout: GRID_TIMEOUT
+    });
+    await expect(gridRows(viewer).first().locator('td').nth(2)).toHaveText(
+      '18'
+    );
+  });
+
+  test('should keep the filter text and the sort arrow across a refresh', async ({
+    page,
+    request,
+    tmpPath
+  }) => {
+    const viewer = await openInViewer(
+      page,
+      'sample_data.csv',
+      'Tabular Data Viewer (Text)'
+    );
+    const filterInput = viewer.locator(
+      '.jp-TabularDataViewer-filterInput[data-column-name="age"]'
+    );
+    await filterInput.fill('>60');
+    await filterInput.press('Enter');
+    await expect(
+      viewer.locator('.jp-TabularDataViewer-statusRight')
+    ).toContainText('of 445 rows', { timeout: GRID_TIMEOUT });
+    const salary = viewer.locator(
+      '.jp-TabularDataViewer-headerCell[data-column-name="salary"]'
+    );
+    await salary.locator('.jp-TabularDataViewer-columnType').click();
+    await expect(
+      salary.locator('.jp-TabularDataViewer-sortIndicator')
+    ).toContainText('▲');
+
+    // The refresh replaces the input; the mark tells the old one from the new
+    await filterInput.evaluate((el: HTMLElement) =>
+      el.setAttribute('data-stale', '1')
+    );
+
+    // Same bytes, new modification time: the context reports a file change
+    const contents = galata.newContentsHelper(request);
+    await contents.uploadFile(
+      path.join(DATA_DIR, 'sample_data.csv'),
+      `${tmpPath}/sample_data.csv`
+    );
+    const refreshed = page.waitForResponse(/\/metadata(?:\?|$)/, {
+      timeout: GRID_TIMEOUT
+    });
+    await page.evaluate(() =>
+      (window as any).jupyterapp.commands.execute('docmanager:reload')
+    );
+    await refreshed;
+    await expect(
+      viewer.locator('.jp-TabularDataViewer-statusRight')
+    ).toContainText('of 445 rows', { timeout: GRID_TIMEOUT });
+
+    // The refresh rebuilds the header row; both used to come back blank while
+    // the filter and the sort stayed applied
+    await expect(
+      viewer.locator(
+        '.jp-TabularDataViewer-filterInput[data-column-name="age"]:not([data-stale])'
+      )
+    ).toHaveValue('>60');
+    await expect(
+      viewer.locator(
+        '.jp-TabularDataViewer-headerCell[data-column-name="salary"] .jp-TabularDataViewer-sortIndicator'
+      )
+    ).toContainText('▲');
+  });
+
   test('should render clock-time and elapsed-time columns', async ({
     page
   }) => {

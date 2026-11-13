@@ -53,6 +53,8 @@ export class TabularDataViewer extends Widget {
   private _currentOffset = 0;
   private _limit: number;
   private _loading = false;
+  // A reset load asked for while a fetch was in flight, run when it ends
+  private _reloadPending = false;
   private _hasMore = true;
   private _filters: { [key: string]: IFilterSpec } = {};
   private _sortBy: string | null = null;
@@ -60,7 +62,6 @@ export class TabularDataViewer extends Widget {
   private _fileSize = 0;
   private _caseInsensitive = false;
   private _useRegex = false;
-  private _contextMenuOpen = false;
   private _columnWidths: Map<string, number> = new Map();
   private _resizing: {
     columnName: string;
@@ -277,7 +278,6 @@ export class TabularDataViewer extends Widget {
 
     // Remove context-active class when clicking anywhere or dismissing context menu
     const removeHighlight = () => {
-      this._contextMenuOpen = false;
       this._tbody.classList.remove('jp-TabularDataViewer-context-menu-open');
       this._tbody.querySelectorAll('tr').forEach(r => {
         r.classList.remove('jp-TabularDataViewer-row-context-active');
@@ -533,6 +533,8 @@ export class TabularDataViewer extends Widget {
    */
   private async _loadData(reset = false): Promise<void> {
     if (this._loading) {
+      // A filter, sort or option change made mid-fetch must not be dropped
+      this._reloadPending ||= reset;
       return;
     }
 
@@ -585,6 +587,10 @@ export class TabularDataViewer extends Widget {
     } finally {
       this._loading = false;
       this._hideLoadingOverlay();
+      if (this._reloadPending) {
+        this._reloadPending = false;
+        void this._loadData(true);
+      }
     }
   }
 
@@ -657,6 +663,14 @@ export class TabularDataViewer extends Widget {
       filterInput.title = filterInput.placeholder;
       filterInput.dataset.columnName = col.name;
       filterInput.dataset.columnType = col.type;
+      // A refresh rebuilds this row while the filters stay applied
+      const active = this._filters[col.name];
+      if (active) {
+        filterInput.value =
+          active.type === 'number'
+            ? `${active.operator}${active.value}`
+            : active.value;
+      }
 
       filterInput.addEventListener('keyup', (e: KeyboardEvent) => {
         if (e.key === 'Enter') {
@@ -833,6 +847,7 @@ export class TabularDataViewer extends Widget {
       60;
     this._headerTable.style.width = `${totalWidth}px`;
     this._table.style.width = `${totalWidth}px`;
+    this._updateSortIndicators();
   }
 
   /**
@@ -873,16 +888,6 @@ export class TabularDataViewer extends Widget {
         tr.appendChild(td);
       });
 
-      // Remove context-active class when hovering over any row (only if context menu not open)
-      tr.addEventListener('mouseenter', () => {
-        // Don't clear highlight while context menu is open
-        if (!this._contextMenuOpen) {
-          this._tbody.querySelectorAll('tr').forEach(r => {
-            r.classList.remove('jp-TabularDataViewer-row-context-active');
-          });
-        }
-      });
-
       // Add click handler for row selection/highlighting (anywhere on row)
       tr.addEventListener('click', e => {
         e.stopPropagation();
@@ -907,9 +912,6 @@ export class TabularDataViewer extends Widget {
 
       // Add right-click handler to store row data and maintain hover styling
       tr.addEventListener('contextmenu', e => {
-        // Mark context menu as open
-        this._contextMenuOpen = true;
-
         // Add class to tbody to disable hover on other rows
         this._tbody.classList.add('jp-TabularDataViewer-context-menu-open');
 
@@ -1510,8 +1512,6 @@ export class TabularDataViewer extends Widget {
    * Dispose of the widget
    */
   dispose(): void {
-    this._tableContainer.removeEventListener('scroll', this._onScroll);
-
     // Clean up menu observer
     if (this._menuObserver) {
       this._menuObserver.disconnect();

@@ -48,6 +48,19 @@ how a file reaches the viewer - document model, content fetch, file type registr
   - log: 2026-09-14T22:52:53Z @kj added
   - log: 2026-09-14T22:55:05Z @kj closed: fixed: \_served_type serves a nested parquet column as JSON text on read, and metadata reports it as string
   - log: 2026-09-14T23:21:35Z @kj round-2 review: the JSON text escaped non-ASCII characters, so a text filter for Zürich inside a nested cell found 0 rows; \_json_text now keeps them as written; the test gained a city column and fails when the change is reverted
+- [x] `DEF-LOAD-57-ROOT-ESCAPE` **a path with .. reads a file outside the server root** - MAJOR; all five handlers join the client path to root_dir and resolve it with no containment test, so path ../x.csv serves a file above the contents root; routes.py
+  - evidence: pytest test_a_path_outside_the_contents_root_is_not_served: 404 on all five endpoints; DID NOT RAISE against routes.py of 2bb03f4; pytest 209 green
+  - root-cause: 2026-11-13T09:31:17Z @kj each handler joined the client path to root_dir and resolved it; nothing compared the result with the root
+  - repro: POST metadata with path ../outside_root.csv, file placed beside the root directory: 200 with its columns
+  - test-tags: UNIT
+  - log: 2026-11-13T09:21:41Z @kj added
+  - log: 2026-11-13T09:31:17Z @kj closed
+- [ ] `DEF-LOAD-63-LOOP-BLOCK` **a slow read freezes the whole Jupyter server** - MEDIUM; every handler reads, sorts and filters synchronously on the tornado IOLoop, so while a large csv or xlsx is first read no kernel message, terminal or other request is served; routes.py
+  - root-cause: 2026-11-13T09:31:18Z @kj handlers are synchronous tornado methods; the read, sort and filter run on the IOLoop thread
+  - repro: open a 100000-row xlsx and run a cell in a notebook during the read: the cell output waits until the grid appears
+  - test-tags: MANUAL
+  - log: 2026-11-13T09:21:42Z @kj added
+  - log: 2026-11-13T09:31:18Z @kj left open: an executor move needs each of five handlers split into compute and respond, over 150 lines; owner decides
 
 ## SQLite reader `SQLITE`
 
@@ -153,6 +166,13 @@ the five export formats and what each one writes
   - root-cause: 2026-09-14T23:21:35Z @kj str(timedelta) normalises a negative duration to a negative day count plus a positive time
   - log: 2026-09-14T23:21:35Z @kj added
   - log: 2026-09-14T23:21:35Z @kj closed: wontfix: str(timedelta) is Python's lossless standard form, and pandas wrote -1 days +23:55:00, which is no clearer; a formatter of its own at two sites for a rare value costs more than the reading gains
+- [x] `DEF-EXPORT-60-WRONG-VIEWER` **context menu Export exports the file opened last** - MAJOR; activeWidget is set only when a viewer is created, so with two files open right-click Export on the first one opens the export popup of the second and downloads its data; src/index.ts
+  - evidence: Galata 'should export the viewer the context menu was opened on' green: download named sample_data.csv with the database opened last; Galata 78 at 1.8.5
+  - root-cause: 2026-11-13T09:31:17Z @kj the widget factory set activeWidget once, at creation, and nothing set it when another viewer was right-clicked
+  - repro: open sample_data.parquet then sample_database.db, go back to the parquet tab, right-click the status bar, Export, CSV: the file is a table of the database
+  - test-tags: E2E
+  - log: 2026-11-13T09:21:42Z @kj added
+  - log: 2026-11-13T09:31:17Z @kj closed
 
 ## Excel reader `EXCEL`
 
@@ -289,6 +309,27 @@ sort, filter and statistics requests on an open table
   - log: 2026-09-14T23:40:27Z @kj added
   - log: 2026-09-14T23:40:28Z @kj closed: wontfix: nobody filtering integer ids or counts types a bound with 20 decimal places; capping the entry's scale correctly needs rounding in a direction chosen per operator, a branch no realistic entry needs
   - log: 2026-09-14T23:48:47Z @kj edited title and text
+- [x] `DEF-FILTER-58-MID-FETCH` **filter or sort made while a page loads is dropped** - MEDIUM; _loadData returns at once while a fetch is in flight, so a sort click, filter Enter or option toggle during Loading... changes the arrow and the filter count but the rows stay as they were; src/widget.ts
+  - evidence: Galata 'should apply a sort clicked while a page is loading' green: 500 rows, first age 18; _reloadPending runs one reset load after the fetch in flight; Galata 78 at 1.8.5
+  - root-cause: 2026-11-13T09:31:17Z @kj _loadData returns when _loading is true and nothing remembered the reset load that was asked for
+  - repro: scroll to the bottom of sample_data.parquet and click the age header while the status bar reads Loading...: arrow shows, rows stay in file order
+  - test-tags: E2E
+  - log: 2026-11-13T09:21:42Z @kj added
+  - log: 2026-11-13T09:31:17Z @kj closed
+- [x] `DEF-FILTER-59-REFRESH-BLANK` **refresh blanks the filter inputs and the sort arrow** - MEDIUM; a refresh rebuilds the header row with empty filter inputs and no sort arrow while the filters and the sort stay applied, so the grid is filtered with nothing showing by what; src/widget.ts _renderHeaders
+  - evidence: Galata 'should keep the filter text and the sort arrow across a refresh' green: rebuilt input holds >60, salary arrow shown; Galata 78 at 1.8.5
+  - root-cause: 2026-11-13T09:31:17Z @kj _renderHeaders creates each filter input and sort indicator empty and never reads _filters or _sortBy
+  - repro: filter age >60, sort by salary, change the file on disk, run docmanager:reload: input empty, arrow gone, 445 of 1500 rows shown
+  - test-tags: E2E
+  - log: 2026-11-13T09:21:42Z @kj added
+  - log: 2026-11-13T09:31:17Z @kj closed
+- [x] `DEF-FILTER-62-TWIN-BLOCK` **grid and export carry two copies of the filter code** - MINOR; ParquetDataHandler and DownloadHandler each hold the same 70-line filter block, so a fix in one leaves the other wrong, as DEF-EXPORT number filter did; routes.py
+  - evidence: one _apply_filters in routes.py, called by both handlers; routes.py 110 lines shorter; pytest 209 green, filter and export tests included
+  - root-cause: 2026-11-13T09:31:18Z @kj the export handler was written by copying the grid handler's filter block
+  - repro: diff the two filter blocks in routes.py at 2bb03f4: identical but for comments
+  - test-tags: UNIT
+  - log: 2026-11-13T09:21:42Z @kj added
+  - log: 2026-11-13T09:31:18Z @kj closed
 
 ## Column statistics `STATS`
 
@@ -455,3 +496,10 @@ Layout, scrolling and rendering of the table grid
   - root-cause: 2026-11-06T19:41:13Z @kj the header strip's wheel listener forwards the delta to the body but never calls preventDefault and does not skip Ctrl+wheel, so the browser still sees an unhandled horizontal wheel and a zoom gesture also scrolls
   - log: 2026-11-06T19:41:13Z @kj added
   - log: 2026-11-06T20:47:59Z @kj closed: fixed: header wheel skips Ctrl+wheel and calls preventDefault before forwarding
+- [x] `DEF-GRID-61-DEAD-LISTENER` **row mouseenter walks every row and changes nothing** - MINOR; each row's mouseenter removes the context-active class from every row only while the context menu is closed, when no row has it, so it costs one pass over all loaded rows per row entered; dispose also removes a scroll listener that was never added under that reference; src/widget.ts
+  - evidence: listener, _contextMenuOpen flag and the removeEventListener line deleted from src/widget.ts; context menu highlight tests in Galata 78 green at 1.8.5
+  - root-cause: 2026-11-13T09:31:18Z @kj context-active is set only while _contextMenuOpen is true and the listener acted only while it was false; the scroll listener is an arrow function, so removing this._onScroll removed nothing
+  - repro: load 20000 rows by scrolling, move the pointer down the grid: every row entered iterates 20000 rows
+  - test-tags: MANUAL
+  - log: 2026-11-13T09:21:42Z @kj added
+  - log: 2026-11-13T09:31:18Z @kj closed

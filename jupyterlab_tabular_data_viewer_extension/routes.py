@@ -289,6 +289,86 @@ def normalize_arrow_type(arrow_type_str):
     return type_map.get(arrow_type_str, arrow_type_str)
 
 
+def _contents_path(settings, file_path):
+    """Absolute path of a client path, or None when it lies outside the contents root.
+
+    Tested on the normalised path, not the resolved one: a symlink inside the
+    root may point outside it, as the contents manager itself allows.
+    """
+    contents_manager = settings.get("contents_manager")
+    root = os.path.abspath(contents_manager.root_dir if contents_manager else os.getcwd())
+    full_path = os.path.abspath(os.path.join(root, file_path.lstrip("/")))
+    if os.path.commonpath([root, full_path]) != root:
+        return None
+    return Path(full_path).resolve()
+
+
+def _apply_filters(table, filters, use_regex, case_insensitive):
+    """The rows of `table` matching every column filter. Grid and export share it."""
+    filter_expressions = []
+    for col_name, filter_spec in filters.items():
+        if col_name not in table.column_names:
+            continue
+
+        filter_type = filter_spec.get("type", "text")
+        filter_value = filter_spec.get("value", "")
+
+        if not filter_value:
+            continue
+
+        column = table.column(col_name)
+
+        if filter_type == "text":
+            # Text form shared with the grid and the filter dialog
+            column_str = column_as_text(column)
+
+            # Replace null values with "(null)" for consistent filtering
+            column_str = pc.fill_null(column_str, "(null)")
+
+            if use_regex:
+                try:
+                    filter_expressions.append(
+                        pc.match_substring_regex(
+                            column_str, filter_value, ignore_case=case_insensitive
+                        )
+                    )
+                    continue
+                except Exception:
+                    # An invalid regex falls back to substring matching
+                    pass
+            filter_expressions.append(
+                pc.match_substring(
+                    column_str, filter_value, ignore_case=case_insensitive
+                )
+            )
+        elif filter_type == "number":
+            operator = filter_spec.get("operator", "=")
+            try:
+                numeric_value = _numeric_scalar(filter_value, column.type)
+            except ValueError:
+                continue
+
+            kernel = {
+                ">": pc.greater,
+                "<": pc.less,
+                ">=": pc.greater_equal,
+                "<=": pc.less_equal,
+                "=": pc.equal,
+            }.get(operator)
+            if kernel is not None:
+                # Outside the try: the kernel's own refusal must not be
+                # mistaken for a non-numeric entry, or the filter silently
+                # matches every row.
+                filter_expressions.append(kernel(column, numeric_value))
+
+    if not filter_expressions:
+        return table
+    combined_filter = filter_expressions[0]
+    for expr in filter_expressions[1:]:
+        combined_filter = pc.and_(combined_filter, expr)
+    return table.filter(combined_filter)
+
+
 class ParquetMetadataHandler(APIHandler):
     """Handler for getting Parquet file metadata (columns, types, row count)"""
 
@@ -304,29 +384,16 @@ class ParquetMetadataHandler(APIHandler):
                 self.finish(json.dumps({"error": "No file path provided"}))
                 return
 
-            # Get the full path to the file using contents manager
-            contents_manager = self.settings.get("contents_manager")
-            if contents_manager:
-                root_dir = contents_manager.root_dir
-            else:
-                root_dir = os.getcwd()
-
             self.log.info(f"Processing request for: {file_path}")
-            self.log.debug(f"Root dir: {root_dir}")
 
-            full_path = os.path.join(root_dir, file_path.lstrip("/"))
-            abs_path = Path(full_path).resolve()
+            abs_path = _contents_path(self.settings, file_path)
 
-            self.log.debug(f"Full path: {full_path}")
-            self.log.debug(f"Resolved path: {abs_path}")
-            self.log.debug(f"File exists: {abs_path.exists()}")
-
-            if not abs_path.exists():
+            if abs_path is None or not abs_path.exists():
                 self.set_status(404)
                 self.finish(
                     json.dumps(
                         {
-                            "error": f"File not found: {file_path} (resolved to {abs_path})"
+                            "error": f"File not found: {file_path}"
                         }
                     )
                 )
@@ -443,31 +510,18 @@ class ParquetDataHandler(APIHandler):
                 self.finish(json.dumps({"error": "No file path provided"}))
                 return
 
-            # Get the full path to the file using contents manager
-            contents_manager = self.settings.get("contents_manager")
-            if contents_manager:
-                root_dir = contents_manager.root_dir
-            else:
-                root_dir = os.getcwd()
-
             self.log.info(
                 f"Data request for: {file_path} (offset={offset}, limit={limit})"
             )
-            self.log.debug(f"Root dir: {root_dir}")
 
-            full_path = os.path.join(root_dir, file_path.lstrip("/"))
-            abs_path = Path(full_path).resolve()
+            abs_path = _contents_path(self.settings, file_path)
 
-            self.log.debug(f"Full path: {full_path}")
-            self.log.debug(f"Resolved path: {abs_path}")
-            self.log.debug(f"File exists: {abs_path.exists()}")
-
-            if not abs_path.exists():
+            if abs_path is None or not abs_path.exists():
                 self.set_status(404)
                 self.finish(
                     json.dumps(
                         {
-                            "error": f"File not found: {file_path} (resolved to {abs_path})"
+                            "error": f"File not found: {file_path}"
                         }
                     )
                 )
@@ -491,79 +545,8 @@ class ParquetDataHandler(APIHandler):
             original_indices = pa.array(range(1, len(table) + 1))
             table = table.append_column("__original_row_index__", original_indices)
 
-            # Apply filters if provided
             if filters:
-                filter_expressions = []
-                for col_name, filter_spec in filters.items():
-                    if col_name not in table.column_names:
-                        continue
-
-                    filter_type = filter_spec.get("type", "text")
-                    filter_value = filter_spec.get("value", "")
-
-                    if not filter_value:
-                        continue
-
-                    column = table.column(col_name)
-
-                    if filter_type == "text":
-                        # Text form shared with the grid and the filter dialog
-                        column_str = column_as_text(column)
-
-                        # Replace null values with "(null)" for consistent filtering
-                        column_str = pc.fill_null(column_str, "(null)")
-
-                        if use_regex:
-                            # Use regex matching when enabled
-                            try:
-                                filter_expressions.append(
-                                    pc.match_substring_regex(
-                                        column_str,
-                                        filter_value,
-                                        ignore_case=case_insensitive,
-                                    )
-                                )
-                            except Exception:
-                                # Fall back to simple substring matching if regex is invalid
-                                filter_expressions.append(
-                                    pc.match_substring(
-                                        column_str,
-                                        filter_value,
-                                        ignore_case=case_insensitive,
-                                    )
-                                )
-                        else:
-                            # Use simple substring matching by default
-                            filter_expressions.append(
-                                pc.match_substring(
-                                    column_str,
-                                    filter_value,
-                                    ignore_case=case_insensitive,
-                                )
-                            )
-                    elif filter_type == "number":
-                        operator = filter_spec.get("operator", "=")
-                        try:
-                            numeric_value = _numeric_scalar(filter_value, column.type)
-                        except ValueError:
-                            continue
-
-                        kernel = {
-                            ">": pc.greater,
-                            "<": pc.less,
-                            ">=": pc.greater_equal,
-                            "<=": pc.less_equal,
-                            "=": pc.equal,
-                        }.get(operator)
-                        if kernel is not None:
-                            filter_expressions.append(kernel(column, numeric_value))
-
-                if filter_expressions:
-                    combined_filter = filter_expressions[0]
-                    for expr in filter_expressions[1:]:
-                        combined_filter = pc.and_(combined_filter, expr)
-
-                    table = table.filter(combined_filter)
+                table = _apply_filters(table, filters, use_regex, case_insensitive)
 
             # Apply sorting if requested
             if sort_by and sort_by in table.column_names:
@@ -643,21 +626,13 @@ class ColumnStatsHandler(APIHandler):
                 self.finish(json.dumps({"error": "No column name provided"}))
                 return
 
-            # Get the full path to the file using contents manager
-            contents_manager = self.settings.get("contents_manager")
-            if contents_manager:
-                root_dir = contents_manager.root_dir
-            else:
-                root_dir = os.getcwd()
-
             self.log.info(
                 f"Stats request for column '{column_name}' in file: {file_path}"
             )
 
-            full_path = os.path.join(root_dir, file_path.lstrip("/"))
-            abs_path = Path(full_path).resolve()
+            abs_path = _contents_path(self.settings, file_path)
 
-            if not abs_path.exists():
+            if abs_path is None or not abs_path.exists():
                 self.set_status(404)
                 self.finish(json.dumps({"error": f"File not found: {file_path}"}))
                 return
@@ -709,21 +684,13 @@ class UniqueValuesHandler(APIHandler):
                 self.finish(json.dumps({"error": "No column name provided"}))
                 return
 
-            # Get the full path to the file using contents manager
-            contents_manager = self.settings.get("contents_manager")
-            if contents_manager:
-                root_dir = contents_manager.root_dir
-            else:
-                root_dir = os.getcwd()
-
             self.log.info(
                 f"Unique values request for column '{column_name}' in file: {file_path}"
             )
 
-            full_path = os.path.join(root_dir, file_path.lstrip("/"))
-            abs_path = Path(full_path).resolve()
+            abs_path = _contents_path(self.settings, file_path)
 
-            if not abs_path.exists():
+            if abs_path is None or not abs_path.exists():
                 self.set_status(404)
                 self.finish(json.dumps({"error": f"File not found: {file_path}"}))
                 return
@@ -825,17 +792,9 @@ class DownloadHandler(APIHandler):
                 self.finish("No file path provided")
                 return
 
-            # Get the full path to the file using contents manager
-            contents_manager = self.settings.get("contents_manager")
-            if contents_manager:
-                root_dir = contents_manager.root_dir
-            else:
-                root_dir = os.getcwd()
+            abs_path = _contents_path(self.settings, file_path)
 
-            full_path = os.path.join(root_dir, file_path.lstrip("/"))
-            abs_path = Path(full_path).resolve()
-
-            if not abs_path.exists():
+            if abs_path is None or not abs_path.exists():
                 self.set_status(404)
                 self.finish(f"File not found: {file_path}")
                 return
@@ -880,77 +839,8 @@ class DownloadHandler(APIHandler):
                 self.finish(str(e))
                 return
 
-            # Apply filters if provided (same logic as ParquetDataHandler)
             if filters:
-                filter_expressions = []
-                for col_name, filter_spec in filters.items():
-                    if col_name not in table.column_names:
-                        continue
-
-                    filter_type = filter_spec.get("type", "text")
-                    filter_value = filter_spec.get("value", "")
-
-                    if not filter_value:
-                        continue
-
-                    column = table.column(col_name)
-
-                    if filter_type == "text":
-                        column_str = column_as_text(column)
-                        column_str = pc.fill_null(column_str, "(null)")
-
-                        if use_regex:
-                            try:
-                                filter_expressions.append(
-                                    pc.match_substring_regex(
-                                        column_str,
-                                        filter_value,
-                                        ignore_case=case_insensitive,
-                                    )
-                                )
-                            except Exception:
-                                filter_expressions.append(
-                                    pc.match_substring(
-                                        column_str,
-                                        filter_value,
-                                        ignore_case=case_insensitive,
-                                    )
-                                )
-                        else:
-                            filter_expressions.append(
-                                pc.match_substring(
-                                    column_str,
-                                    filter_value,
-                                    ignore_case=case_insensitive,
-                                )
-                            )
-                    elif filter_type == "number":
-                        operator = filter_spec.get("operator", "=")
-                        try:
-                            numeric_value = _numeric_scalar(filter_value, column.type)
-                        except ValueError:
-                            continue
-
-                        kernel = {
-                            ">": pc.greater,
-                            "<": pc.less,
-                            ">=": pc.greater_equal,
-                            "<=": pc.less_equal,
-                            "=": pc.equal,
-                        }.get(operator)
-                        if kernel is not None:
-                            # Same reasoning as the grid handler: the kernel's
-                            # own refusal must not be mistaken for a
-                            # non-numeric entry, or the download ships the whole
-                            # table under a `_filtered` filename.
-                            filter_expressions.append(kernel(column, numeric_value))
-
-                if filter_expressions:
-                    combined_filter = filter_expressions[0]
-                    for expr in filter_expressions[1:]:
-                        combined_filter = pc.and_(combined_filter, expr)
-
-                    table = table.filter(combined_filter)
+                table = _apply_filters(table, filters, use_regex, case_insensitive)
 
             # Apply sorting if requested
             if sort_by and sort_by in table.column_names:

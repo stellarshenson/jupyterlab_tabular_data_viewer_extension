@@ -134,8 +134,12 @@ class TabularDataWidgetFactory extends ABCWidgetFactory<
       });
     });
 
-    // Track this as the active widget when context menu is used
+    // Track the viewer the context menu was opened on. Set at creation too,
+    // so the command is enabled before the first right-click.
     this._setActiveWidget(content);
+    content.node.addEventListener('contextmenu', () =>
+      this._setActiveWidget(content)
+    );
 
     return widget;
   }

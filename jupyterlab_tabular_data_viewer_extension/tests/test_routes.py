@@ -4670,3 +4670,31 @@ def test_constant_column_gets_a_single_histogram_bin():
     stats = calculate_column_stats(table, "v")
 
     assert stats["histogram"]["bins"] == [{"label": "5", "count": 3}]
+
+
+async def test_a_path_outside_the_contents_root_is_not_served(jp_fetch, jp_root_dir):
+    """`..` segments must not reach a file above the server's root directory."""
+    from tornado.httpclient import HTTPClientError
+
+    outside = jp_root_dir.parent / "outside_root.csv"
+    outside.write_text("a,b\n1,2\n")
+    escaped = f"../{outside.name}"
+
+    for endpoint, body in (
+        ("metadata", {"path": escaped}),
+        ("data", {"path": escaped}),
+        ("column-stats", {"path": escaped, "columnName": "a"}),
+        ("unique-values", {"path": escaped, "columnName": "a"}),
+    ):
+        with pytest.raises(HTTPClientError) as excinfo:
+            await jp_fetch(
+                "jupyterlab-tabular-data-viewer-extension",
+                endpoint,
+                method="POST",
+                body=json.dumps(body),
+            )
+        assert excinfo.value.code == 404, endpoint
+
+    with pytest.raises(HTTPClientError) as excinfo:
+        await _download(jp_fetch, path=escaped, format="csv")
+    assert excinfo.value.code == 404
