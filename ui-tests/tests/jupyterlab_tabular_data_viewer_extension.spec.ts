@@ -508,6 +508,48 @@ test.describe('Tabular Data Viewer Extension', () => {
     ).toHaveText('orders');
   });
 
+  test('should keep the headers of the table clicked last when the metadata of an earlier one arrives late', async ({
+    page
+  }) => {
+    const viewer = await openInViewer(page, 'sample_database.db');
+    await expect(gridRows(viewer)).toHaveCount(4, { timeout: GRID_TIMEOUT });
+
+    // The server answers out of arrival order: hold the metadata of orders
+    let release = () => {};
+    const held = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    await page.route(/\/metadata(?:\?|$)/, async route => {
+      if (route.request().postDataJSON()?.sheet === 'orders') {
+        await held;
+      }
+      await route.continue();
+    });
+
+    await sheetTab(viewer, 'orders').click();
+    await sheetTab(viewer, 'customers').click();
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+
+    // The load of orders asks for the data again once its metadata is in
+    const reload = page.waitForResponse(/\/data(?:\?|$)/, {
+      timeout: GRID_TIMEOUT
+    });
+    release();
+    await reload;
+
+    // The late answer used to put the headers of orders over these rows
+    expect(await columnNames(viewer)).toEqual([
+      'customer_id',
+      'name',
+      'city',
+      'signup_date',
+      'lifetime_value',
+      'orders_count'
+    ]);
+    await expect(gridRows(viewer)).toHaveCount(12, { timeout: GRID_TIMEOUT });
+    await expect(gridRows(viewer).first()).toContainText('Ada Lovelace');
+  });
+
   test('should reset filters when switching tables', async ({ page }) => {
     const viewer = await openInViewer(page, 'sample_database.db');
     await expect(gridRows(viewer)).toHaveCount(4, { timeout: GRID_TIMEOUT });

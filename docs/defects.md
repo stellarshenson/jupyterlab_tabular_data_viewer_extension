@@ -65,6 +65,28 @@ how a file reaches the viewer - document model, content fetch, file type registr
   - log: 2026-11-13T09:31:18Z @kj left open: an executor move needs each of five handlers split into compute and respond, over 150 lines; owner decides
   - log: 2026-11-16T05:54:50Z @kj closed
   - log: 2026-11-16T05:54:50Z @kj edited test-tags "MANUAL" -> "UNIT, MANUAL"
+- [x] `DEF-LOAD-66-LATE-METADATA` **headers of one table over the rows of another after two tab clicks** - MEDIUM; click table A, then B before A's metadata answer arrives: A's answer comes after B's and its headers replace B's over B's rows; the server answers out of arrival order since routes._off_loop; fix: _loadMetadata drops an answer whose sheet is no longer active; `src/widget.ts`
+  - evidence: Galata 'should keep the headers of the table clicked last when the metadata of an earlier one arrives late' passes; with the guard removed from the built bundle it fails with the headers of orders; Galata 79, pytest 211, Jest 1 pass
+  - related: DEF-LOAD-63-LOOP-BLOCK - the fix that let answers arrive out of order
+  - repro: open a database with a slow table, click its tab, click another tab during the read: headers of the first, rows of the second
+  - test-tags: E2E
+  - root-cause: 2026-11-16T06:30:53Z @kj _loadMetadata applied every metadata answer to the widget, whichever sheet was active when it arrived; before routes._off_loop the server answered in arrival order, so the last request was the last answer
+  - log: 2026-11-16T06:30:53Z @kj added
+  - log: 2026-11-16T06:41:16Z @kj closed: fixed: _loadMetadata returns when the active sheet changed during the request
+- [x] `DEF-LOAD-67-LOCK-SCOPE` **criterion does not state that one lock covers every file** - MINOR; readers._READ_LOCK is one lock for every file, so the first read of a second file waits for a first read in progress; ACC-READER-79-LOOP-FREE did not say so; fix: clause added to the criterion, lock unchanged; `docs/acc-crit-jupyterlab_tabular_data_viewer_extension.md`
+  - evidence: ACC-READER-79-LOOP-FREE reads 'the first read of a second file waits for a first read in progress'; pm-tools check docs: 0 errors
+  - repro: read ACC-READER-79-LOOP-FREE: no word on a second file opened during a slow first read
+  - test-tags: MANUAL
+  - root-cause: 2026-11-16T06:30:53Z @kj the criterion was written with the fix for DEF-LOAD-63-LOOP-BLOCK and listed what the lock gives, not what it costs
+  - log: 2026-11-16T06:30:53Z @kj added
+  - log: 2026-11-16T06:41:16Z @kj closed: fixed: clause added to ACC-READER-79-LOOP-FREE
+- [x] `DEF-LOAD-68-FIFO-COMMENT` **comment in sniff_file_type says a blocked open stops the Tornado IOLoop** - MINOR; false since the five handlers run off the loop with routes._off_loop: a blocked open holds one handler thread; fix: the parenthetical is deleted, the os.path.isfile guard stays; `jupyterlab_tabular_data_viewer_extension/readers.py`
+  - evidence: readers.py sniff_file_type comment names the handler only; test_sniff_does_not_block_on_fifo passes; pytest 211 pass
+  - repro: read readers.py sniff_file_type: the comment names the IOLoop
+  - test-tags: UNIT
+  - root-cause: 2026-11-16T06:30:54Z @kj the change for DEF-LOAD-63-LOOP-BLOCK rewrote the comment on _CACHE_LOCK and missed this one
+  - log: 2026-11-16T06:30:54Z @kj added
+  - log: 2026-11-16T06:41:16Z @kj closed: fixed: parenthetical deleted
 
 ## SQLite reader `SQLITE`
 

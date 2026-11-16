@@ -506,10 +506,15 @@ export class TabularDataViewer extends Widget {
       body.sheet = this._activeSheet;
     }
 
+    const sheet = this._activeSheet;
     const response = await requestAPI<any>('metadata', {
       method: 'POST',
       body: JSON.stringify(body)
     });
+    // The server answers requests out of arrival order: drop a late answer
+    if (this._activeSheet !== sheet) {
+      return;
+    }
 
     this._columns = response.columns;
     this._totalRows = response.totalRows;

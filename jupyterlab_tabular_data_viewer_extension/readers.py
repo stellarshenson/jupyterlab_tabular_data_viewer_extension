@@ -66,7 +66,7 @@ _MAGIC = [
 def sniff_file_type(file_path):
     """Identify by magic header, as file(1) does. None when unrecognised."""
     # Guard the open: a FIFO in the notebook tree would otherwise block the
-    # handler (and the Tornado IOLoop with it) until a writer appeared.
+    # handler until a writer appeared.
     if not os.path.isfile(file_path):
         return None
     try:
