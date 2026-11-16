@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.8.7] - 2026-11-16
+
+### Fixed
+
+- Store a number filter only when the server applies it, take only the sorted page
+- Keep paths inside the root, export the clicked viewer, keep mid-fetch filters
+
 ## [1.8.4] - 2026-11-09
 
 ### Changed
