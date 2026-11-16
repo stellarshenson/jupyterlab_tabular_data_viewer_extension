@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.8.10] - 2026-11-16
+
+### Fixed
+
+- Drop a late metadata answer so the headers match the table clicked last
+- Run the handlers off the event loop so a slow read does not stop the server
+
 ## [1.8.7] - 2026-11-16
 
 ### Fixed
