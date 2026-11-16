@@ -854,10 +854,15 @@ _CACHE_MAX_BYTES = 256 * 1024 * 1024
 _CACHE = OrderedDict()
 _CACHE_BYTES = 0
 
-# Handlers are synchronous, so today they run one at a time on the IOLoop
-# thread. The lock costs nothing measurable and means the cache does not
-# silently corrupt if a handler is ever moved onto an executor.
+# Each handler runs in its own thread (`routes._off_loop`), so requests reach
+# the cache at the same time. This lock guards every change to it.
 _CACHE_LOCK = threading.Lock()
+
+# One file read at a time. Two requests for a table that is not cached yet
+# would otherwise both read the whole file; the second waits here and takes
+# the first one's table from the cache.
+# shortcut: the first read of one file waits for the first read of another, per-key locks when two slow files must open at once
+_READ_LOCK = threading.Lock()
 
 
 def _cache_key(file_path, sheet):
@@ -1035,6 +1040,11 @@ def read_as_arrow_table(file_path, sheet=None):
     if cached is not None:
         return cached
 
-    table = _read_uncached(file_path, sheet)
-    _cache_put(key, table)
+    with _READ_LOCK:
+        # A request that waited for the lock finds the table the holder read
+        cached = _cache_get(key)
+        if cached is not None:
+            return cached
+        table = _read_uncached(file_path, sheet)
+        _cache_put(key, table)
     return table

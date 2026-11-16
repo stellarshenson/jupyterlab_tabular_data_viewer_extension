@@ -4698,3 +4698,90 @@ async def test_a_path_outside_the_contents_root_is_not_served(jp_fetch, jp_root_
     with pytest.raises(HTTPClientError) as excinfo:
         await _download(jp_fetch, path=escaped, format="csv")
     assert excinfo.value.code == 404
+
+
+async def test_a_slow_read_leaves_the_event_loop_free(jp_fetch, jp_root_dir, monkeypatch):
+    """DEF-LOAD-63: each handler reads in a thread, so the IOLoop keeps serving.
+
+    The stand-in reader waits for a flag that only a task on the event loop
+    sets. A handler that reads on the loop thread stops that task, the wait
+    times out and the reader records False.
+    """
+    import asyncio
+    import threading
+
+    import pyarrow as pa
+
+    from jupyterlab_tabular_data_viewer_extension import routes
+
+    (jp_root_dir / "slow.csv").write_text("a\n1\n")
+    started, loop_ran, seen = threading.Event(), threading.Event(), []
+
+    def slow_read(file_path, sheet=None):
+        started.set()
+        seen.append(loop_ran.wait(5))
+        return pa.table({"a": [1]})
+
+    async def run_on_the_loop():
+        while not started.is_set():
+            await asyncio.sleep(0.01)
+        loop_ran.set()
+
+    monkeypatch.setattr(routes, "read_as_arrow_table", slow_read)
+    column = {"path": "slow.csv", "columnName": "a"}
+    for endpoint, body in (
+        ("metadata", {"path": "slow.csv"}),
+        ("data", {"path": "slow.csv"}),
+        ("column-stats", column),
+        ("unique-values", column),
+        ("download", None),
+    ):
+        started.clear()
+        loop_ran.clear()
+        task = asyncio.ensure_future(run_on_the_loop())
+        if body is None:
+            response, _, _ = await _download(jp_fetch, path="slow.csv", format="csv")
+        else:
+            response = await jp_fetch(
+                "jupyterlab-tabular-data-viewer-extension",
+                endpoint,
+                method="POST",
+                body=json.dumps(body),
+            )
+        await task
+        assert response.code == 200, endpoint
+        assert seen.pop() is True, f"{endpoint} read on the IOLoop thread"
+
+
+def test_requests_for_one_uncached_table_read_the_file_once(tmp_path, monkeypatch):
+    """Handlers run in threads: a second request waits for the first one's read."""
+    import threading
+    import time
+
+    from jupyterlab_tabular_data_viewer_extension import readers
+
+    readers._cache_clear()
+    target = tmp_path / "once.csv"
+    target.write_text("a\n1\n")
+    read, reads = readers._read_uncached, []
+
+    def slow_read(file_path, sheet):
+        reads.append(file_path)
+        time.sleep(0.2)
+        return read(file_path, sheet)
+
+    monkeypatch.setattr(readers, "_read_uncached", slow_read)
+    tables = []
+    workers = [
+        threading.Thread(
+            target=lambda: tables.append(readers.read_as_arrow_table(str(target)))
+        )
+        for _ in range(2)
+    ]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join(10)
+
+    assert len(reads) == 1, "two requests each read the whole file"
+    assert len(tables) == 2 and tables[0] is tables[1]

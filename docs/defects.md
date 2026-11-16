@@ -55,12 +55,16 @@ how a file reaches the viewer - document model, content fetch, file type registr
   - test-tags: UNIT
   - log: 2026-11-13T09:21:41Z @kj added
   - log: 2026-11-13T09:31:17Z @kj closed
-- [ ] `DEF-LOAD-63-LOOP-BLOCK` **a slow read freezes the whole Jupyter server** - MEDIUM; every handler reads, sorts and filters synchronously on the tornado IOLoop, so while a large csv or xlsx is first read no kernel message, terminal or other request is served; routes.py
+- [x] `DEF-LOAD-63-LOOP-BLOCK` **a slow read freezes the whole Jupyter server** - MEDIUM; every handler reads, sorts and filters synchronously on the tornado IOLoop, so while a large csv or xlsx is first read no kernel message, terminal or other request is served; routes.py
+  - evidence: routes._off_loop runs each handler method in a thread and sends finish from the loop; readers._READ_LOCK reads an uncached table once; test_a_slow_read_leaves_the_event_loop_free and test_requests_for_one_uncached_table_read_the_file_once fail without the fix; 211 pytest pass
+  - root-cause: 2026-11-16T05:54:50Z @kj the five handlers are synchronous tornado methods, so read, sort, filter and export run on the IOLoop thread; the table cache was written for one request at a time
   - root-cause: 2026-11-13T09:31:18Z @kj handlers are synchronous tornado methods; the read, sort and filter run on the IOLoop thread
   - repro: open a 100000-row xlsx and run a cell in a notebook during the read: the cell output waits until the grid appears
-  - test-tags: MANUAL
+  - test-tags: UNIT, MANUAL
   - log: 2026-11-13T09:21:42Z @kj added
   - log: 2026-11-13T09:31:18Z @kj left open: an executor move needs each of five handlers split into compute and respond, over 150 lines; owner decides
+  - log: 2026-11-16T05:54:50Z @kj closed
+  - log: 2026-11-16T05:54:50Z @kj edited test-tags "MANUAL" -> "UNIT, MANUAL"
 
 ## SQLite reader `SQLITE`
 

@@ -301,6 +301,13 @@ Three engines: pyarrow reads parquet, openpyxl reads an .xlsx worksheet and pola
   - log: 2026-08-10T00:00:00Z @kj criterion added after measuring that polars' default calamine engine requires fastexcel, roughly 30 MB
   - log: 2026-08-10T00:00:00Z @kj closed: `engine="openpyxl"` reads every fixture including the mixed sheet, and sheet names come straight from openpyxl in read_only mode rather than through polars, which would have to read the sheets to list them. The swap adds polars and xlsxwriter, the latter being what polars writes .xlsx through
   - log: 2026-09-14T20:20:38Z @kj edited importance
+- [x] `ACC-READER-79-LOOP-FREE` **A slow read leaves the server responsive** - HIGH; metadata, data, column-stats, unique-values and download run off the tornado IOLoop; while a file is read, sorted, filtered or exported, kernels, terminals and other requests are served; two requests for one uncached table read the file once
+  - evidence: test_a_slow_read_leaves_the_event_loop_free covers the five endpoints, test_requests_for_one_uncached_table_read_the_file_once the single read; both fail without the fix; 211 pytest pass
+  - test: pytest -k 'slow_read_leaves_the_event_loop_free or read_the_file_once'
+  - test-tags: UNIT
+  - mechanism: 2026-11-16T05:54:50Z @kj routes._off_loop runs the handler method with asyncio.to_thread and sends its finish call from the loop; readers._READ_LOCK lets one request read while the others wait for the cached table
+  - log: 2026-11-16T05:54:50Z @kj added
+  - log: 2026-11-16T05:55:02Z @kj closed
 
 ## Document tab `TAB`
 

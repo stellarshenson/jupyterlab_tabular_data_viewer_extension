@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import json
 import math
 import os
@@ -369,10 +371,38 @@ def _apply_filters(table, filters, use_regex, case_insensitive):
     return table.filter(combined_filter)
 
 
+def _off_loop(method):
+    """Run a synchronous handler method in a thread, off the tornado IOLoop.
+
+    The handlers read, sort, filter and export whole tables. On the IOLoop
+    thread that stopped every kernel message, terminal and other request until
+    the response was ready (DEF-LOAD-63).
+
+    In the thread the method still calls set_status, set_header and write,
+    which only change this handler's own state. finish writes to the
+    connection, which only the IOLoop thread may do, so a call made in the
+    thread is held and sent from the loop once the method has returned.
+    """
+
+    @functools.wraps(method)
+    async def wrapper(self, *args, **kwargs):
+        held = []
+        self.finish = lambda *a, **kw: held.append((a, kw))
+        try:
+            await asyncio.to_thread(method, self, *args, **kwargs)
+        finally:
+            del self.finish
+        for a, kw in held:
+            self.finish(*a, **kw)
+
+    return wrapper
+
+
 class ParquetMetadataHandler(APIHandler):
     """Handler for getting Parquet file metadata (columns, types, row count)"""
 
     @tornado.web.authenticated
+    @_off_loop
     def post(self):
         try:
             input_data = self.get_json_body()
@@ -492,6 +522,7 @@ class ParquetDataHandler(APIHandler):
     """Handler for reading Parquet file data with pagination and filtering"""
 
     @tornado.web.authenticated
+    @_off_loop
     def post(self):
         try:
             input_data = self.get_json_body()
@@ -608,6 +639,7 @@ class ColumnStatsHandler(APIHandler):
     """Handler for calculating column statistics"""
 
     @tornado.web.authenticated
+    @_off_loop
     def post(self):
         try:
             input_data = self.get_json_body()
@@ -666,6 +698,7 @@ class UniqueValuesHandler(APIHandler):
     """Handler for fetching unique values from a column"""
 
     @tornado.web.authenticated
+    @_off_loop
     def post(self):
         try:
             input_data = self.get_json_body()
@@ -771,6 +804,7 @@ class DownloadHandler(APIHandler):
     """Handler for downloading filtered and sorted data in specified format"""
 
     @tornado.web.authenticated
+    @_off_loop
     def get(self):
         try:
             file_path = self.get_argument("path", "")
